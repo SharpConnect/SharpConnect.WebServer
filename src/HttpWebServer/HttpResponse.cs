@@ -212,7 +212,7 @@ namespace SharpConnect.WebServer
             get;
             set;
         }
-        internal ResponseTransferEncoding TransferEncoding
+        public ResponseTransferEncoding TransferEncoding
         {
             get;
             set;
@@ -267,11 +267,11 @@ namespace SharpConnect.WebServer
                     return "text/plain";
                 default:
                     throw new NotSupportedException();
-            } 
+            }
         }
 
         static void HeaderAppendConnectionType(StringBuilder headerStBuilder, bool keepAlive)
-        {   
+        {
             if (keepAlive)
                 headerStBuilder.Append("Connection: keep-alive\r\n");
             else
