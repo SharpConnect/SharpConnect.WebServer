@@ -43,9 +43,12 @@ namespace SharpConnect.WebServer
             }
             return bufferMan;
         }
-        internal override ConnectionSession CreatePrebuiltReadWriteSession(SocketAsyncEventArgs e)
+        internal override SocketConnection CreatePrebuiltReadWriteSession(SocketAsyncEventArgs recvSendArgs)
         {
-            return new HttpConnectionSession(RequestHandler, e, RecvBufferSize, SendBufferSize);
+            SocketConnection socketConnection = new SocketConnection(recvSendArgs, RecvBufferSize, SendBufferSize);
+            HttpConnectionSession httpConnSession = new HttpConnectionSession(RequestHandler);
+            httpConnSession.Bind(socketConnection);//2 ways bind 
+            return socketConnection;
         }
     }
 

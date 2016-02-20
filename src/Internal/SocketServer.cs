@@ -38,20 +38,19 @@ namespace SharpConnect.Internal
             }
 
 #endif
-            this.NumberOfAcceptedSockets = 0; //for testing
+            this.NumberOfActiveRecvSendConnSession = 0; //for testing
             //Allocate memory for buffers. We are using a separate buffer space for
             //receive and send, instead of sharing the buffer space, like the Microsoft
             //example does.            
 
             this.bufferMx = setting.CreateBufferManager();
-            this.recvSendArgPool = new SocketAsyncEventArgsPool(this.setting.NumberOfSaeaForRecvSend);
-            this.acceptArgsPool = new SocketAsyncEventArgsPool(this.setting.MaxAcceptOps);
+            this.recvSendArgPool = new SharedResoucePool<SocketConnection>(this.setting.NumberOfSaeaForRecvSend);
+            this.acceptArgsPool = new SharedResoucePool<SocketAsyncEventArgs>(this.setting.MaxAcceptOps);
 
             // Create connections count enforcer
             this.maxConnEnforcer = new Semaphore(this.setting.MaxConnections, this.setting.MaxConnections);
 
-            //Microsoft's example called these from Main method, which you 
-            //can easily do if you wish.
+
             InitPools();
             InitListenSocket();
             StartAccept();
@@ -60,7 +59,7 @@ namespace SharpConnect.Internal
         {
             //It is NOT mandatory that you preallocate them or reuse them. But, but it is 
             //done this way to illustrate how the API can 
-            // easily be used to create reusable objects to increase server performance.
+            // easily be used to create ***reusable*** objects to increase server performance.
 
 #if DEBUG
             if (dbugLOG.watchProgramFlow)   //for testing
@@ -79,10 +78,10 @@ namespace SharpConnect.Internal
             // preallocate pool of SocketAsyncEventArgs objects for accept operations           
             for (int i = this.setting.MaxAcceptOps - 1; i >= 0; --i)
             {
-                // add SocketAsyncEventArg to the pool
-                this.acceptArgsPool.Push(CreateSocketAsyncEventArgsForAccept(acceptArgsPool));
+                // add SocketAsyncEventArg to the pool                 
+                this.acceptArgsPool.Push(CreateSocketAsyncEventArgsForAccept());
             }
-
+            //------------------------------------------------------------------------------
             //The pool that we built ABOVE is for SocketAsyncEventArgs objects that do
             // accept operations. 
             //Now we will build a separate pool for SAEAs objects 
@@ -100,6 +99,8 @@ namespace SharpConnect.Internal
 
 #endif
 
+            //------------------------------------------------------------------
+            //connection session: socket async = 1:1
             for (int i = this.setting.NumberOfSaeaForRecvSend - 1; i >= 0; --i)
             {
                 //Allocate the SocketAsyncEventArgs object for this loop, 
@@ -109,12 +110,11 @@ namespace SharpConnect.Internal
                 //set buffer for newly created saArgs
                 this.bufferMx.SetBufferTo(recvSendArg);
                 //We can store data in the UserToken property of SAEA object. 
-                //var connSession = new CustomSocketReadWriteSession(recvSendArg, this.setting.BufferSize);
-                var connSession = setting.CreatePrebuiltReadWriteSession(recvSendArg);
-                connSession.SetSocketServer(this);
+                SocketConnection connSession = setting.CreatePrebuiltReadWriteSession(recvSendArg);
+                connSession.SetConnectionSesssionClosedHandler(ConnectionSessionClosed);
 
 #if DEBUG
-                connSession.dbugSetInfo(recvSendArgPool.GetNewTokenId() + 1000000);
+                connSession.dbugSetInfo(recvSendArgPool.dbugGetNewTokenId() + 1000000);
 #endif
 
                 //We'll have an object that we call DataHolder, that we can remove from
@@ -123,12 +123,61 @@ namespace SharpConnect.Internal
                 recvSendArg.UserToken = connSession;
 
                 // add this SocketAsyncEventArg object to the pool.
-                this.recvSendArgPool.Push(recvSendArg);
+                this.recvSendArgPool.Push(connSession);
             }
         }
+        void ConnectionSessionClosed(SocketConnection connSession)
+        {
+            //return recvSendArgs back to server   
+            SocketAsyncEventArgs recvSendArg = connSession.GetAsyncSocketEventArgs();
+#if DEBUG
 
+            dbugSendLog(connSession, "CloseClientSocket");
+            if (dbugLOG.watchThreads)   //for testing
+            {
 
+                dbugDealWithThreadsForTesting("CloseClientSocket()", connSession);
+            }
 
+#endif
+            // do a shutdown before you close the socket
+            try
+            {
+                dbugSendLog(connSession, "CloseClietSocket,Shutdown");
+                recvSendArg.AcceptSocket.Shutdown(SocketShutdown.Both);
+            }
+            // throws if socket was already closed
+            catch (Exception)
+            {
+                dbugSendLog(connSession, "CloseClientSocket, Shutdown catch");
+            }
+
+            //This method closes the socket and releases all resources, both
+            //managed and unmanaged. It internally calls Dispose.
+            recvSendArg.AcceptSocket.Close();
+            // Put the SocketAsyncEventArg back into the pool,
+            // to be used by another client. This 
+            this.recvSendArgPool.Push(connSession);
+
+            // decrement the counter keeping track of the total number of clients 
+            //connected to the server, for testing
+            Interlocked.Decrement(ref this.NumberOfActiveRecvSendConnSession);
+#if DEBUG
+
+            if (dbugLOG.watchConnectAndDisconnect)   //for testing
+            {
+
+                dbugLOG.WriteLine(connSession.dbugTokenId + " disconnected. "
+                    + this.NumberOfActiveRecvSendConnSession + " client(s) connected.");
+            }
+
+#endif
+            //Release Semaphore so that its connection counter will be decremented.
+            //This must be done AFTER putting the SocketAsyncEventArg back into the pool,
+            //or you can run into problems.
+            this.maxConnEnforcer.Release();
+
+        }
         void CleanUpOnExit()
         {
             DisposePools();
@@ -143,13 +192,13 @@ namespace SharpConnect.Internal
             }
             while (this.recvSendArgPool.Count > 0)
             {
-                eventArgs = recvSendArgPool.Pop();
-                eventArgs.Dispose();
+                SocketConnection conn = recvSendArgPool.Pop();
+                conn.Dispose();
             }
         }
 
         //total clients connected to the server, excluding backlog
-        internal int NumberOfAcceptedSockets;
+        internal int NumberOfActiveRecvSendConnSession;
 
 #if DEBUG
         //__variables for testing ____________________________________________
@@ -173,7 +222,7 @@ namespace SharpConnect.Internal
         /// </summary>
         /// <param name="methodName"></param>
         /// <param name="receiveSendToken"></param>
-        void dbugDealWithThreadsForTesting(string methodName, ConnectionSession receiveSendToken)
+        void dbugDealWithThreadsForTesting(string methodName, SocketConnection receiveSendToken)
         {
             StringBuilder sb = new StringBuilder();
             sb.Append(" In " + methodName + ", receiveSendToken id " + receiveSendToken.dbugTokenId +
@@ -266,6 +315,8 @@ namespace SharpConnect.Internal
             }
             return sb.ToString();
         }
+
+
 #endif
     }
 }

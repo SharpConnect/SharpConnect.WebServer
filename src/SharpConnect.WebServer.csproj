@@ -39,22 +39,22 @@
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="HttpWebServer\HttpConnectionSession.cs" />
+    <Compile Include="HttpWebServer\HttpRequest.cs" />
+    <Compile Include="HttpWebServer\HttpResponse.cs" />
+    <Compile Include="HttpWebServer\HttpSocketServerSetting.cs" />
+    <Compile Include="HttpWebServer\WebServer.cs" />
     <Compile Include="Internal\BufferManager.cs" />
-    <Compile Include="Internal\ConnectionSession.cs" />
     <Compile Include="Internal\dbugAcceptOpUserToken.cs" />
     <Compile Include="Internal\dbugLOG.cs" />
-    <Compile Include="Internal\SocketAsyncEventArgsPool.cs" />
+    <Compile Include="Internal\SharedResoucePool.cs" />
+    <Compile Include="Internal\SocketConnection.cs" />
     <Compile Include="Internal\SocketServer.Accept.cs" />
     <Compile Include="Internal\SocketServer.cs" />
     <Compile Include="Internal\SocketServer.ReceiveSend.cs" />
     <Compile Include="Internal\SocketServerSetting.cs" />
     <Compile Include="Internal\TestFileWriter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="HttpWebServer\HttpConnectionSession.cs" />
-    <Compile Include="HttpWebServer\HttpRequest.cs" />
-    <Compile Include="HttpWebServer\HttpResponse.cs" />
-    <Compile Include="HttpWebServer\HttpSocketServerSetting.cs" />
-    <Compile Include="HttpWebServer\WebServer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

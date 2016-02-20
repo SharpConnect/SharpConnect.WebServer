@@ -1,32 +1,27 @@
-﻿//2015, MIT, EngineKit
-
+﻿//2015, MIT, EngineKit 
 using System.Net.Sockets;
 using System.Text;
 using SharpConnect.Internal;
 
 namespace SharpConnect.WebServer
-{
+{  
     class HttpConnectionSession : ConnectionSession
     {
-        int receiveState = 0;
-
+       
         HttpRequestHandler reqHandler;
         HttpRequest httpReq;
         HttpResponse httpResp;
         byte[] tmpReadBuffer;
+        int receiveState = 0;
 
-
-        public HttpConnectionSession(HttpRequestHandler reqHandler, SocketAsyncEventArgs recvSendArgs, int recvBufferSize, int sendBufferSize)
-            : base(recvSendArgs, recvBufferSize, sendBufferSize)
+        public HttpConnectionSession(HttpRequestHandler reqHandler)
         {
             this.reqHandler = reqHandler;
             httpReq = new HttpRequest(this);
             httpResp = new HttpResponse(this);
-
-            //
             tmpReadBuffer = new byte[512];
         }
-
+       
         //===================
         //protocol specfic
         int ParseHttpRequestHeader(ReceiveCarrier recvCarrier)
@@ -150,9 +145,8 @@ namespace SharpConnect.WebServer
         /// </summary>
         /// <param name="saArgs"></param>
         /// <returns></returns>
-        protected override EndReceiveState ProtocolRecvBuffer(ReceiveCarrier recvCarrier)
-        {
-
+        public override EndReceiveState ProtocolRecvBuffer(ReceiveCarrier recvCarrier)
+        {  
             //read http protocol
             //find header   
             switch (this.receiveState)
@@ -216,15 +210,14 @@ namespace SharpConnect.WebServer
             return EndReceiveState.Complete;
 
         }
-        protected override void ResetRecvBuffer()
+        public override void ResetRecvBuffer()
         {
             //clear recv buffer
             httpReq.Reset();
             receiveState = 0;//
         }
         public override void HandleRequest()
-        {
-
+        {   
 #if DEBUG
             //------------------------------------------------------------------------- 
             if (dbugLOG.watchProgramFlow)   //for testing
@@ -237,18 +230,17 @@ namespace SharpConnect.WebServer
             {
                 dbugLOG.WriteLine("Mediator PrepareOutputData() " + this.dbugTokenId);
             }
-#endif
-
+#endif      
             //do operation and prepare output ?
             this.reqHandler(this.httpReq, this.httpResp);
             if (httpResp.NeedFlush)
             {
                 httpResp.Flush();
             }
-            StartSend();
+           
         }
 #if DEBUG
-        public override string dbugGetDataInHolder()
+        public string dbugGetDataInHolder()
         {
             return "";
         }

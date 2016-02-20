@@ -19,7 +19,7 @@ namespace SharpConnect.Internal
         /// <summary>
         /// reusable AsyncEventArgs  pool for accept ops
         /// </summary>
-        SocketAsyncEventArgsPool acceptArgsPool;
+        SharedResoucePool<SocketAsyncEventArgs> acceptArgsPool;
         void InitListenSocket()
         {
 #if DEBUG
@@ -60,15 +60,14 @@ namespace SharpConnect.Internal
             // This call just occurs one time from this StartListen method. 
             // After that the StartAccept method will be called in a loop.
         }
-        SocketAsyncEventArgs CreateSocketAsyncEventArgsForAccept(SocketAsyncEventArgsPool pool)
+        SocketAsyncEventArgs CreateSocketAsyncEventArgsForAccept()
         {
 
             // This method is called when we need to create a new SAEA object to do
             //accept operations. The reason to put it in a separate method is so that
             //we can easily add more objects to the pool if we need to.
             //You can do that if you do NOT use a buffer in the SAEA object that does
-            //the accept operations. 
-
+            //the accept operations.  
             //Allocate the SocketAsyncEventArgs object. 
             var acceptEventArg = new SocketAsyncEventArgs();
             //SocketAsyncEventArgs.Completed is an event, (the only event,) 
@@ -82,7 +81,7 @@ namespace SharpConnect.Internal
             //AcceptEventArg_Completed object when the accept op completes.
             acceptEventArg.Completed += AcceptIO_Completed;
 #if DEBUG
-            acceptEventArg.UserToken = new dbugAcceptOpUserToken(pool.GetNewTokenId() + 10000);
+            acceptEventArg.UserToken = new dbugAcceptOpUserToken(acceptArgsPool.dbugGetNewTokenId() + 10000);
 #endif
             return acceptEventArg;
             // accept operations do NOT need a buffer.   ****             
@@ -103,7 +102,6 @@ namespace SharpConnect.Internal
             }
 #endif
             SocketAsyncEventArgs acceptEventArg;
-
             //Get a SocketAsyncEventArgs object to accept the connection.                        
             //Get it from the pool if there is more than one in the pool.
             //We could use zero as bottom, but one is a little safer.            
@@ -111,30 +109,30 @@ namespace SharpConnect.Internal
             {
                 try
                 {
+                    //use from pool
                     acceptEventArg = this.acceptArgsPool.Pop();
                 }
                 //or make a new one.
                 catch
                 {
-                    acceptEventArg = CreateSocketAsyncEventArgsForAccept(acceptArgsPool);
+                    acceptEventArg = CreateSocketAsyncEventArgsForAccept();
                 }
             }
             //or make a new one.
             else
             {
-                acceptEventArg = CreateSocketAsyncEventArgsForAccept(acceptArgsPool);
+                acceptEventArg = CreateSocketAsyncEventArgsForAccept();
             }
 
 
 #if DEBUG
+            var acceptToken = (dbugAcceptOpUserToken)acceptEventArg.UserToken;
             if (dbugLOG.watchThreads)   //for testing
             {
-                var acceptToken = (dbugAcceptOpUserToken)acceptEventArg.UserToken;
                 dbugDealWithThreadsForTesting("StartAccept()", acceptToken);
             }
             if (dbugLOG.watchProgramFlow)   //for testing
             {
-                var acceptToken = (dbugAcceptOpUserToken)acceptEventArg.UserToken;
                 dbugLOG.WriteLine("still in StartAccept, id = " + acceptToken.dbugTokenId);
             }
 #endif
@@ -170,7 +168,7 @@ namespace SharpConnect.Internal
 #if DEBUG
                 if (dbugLOG.watchProgramFlow)   //for testing
                 {
-                    var acceptToken = (dbugAcceptOpUserToken)acceptEventArg.UserToken;
+
                     dbugLOG.WriteLine("StartAccept in if (!willRaiseEvent), accept token id " + acceptToken.dbugTokenId);
                 }
 #endif
@@ -202,12 +200,9 @@ namespace SharpConnect.Internal
             //in the ProcessAccept method. 
 #if DEBUG
             dbugAcceptLog(e, "AcceptIO_Completed");
-
 #endif
             ProcessAccept(e);
         }
-
-
         void ProcessAccept(SocketAsyncEventArgs acceptEventArgs)
         {
 
@@ -223,12 +218,9 @@ namespace SharpConnect.Internal
             if (acceptEventArgs.SocketError != SocketError.Success)
             {
                 // Loop back to post another accept op. Notice that we are NOT ***
-                // passing the SAEA object here.     
-
+                // passing the SAEA object here.      
                 dbugAcceptLog(acceptEventArgs, "SocketError");
-                StartAccept(); //start accept again ***
-
-
+                StartAccept(); //start accept again *** 
                 //Let's destroy this socket, since it could be bad.
                 HandleBadAccept(acceptEventArgs);
                 //Jump out of the method.
@@ -237,37 +229,33 @@ namespace SharpConnect.Internal
             //-----------------------------------------------------------------------------------------------
 
             int max = GlobalSessionNumber.maxSimultaneousClientsThatWereConnected;
-
-            int numberOfConnectedSockets = Interlocked.Increment(ref this.NumberOfAcceptedSockets);
+            int numberOfConnectedSockets = Interlocked.Increment(ref this.NumberOfActiveRecvSendConnSession);
             if (numberOfConnectedSockets > max)
             {
                 Interlocked.Increment(ref GlobalSessionNumber.maxSimultaneousClientsThatWereConnected);
             }
-
-
             dbugAcceptLog(acceptEventArgs, "processAccept, then startAccept");
-
             //Now that the accept operation completed, we can start another
-            //accept operation, which will do the same.
-
-            //Notice that we are NOT passing the SAEA object here. 
-
+            //accept operation, which will do the same. 
+            //Notice that we are NOT passing the SAEA object here.  
             StartAccept(); //start accept again ***
             //----------------------------------------------------------------------
 
-            // Get a SocketAsyncEventArgs object from the pool of receive/send op 
-            SocketAsyncEventArgs recvSendArg = this.recvSendArgPool.Pop();
-            //Create sessionId in UserToken.
-            ConnectionSession connSession = (ConnectionSession)recvSendArg.UserToken;
-            connSession.CreateSessionId();
+            //Get a SocketAsyncEventArgs object from the pool of receive/send op 
 
+            //every receive arg has prebuilt connection session 
+            //Create sessionId in UserToken.
+            SocketConnection connSession = this.recvSendArgPool.Pop();
+#if DEBUG
+            connSession.dbugCreateSessionId();
+#endif
             //A new socket was created by the AcceptAsync method. The 
             //SocketAsyncEventArgs object which did the accept operation has that 
             //socket info in its AcceptSocket property. Now we will give
             //a reference for that socket to the SocketAsyncEventArgs 
             //object which will do receive/send.
             //----------------------------------------------------------------------
-            recvSendArg.AcceptSocket = acceptEventArgs.AcceptSocket; //***
+            connSession.AcceptSocket(acceptEventArgs.AcceptSocket);//*** (move socket object from acceptArgs to recvSendArgs 
             //----------------------------------------------------------------------
 
 #if DEBUG
@@ -275,10 +263,10 @@ namespace SharpConnect.Internal
             {
                 var acceptToken = (dbugAcceptOpUserToken)acceptEventArgs.UserToken;
                 dbugLOG.WriteLine("Accept id " + acceptToken.dbugTokenId +
-                    ". RecSend id " + ((ConnectionSession)recvSendArg.UserToken).dbugTokenId +
-                    ".  Remote endpoint = " + IPAddress.Parse(((IPEndPoint)recvSendArg.AcceptSocket.RemoteEndPoint).Address.ToString()) +
-                    ": " + ((IPEndPoint)recvSendArg.AcceptSocket.RemoteEndPoint).Port.ToString() +
-                    ". client(s) connected = " + this.NumberOfAcceptedSockets);
+                    ". RecSend id " + connSession.dbugTokenId +
+                    ".  Remote endpoint = " + IPAddress.Parse(((IPEndPoint)connSession.RemoteEndPoint).Address.ToString()) +
+                    ": " + ((IPEndPoint)connSession.RemoteEndPoint).Port.ToString() +
+                    ". client(s) connected = " + this.NumberOfActiveRecvSendConnSession);
             }
 #endif
 
@@ -288,8 +276,8 @@ namespace SharpConnect.Internal
             //back in the pool for them. But first we will clear 
             //the socket info from that object, so it will be 
             //ready for a new socket when it comes out of the pool.
-            acceptEventArgs.AcceptSocket = null;
-            this.acceptArgsPool.Push(acceptEventArgs);
+            acceptEventArgs.AcceptSocket = null; //after remove set this to null
+            this.acceptArgsPool.Push(acceptEventArgs); //return to pool
 
 #if DEBUG
             dbugAcceptLog(acceptEventArgs, "back to poolOfAcceptEventArgs");

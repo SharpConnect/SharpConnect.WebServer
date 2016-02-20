@@ -1,4 +1,4 @@
-//2010, CPOL, Stan Kirk
+﻿//2010, CPOL, Stan Kirk
 //2015, MIT, EngineKit
 
 using System;
@@ -8,17 +8,15 @@ using System.Threading;
 
 namespace SharpConnect.Internal
 {
-    sealed class SocketAsyncEventArgsPool
+
+    sealed class SharedResoucePool<T>
     {
-        //just for assigning an ID so we can watch our objects while testing.
-        Int32 nextTokenId = 0;
-
+        //just for assigning an ID so we can watch our objects while testing. 
         // Pool of reusable SocketAsyncEventArgs objects.        
-        Stack<SocketAsyncEventArgs> pool;
-
+        Stack<T> pool;
         // initializes the object pool to the specified size.
         // "capacity" = Maximum number of SocketAsyncEventArgs objects
-        public SocketAsyncEventArgsPool(Int32 capacity)
+        public SharedResoucePool(int capacity)
         {
 
 #if DEBUG
@@ -28,7 +26,7 @@ namespace SharpConnect.Internal
             }
 #endif
 
-            this.pool = new Stack<SocketAsyncEventArgs>(capacity);
+            this.pool = new Stack<T>(capacity);
         }
 
         // The number of SocketAsyncEventArgs instances in the pool.         
@@ -37,14 +35,9 @@ namespace SharpConnect.Internal
             get { return this.pool.Count; }
         }
 
-        internal Int32 GetNewTokenId()
-        {
-            return Interlocked.Increment(ref nextTokenId);
-        }
-
         // Removes a SocketAsyncEventArgs instance from the pool.
         // returns SocketAsyncEventArgs removed from the pool.
-        internal SocketAsyncEventArgs Pop()
+        internal T Pop()
         {
             lock (this.pool)
             {
@@ -54,7 +47,7 @@ namespace SharpConnect.Internal
 
         // Add a SocketAsyncEventArg instance to the pool. 
         // "item" = SocketAsyncEventArgs instance to add to the pool.
-        internal void Push(SocketAsyncEventArgs item)
+        internal void Push(T item)
         {
             if (item == null)
             {
@@ -65,5 +58,15 @@ namespace SharpConnect.Internal
                 this.pool.Push(item);
             }
         }
+#if DEBUG
+        Int32 dbugNextTokenId = 0;
+        internal Int32 dbugGetNewTokenId()
+        {
+            return Interlocked.Increment(ref dbugNextTokenId);
+        }
+#endif
+
+
     }
+
 }

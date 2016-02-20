@@ -42,7 +42,12 @@ namespace SharpConnect.WebServer
         enum WriteContentState : byte
         {
             HttpHead,
-            HttpBody
+            HttpBody,
+
+            //-------------------
+            //experiment
+            SocketClientHanshake,
+            SocketClientOK,
         }
 
 
@@ -85,6 +90,8 @@ namespace SharpConnect.WebServer
                 bodyMs = null;
             }
         }
+
+
         /// <summary>
         /// add new or replace if exists
         /// </summary>
@@ -118,9 +125,50 @@ namespace SharpConnect.WebServer
         {
             switch (writeContentState)
             {
-                //generate head
+                //generate head 
                 case WriteContentState.HttpHead:
                     {
+
+                        if (UpgradeToWebSocket)
+                        {
+                            headerStBuilder.Length = 0;
+                            headerStBuilder.Append("HTTP/1.1 ");
+                            headerStBuilder.Append("101 Switching Protocols\r\n");
+                            headerStBuilder.Append("Upgrade: websocket\r\n");
+                            headerStBuilder.Append("Connection: Upgrade\r\n");
+                            headerStBuilder.Append("Sec-WebSocket-Accept: " + this.ResponseSecWebSocket + "\r\n");
+                            headerStBuilder.Append("Content-Length: " + contentByteCount + "\r\n");
+                            headerStBuilder.Append("\r\n");
+
+
+                            writeContentState = WriteContentState.HttpBody;
+                            //-----------------------------------------------------------------
+                            //switch transfer encoding method of the body***
+                            var headBuffer = Encoding.UTF8.GetBytes(headerStBuilder.ToString().ToCharArray());
+                            byte[] dataToSend = new byte[headBuffer.Length + contentByteCount];
+                            Buffer.BlockCopy(headBuffer, 0, dataToSend, 0, headBuffer.Length);
+                            var pos = bodyMs.Position;
+                            bodyMs.Position = 0;
+                            bodyMs.Read(dataToSend, headBuffer.Length, contentByteCount);
+                            //----------------------------------------------------
+                            //copy data to send buffer
+                            connSession.SetDataToSend(dataToSend, dataToSend.Length);
+                            //---------------------------------------------------- 
+                            ResetAll();
+                            writeContentState = WriteContentState.SocketClientOK;
+                            return;
+
+
+                            //                               HTTP/1.1 101 WebSocket Protocol Handshake
+                            //Date: Fri, 10 Feb 2012 17:38:18 GMT
+                            //Connection: Upgrade
+                            //Server: Kaazing Gateway
+                            //Upgrade: WebSocket
+                            //Access-Control-Allow-Origin: http://websocket.org
+                            //Access-Control-Allow-Credentials: true
+                            //Sec-WebSocket-Accept: rLHCkw/SKsO9GAH/ZSFhBATDKrU=
+                            //Access-Control-Allow-Headers: content-type 
+                        } 
                         headerStBuilder.Length = 0;
                         headerStBuilder.Append("HTTP/1.1 ");
                         HeaderAppendStatusCode(headerStBuilder, StatusCode);
@@ -173,6 +221,13 @@ namespace SharpConnect.WebServer
                         //in chunked case, 
                         WriteContentBodyInChunkMode();
                         ResetAll();
+                    } break;
+                case WriteContentState.SocketClientOK:
+                    {
+                        ResetAll();
+                    } break;
+                default:
+                    {
                     } break;
             }
         }
@@ -296,6 +351,18 @@ namespace SharpConnect.WebServer
                     stBuilder.Append("\r\n");
                     return;
             }
+        }
+
+        //---------
+        public bool UpgradeToWebSocket
+        {
+            get;
+            set;
+        }
+        public string ResponseSecWebSocket
+        {
+            get;
+            set;
         }
 
 

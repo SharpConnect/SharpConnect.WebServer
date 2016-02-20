@@ -3,7 +3,7 @@
 
 using System;
 using System.Net;
-using System.Text;
+using System.Text;  
 
 namespace SharpConnect.Internal
 {
@@ -167,7 +167,7 @@ namespace SharpConnect.Internal
                 switch (theEntry)
                 {
                     case checkString:
-                        Console.WriteLine("Number of current accepted connections = " + socketServer.NumberOfAcceptedSockets);
+                        Console.WriteLine("Number of current accepted connections = " + socketServer.NumberOfActiveRecvSendConnSession);
                         break;
                     case wpf:
 

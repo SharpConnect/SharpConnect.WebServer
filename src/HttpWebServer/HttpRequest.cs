@@ -101,6 +101,13 @@ namespace SharpConnect.WebServer
         {
             get { return contentByteCount; }
         }
+
+        public string GetHeaderKey(string key)
+        {
+            string found;
+            headerKeyValues.TryGetValue(key, out found);
+            return found;
+        }
         internal bool IsMsgBodyComplete
         {
             get { return contentByteCount >= targetContentLength; }

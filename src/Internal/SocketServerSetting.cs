@@ -47,7 +47,7 @@ namespace SharpConnect.Internal
         public IPEndPoint ListnerEndPoint { get; private set; }
 
         internal abstract BufferManager CreateBufferManager();
-        internal abstract ConnectionSession CreatePrebuiltReadWriteSession(SocketAsyncEventArgs e);
+        internal abstract SocketConnection CreatePrebuiltReadWriteSession(SocketAsyncEventArgs e);
     }
 
 }

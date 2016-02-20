@@ -77,23 +77,65 @@ namespace SharpConnect.Internal
     {
 
         internal static int mainTransMissionId = 10000;
-        internal static int mainSessionId = 1000000000;
+
         internal static int maxSimultaneousClientsThatWereConnected;
 
     }
+
+
+    delegate void ConnectionSessionClosed(SocketConnection connSession);
+
+
+    abstract class ConnectionSession
+    {
+        SocketConnection socketConn;
+        public ConnectionSession()
+        {
+            KeepAlive = true;
+        }
+        public abstract void ResetRecvBuffer();
+        public abstract void HandleRequest();
+        public abstract EndReceiveState ProtocolRecvBuffer(ReceiveCarrier recvCarrier);
+        public void Bind(SocketConnection socketConn)
+        {
+            this.socketConn = socketConn;
+            socketConn.SetConnectionSession(this);
+        }
+
+        public void SetDataToSend(byte[] dataToSend, int count)
+        {
+            socketConn.SetDataToSend(dataToSend, count);
+        }
+
+        internal bool KeepAlive
+        {
+            get;
+            set;
+        }
+#if DEBUG
+        public int dbugTokenId
+        {
+            get
+            {
+                return socketConn.dbugTokenId;
+            }
+        }
+#endif
+    }
+
+
     /// <summary>
     /// connection session
     /// </summary>
-    abstract class ConnectionSession
+    sealed class SocketConnection
     {
 
         //The session ID correlates with all the data sent in a connected session.
         //It is different from the transmission ID in the DataHolder, which relates
         //to one TCP message. A connected session could have many messages, if you
         //set up your app to allow it.
-        int sessionId;
+
         readonly SocketAsyncEventArgs recvSendArgs;
-        SocketServer server;
 
         //recv
         ReceiveCarrier recvCarrier;
@@ -109,33 +151,70 @@ namespace SharpConnect.Internal
         byte[] currentSendingData = null;
 
         Queue<byte[]> sendingQueue = new Queue<byte[]>();
+        ConnectionSessionClosed connectionSessionClosedHandler;
+        ConnectionSession connSession;
 
-        public ConnectionSession(SocketAsyncEventArgs recvSendArgs, int recvBufferSize, int sendBufferSize)
+        public SocketConnection(SocketAsyncEventArgs recvSendArgs, int recvBufferSize, int sendBufferSize)
         {
+            //each recvSendArgs is created for this connection session only 
 
-            recvCarrier = new ReceiveCarrier(recvSendArgs);
-
-            this.startBufferOffset = recvSendArgs.Offset;
             this.recvSendArgs = recvSendArgs;
-            this.recvBufferSize = recvBufferSize;
+            this.recvCarrier = new ReceiveCarrier(recvSendArgs);
+            this.startBufferOffset = recvSendArgs.Offset;
 
+            this.recvBufferSize = recvBufferSize;
             this.initSentOffset = startBufferOffset + recvBufferSize;
             this.sendBufferSize = sendBufferSize;
 
-            this.KeepAlive = true;
+
             //this.KeepAlive = true;
             //Attach the SocketAsyncEventArgs object
             //to its event handler. Since this SocketAsyncEventArgs object is 
             //used for both receive and send operations, whenever either of those 
-            //completes, the IO_Completed method will be called.
-            recvSendArgs.Completed += ReceiveSendIO_Completed;
+            //completes, the IO_Completed method will be called. 
+            recvSendArgs.Completed += (object sender, SocketAsyncEventArgs e) =>
+            {
+                // This method is called whenever a receive or send operation completes.
+                // Here "e" represents the SocketAsyncEventArgs object associated 
+                //with the completed receive or send operation 
+                //Any code that you put in this method will NOT be called if
+                //the operation completes synchronously, which will probably happen when
+                //there is some kind of socket error. 
+#if DEBUG
+                if (dbugLOG.watchThreads)   //for testing
+                {
+                    //dbugDealWithThreadsForTesting("ReceiveSendIO_Completed()", (ReadWriteSession)e.UserToken);
+                }
+#endif
+
+                // determine which type of operation just completed and call the associated handler
+                switch (e.LastOperation)
+                {
+                    case SocketAsyncOperation.Receive: //receive data from client  
+                        //dbugRecvLog(e, "ReceiveSendIO_Completed , Recv");
+                        ProcessReceive();
+                        break;
+
+                    case SocketAsyncOperation.Send: //send data to client
+                        //dbugRecvLog(e, "ReceiveSendIO_Completed , Send");
+                        ProcessSend();
+                        break;
+                    default:
+                        //This exception will occur if you code the Completed event of some
+                        //operation to come to this method, by mistake.
+                        throw new ArgumentException("The last operation completed on the socket was not a receive or send");
+                }
+            };
         }
-        internal bool KeepAlive
+
+        void ResetRecvBuffer()
         {
-            get;
-            set;
+            connSession.ResetRecvBuffer();
         }
-        protected abstract void ResetRecvBuffer();
+        public void SetConnectionSession(ConnectionSession connSession)
+        {
+            this.connSession = connSession;
+        }
 
 
         /// <summary>
@@ -143,10 +222,15 @@ namespace SharpConnect.Internal
         /// </summary>
         /// <param name="recvCarrier"></param>
         /// <returns>return true if finished</returns>
-        protected abstract EndReceiveState ProtocolRecvBuffer(ReceiveCarrier recvCarrier);
-        public abstract void HandleRequest();
-
-
+        EndReceiveState ProtocolRecvBuffer(ReceiveCarrier recvCarrier)
+        {
+            return connSession.ProtocolRecvBuffer(recvCarrier);
+        }
+        public void HandleRequest()
+        {
+            connSession.HandleRequest();
+            StartSend(); //***
+        }
         EndReceiveState EndReceive()
         {
             if (recvSendArgs.SocketError != SocketError.Success)
@@ -164,11 +248,13 @@ namespace SharpConnect.Internal
             }
 
             //--------------------
-            return this.ProtocolRecvBuffer(this.recvCarrier); 
-        } 
-        internal void SetSocketServer(SocketServer server)
+            return this.ProtocolRecvBuffer(this.recvCarrier);
+        }
+
+
+        internal void SetConnectionSesssionClosedHandler(ConnectionSessionClosed connectionSessionClosedHandler)
         {
-            this.server = server;
+            this.connectionSessionClosedHandler = connectionSessionClosedHandler;
         }
 
         internal void StartReceive()
@@ -202,9 +288,8 @@ namespace SharpConnect.Internal
         }
         void CloseClientSocket()
         {
-            server.CloseClientSocket(this.recvSendArgs);
+            connectionSessionClosedHandler(this);
         }
-
         void ProcessReceive()
         {
             // This method is invoked by the IO_Completed method
@@ -221,6 +306,7 @@ namespace SharpConnect.Internal
                     return;
                 case EndReceiveState.NoMoreData:
                     //dbugRecvLog(recvSendArg, "ProcessReceive NO DATA");
+                    //if close 
                     CloseClientSocket();
                     return;
                 case EndReceiveState.ContinueRead:
@@ -298,11 +384,14 @@ namespace SharpConnect.Internal
             {
                 recvSendArgs.SetBuffer(this.initSentOffset, remaining);
                 //*** copy from src to dest
-                Buffer.BlockCopy(this.currentSendingData, //src
-                    this.sendingTransferredBytes,
-                    recvSendArgs.Buffer, //dest
-                    this.initSentOffset,
-                    remaining);
+                if (currentSendingData != null)
+                {
+                    Buffer.BlockCopy(this.currentSendingData, //src
+                        this.sendingTransferredBytes,
+                        recvSendArgs.Buffer, //dest
+                        this.initSentOffset,
+                        remaining);
+                }
             }
             else
             {
@@ -351,7 +440,7 @@ namespace SharpConnect.Internal
                     //finished send
                     // If we are within this if-statement, then all the bytes in
                     // the message have been sent. -> so .. just StartReceiveFromClient()
-                    if (this.KeepAlive)
+                    if (connSession.KeepAlive)
                     {
 
                         StartReceive();
@@ -410,57 +499,47 @@ namespace SharpConnect.Internal
             sendingTargetBytes = 0;
 
         }
-        void ReceiveSendIO_Completed(object sender, SocketAsyncEventArgs e)
-        {
-            // This method is called whenever a receive or send operation completes.
-            // Here "e" represents the SocketAsyncEventArgs object associated 
-            //with the completed receive or send operation 
-            //Any code that you put in this method will NOT be called if
-            //the operation completes synchronously, which will probably happen when
-            //there is some kind of socket error. 
-#if DEBUG
-            if (dbugLOG.watchThreads)   //for testing
-            {
-                //dbugDealWithThreadsForTesting("ReceiveSendIO_Completed()", (ReadWriteSession)e.UserToken);
-            }
-#endif
 
-            // determine which type of operation just completed and call the associated handler
-            switch (e.LastOperation)
-            {
-                case SocketAsyncOperation.Receive: //receive data from client  
-                    //dbugRecvLog(e, "ReceiveSendIO_Completed , Recv");
-                    ProcessReceive();
-                    break;
-
-                case SocketAsyncOperation.Send: //send data to client
-                    //dbugRecvLog(e, "ReceiveSendIO_Completed , Send");
-                    ProcessSend();
-                    break;
-                default:
-                    //This exception will occur if you code the Completed event of some
-                    //operation to come to this method, by mistake.
-                    throw new ArgumentException("The last operation completed on the socket was not a receive or send");
-            }
-        }
-        internal void CreateSessionId()
+        internal SocketAsyncEventArgs GetAsyncSocketEventArgs()
         {
-            sessionId = Interlocked.Increment(ref GlobalSessionNumber.mainSessionId);
+            return recvSendArgs;
         }
-        public Int32 SessionId
+        public void Dispose()
+        {
+            this.recvSendArgs.Dispose();
+        }
+
+        internal void AcceptSocket(Socket socket)
+        {
+            this.recvSendArgs.AcceptSocket = socket;
+        }
+
+        internal System.Net.EndPoint RemoteEndPoint
         {
             get
             {
-                return this.sessionId;
+                return this.recvSendArgs.AcceptSocket.RemoteEndPoint;
             }
         }
-        internal static Int32 ReceivedTransMissionIdGetter()
-        {
-            return Interlocked.Increment(ref GlobalSessionNumber.mainTransMissionId);
-        }
-
 
 #if DEBUG
+        internal static int dbug_s_mainSessionId = 1000000000;
+        /// <summary>
+        /// create new session id
+        /// </summary>
+        internal void dbugCreateSessionId()
+        {
+            //new session id
+            _dbugSessionId = Interlocked.Increment(ref dbug_s_mainSessionId);
+        }
+        public Int32 dbugSessionId
+        {
+            get
+            {
+                return this._dbugSessionId;
+            }
+        }
+        int _dbugSessionId;
         public void dbugSetInfo(int tokenId)
         {
             this._dbugTokenId = tokenId;
@@ -478,14 +557,10 @@ namespace SharpConnect.Internal
 
         int _dbugTokenId; //for testing only    
 
-        public abstract string dbugGetDataInHolder();
+
         internal System.Net.EndPoint dbugGetRemoteEndpoint()
         {
             return recvSendArgs.AcceptSocket.RemoteEndPoint;
-        }
-        internal SocketAsyncEventArgs dbugGetAsyncSocketEventArgs()
-        {
-            return recvSendArgs;
         }
 
 #endif
