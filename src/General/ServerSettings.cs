@@ -7,21 +7,31 @@ using System.Net;
 using System.Text;
 using System.Net.Sockets;
 
-namespace SharpConnect.Internal
+namespace SharpConnect
 {
-    public abstract class SocketServerSettings
+    public sealed class ServerSettings
     {
-        public SocketServerSettings(int maxConnections,
+#if DEBUG
+        static ServerSettings()
+        {
+            dbugLOG.StartLog();
+
+        }
+#endif
+        public ServerSettings(int maxConnections,
             int numOfSocketAsyncEventArgsInPool,
             int backlog,
             int maxSimultaneousAcceptOps,
             IPEndPoint listenerEndPoint)
         {
             this.MaxConnections = maxConnections;
-            this.NumberOfSaeaForRecvSend = maxConnections + numOfSocketAsyncEventArgsInPool;
+            this.NumOfConnSession = maxConnections + numOfSocketAsyncEventArgsInPool;
             this.Backlog = backlog;
             this.MaxAcceptOps = maxSimultaneousAcceptOps;
             this.ListnerEndPoint = listenerEndPoint;
+
+            RecvBufferSize = 1024;
+            SendBufferSize = 1024;
         }
 
         /// <summary>
@@ -31,7 +41,7 @@ namespace SharpConnect.Internal
         /// <summary>
         /// this variable allows us to create some extra SAEA objects for the pool,if we wish.         
         /// </summary>
-        public int NumberOfSaeaForRecvSend { get; private set; }
+        public int NumOfConnSession { get; private set; }
         /// <summary>
         ///  max number of pending connections the listener can hold in queue
         /// </summary>
@@ -46,8 +56,16 @@ namespace SharpConnect.Internal
         /// </summary>
         public IPEndPoint ListnerEndPoint { get; private set; }
 
-        internal abstract BufferManager CreateBufferManager();
-        internal abstract SocketConnection CreatePrebuiltReadWriteSession(SocketAsyncEventArgs e);
+        public int RecvBufferSize
+        {
+            get;
+            set;
+        }
+        public int SendBufferSize
+        {
+            get;
+            set;
+        }
     }
 
 }

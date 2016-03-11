@@ -1,10 +1,11 @@
-﻿//2015, MIT, EngineKit
+﻿//2015-2016, MIT, EngineKit
 using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Text;
+using SharpConnect.Internal;
 
-namespace SharpConnect.WebServer
+namespace SharpConnect.WebServers
 {  /// <summary>
     /// content type
     /// </summary>
@@ -43,41 +44,37 @@ namespace SharpConnect.WebServer
         {
             HttpHead,
             HttpBody,
-
-            //-------------------
-            //experiment
-            SocketClientHanshake,
-            SocketClientOK,
         }
 
-
-        readonly HttpConnectionSession connSession;
+        readonly HttpContext context;
         WriteContentState writeContentState;
         //output stream
         MemoryStream bodyMs;
         int contentByteCount;
-        Dictionary<string, string> headers;
+        Dictionary<string, string> headers = new Dictionary<string, string>();
         StringBuilder headerStBuilder = new StringBuilder();
-
-
-        internal HttpResponse(HttpConnectionSession connSession)
+        Internal.SendIO sendIO;
+        internal HttpResponse(HttpContext context, Internal.SendIO sendIO)
         {
-            this.connSession = connSession;
+            this.context = context;
             bodyMs = new MemoryStream();
-            headers = new Dictionary<string, string>();
             StatusCode = 200; //init
+            this.sendIO = sendIO;
         }
         internal void ResetAll()
         {
             headerStBuilder.Length = 0;
             StatusCode = 200;
-            NeedFlush = false;
+            
+            isSend = false;
             TransferEncoding = ResponseTransferEncoding.Identity;
             writeContentState = WriteContentState.HttpHead;
-
+            ContentType = WebResponseContentType.TextPlain;//reset content type
+            headers.Clear();
             ResetWritingBuffer();
+            
         }
-        internal void ResetWritingBuffer()
+        void ResetWritingBuffer()
         {
             bodyMs.Position = 0;
             contentByteCount = 0;
@@ -115,64 +112,29 @@ namespace SharpConnect.WebServer
         public void Write(string str)
         {
             //write to output stream 
-            var bytes = Encoding.UTF8.GetBytes(str.ToCharArray());
+            byte[] bytes = Encoding.UTF8.GetBytes(str.ToCharArray());
             //write to stream
             bodyMs.Write(bytes, 0, bytes.Length);
             contentByteCount += bytes.Length;
-            NeedFlush = true;
+             
         }
-        public void Flush()
+        public void End(string str)
+        {
+            //Write and End
+            Write(str);
+            End();
+        }
+        public void End()
         {
             switch (writeContentState)
             {
                 //generate head 
                 case WriteContentState.HttpHead:
                     {
-
-                        if (UpgradeToWebSocket)
-                        {
-                            headerStBuilder.Length = 0;
-                            headerStBuilder.Append("HTTP/1.1 ");
-                            headerStBuilder.Append("101 Switching Protocols\r\n");
-                            headerStBuilder.Append("Upgrade: websocket\r\n");
-                            headerStBuilder.Append("Connection: Upgrade\r\n");
-                            headerStBuilder.Append("Sec-WebSocket-Accept: " + this.ResponseSecWebSocket + "\r\n");
-                            headerStBuilder.Append("Content-Length: " + contentByteCount + "\r\n");
-                            headerStBuilder.Append("\r\n");
-
-
-                            writeContentState = WriteContentState.HttpBody;
-                            //-----------------------------------------------------------------
-                            //switch transfer encoding method of the body***
-                            var headBuffer = Encoding.UTF8.GetBytes(headerStBuilder.ToString().ToCharArray());
-                            byte[] dataToSend = new byte[headBuffer.Length + contentByteCount];
-                            Buffer.BlockCopy(headBuffer, 0, dataToSend, 0, headBuffer.Length);
-                            var pos = bodyMs.Position;
-                            bodyMs.Position = 0;
-                            bodyMs.Read(dataToSend, headBuffer.Length, contentByteCount);
-                            //----------------------------------------------------
-                            //copy data to send buffer
-                            connSession.SetDataToSend(dataToSend, dataToSend.Length);
-                            //---------------------------------------------------- 
-                            ResetAll();
-                            writeContentState = WriteContentState.SocketClientOK;
-                            return;
-
-
-                            //                               HTTP/1.1 101 WebSocket Protocol Handshake
-                            //Date: Fri, 10 Feb 2012 17:38:18 GMT
-                            //Connection: Upgrade
-                            //Server: Kaazing Gateway
-                            //Upgrade: WebSocket
-                            //Access-Control-Allow-Origin: http://websocket.org
-                            //Access-Control-Allow-Credentials: true
-                            //Sec-WebSocket-Accept: rLHCkw/SKsO9GAH/ZSFhBATDKrU=
-                            //Access-Control-Allow-Headers: content-type 
-                        } 
                         headerStBuilder.Length = 0;
                         headerStBuilder.Append("HTTP/1.1 ");
                         HeaderAppendStatusCode(headerStBuilder, StatusCode);
-                        HeaderAppendConnectionType(headerStBuilder, this.connSession.KeepAlive);
+                        HeaderAppendConnectionType(headerStBuilder, this.context.KeepAlive);
 
                         //TODO: review content encoding ***
                         headerStBuilder.Append("Content-Type: " + GetContentType(this.ContentType) + " ; charset=utf-8\r\n");
@@ -197,7 +159,8 @@ namespace SharpConnect.WebServer
                                     bodyMs.Read(dataToSend, headBuffer.Length, contentByteCount);
                                     //----------------------------------------------------
                                     //copy data to send buffer
-                                    connSession.SetDataToSend(dataToSend, dataToSend.Length);
+                                    sendIO.EnqueueOutputData(dataToSend, dataToSend.Length);
+
                                     //---------------------------------------------------- 
                                     ResetAll();
                                 } break;
@@ -209,7 +172,7 @@ namespace SharpConnect.WebServer
 
                                     //chunked transfer
                                     var headBuffer = Encoding.UTF8.GetBytes(headerStBuilder.ToString().ToCharArray());
-                                    connSession.SetDataToSend(headBuffer, headBuffer.Length);
+                                    sendIO.EnqueueOutputData(headBuffer, headBuffer.Length);
                                     WriteContentBodyInChunkMode();
                                     ResetAll();
                                 } break;
@@ -222,14 +185,26 @@ namespace SharpConnect.WebServer
                         WriteContentBodyInChunkMode();
                         ResetAll();
                     } break;
-                case WriteContentState.SocketClientOK:
-                    {
-                        ResetAll();
-                    } break;
                 default:
                     {
-                    } break;
+                        throw new NotSupportedException();
+                    }
             }
+
+            //-----------------------
+            //send 
+
+            StartSend();
+        }
+        bool isSend = false;
+        void StartSend()
+        {
+            if (isSend)
+            {
+                return;
+            }
+            isSend = true;
+            sendIO.StartSendAsync();
         }
         void WriteContentBodyInChunkMode()
         {
@@ -252,21 +227,15 @@ namespace SharpConnect.WebServer
             w++;
             bodyBuffer[w] = (byte)'\n';
             w++;
-            connSession.SetDataToSend(bodyBuffer, bodyBuffer.Length);
+            sendIO.EnqueueOutputData(bodyBuffer, bodyBuffer.Length);
             //---------------------------------------------------- 
 
             //end body
             byte[] endChuckedBlock = new byte[] { (byte)'0', (byte)'\r', (byte)'\n', (byte)'\r', (byte)'\n' };
-            connSession.SetDataToSend(endChuckedBlock, endChuckedBlock.Length);
+            sendIO.EnqueueOutputData(endChuckedBlock, endChuckedBlock.Length);
             //---------------------------------------------------- 
             ResetWritingBuffer();
-        }
-
-        internal bool NeedFlush
-        {
-            get;
-            set;
-        }
+        } 
         public ResponseTransferEncoding TransferEncoding
         {
             get;
@@ -276,9 +245,7 @@ namespace SharpConnect.WebServer
         {
             get;
             set;
-        }
-
-
+        } 
 
         //-------------------------------------------------
         static string GetTransferEncoing(ResponseTransferEncoding te)
@@ -353,17 +320,6 @@ namespace SharpConnect.WebServer
             }
         }
 
-        //---------
-        public bool UpgradeToWebSocket
-        {
-            get;
-            set;
-        }
-        public string ResponseSecWebSocket
-        {
-            get;
-            set;
-        }
 
 
     }

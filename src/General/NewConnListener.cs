@@ -1,5 +1,5 @@
 ﻿//2010, CPOL, Stan Kirk
-//2015, MIT, EngineKit
+//2015-2016, MIT, EngineKit
 
 using System;
 using System.Collections.Generic;
@@ -11,25 +11,66 @@ using System.Diagnostics;
 
 namespace SharpConnect.Internal
 {
-    partial class SocketServer
+    /// <summary>
+    /// new connection listener
+    /// </summary>
+    public class NewConnectionListener
     {
         // the socket used to listen for incoming connection requests
         Socket listenSocket;
-
         /// <summary>
         /// reusable AsyncEventArgs  pool for accept ops
         /// </summary>
         SharedResoucePool<SocketAsyncEventArgs> acceptArgsPool;
+        ServerSettings setting;
+        //A Semaphore has two parameters, the initial number of available slots
+        //and the maximum number of slots. We'll make them the same. 
+        //This Semaphore is used to keep from going over max connection number. (It is not about 
+        //controlling threading really here.)   
+        Semaphore maxConnEnforcer;
+
+        /// <summary>
+        /// handle new req connection
+        /// </summary>
+        Action<Socket> acceptNewConnectionHandler;
+
+        public NewConnectionListener(ServerSettings setting, Action<Socket> acceptNewConnectionHandler)
+        {
+            this.setting = setting;
+            this.acceptArgsPool = new SharedResoucePool<SocketAsyncEventArgs>(this.setting.MaxAcceptOps);
+            this.acceptNewConnectionHandler = acceptNewConnectionHandler;
+            // Create connections count enforcer
+            this.maxConnEnforcer = new Semaphore(this.setting.MaxConnections, this.setting.MaxConnections);
+        }
+        /// <summary>
+        /// async start listen for  new client
+        /// </summary>
+        public void StartListening()
+        {
+            InitPools();
+            InitListenSocket();
+            StartAccept();
+        }
+
+        void InitPools()
+        {
+            // preallocate pool of SocketAsyncEventArgs objects for accept operations           
+            for (int i = this.setting.MaxAcceptOps - 1; i >= 0; --i)
+            {
+                // add SocketAsyncEventArg to the pool                 
+                this.acceptArgsPool.Push(CreateSocketAsyncEventArgsForAccept());
+            }
+        }
         void InitListenSocket()
         {
 #if DEBUG
-            if (dbugLOG.watchProgramFlow)   //for testing
+            if (dbugLOG.enableDebugLog)
             {
-                dbugLOG.WriteLine("StartListen method. Before Listen operation is started.");
-            }
-            if (dbugLOG.watchThreads)   //for testing
-            {
-                dbugDealWithThreadsForTesting("StartListen()");
+                if (dbugLOG.watchProgramFlow)   //for testing
+                {
+                    dbugLOG.WriteLine("StartListen method. Before Listen operation is started.");
+                }
+
             }
 #endif
             // create the socket which listens for incoming connections
@@ -70,6 +111,10 @@ namespace SharpConnect.Internal
             //the accept operations.  
             //Allocate the SocketAsyncEventArgs object. 
             var acceptEventArg = new SocketAsyncEventArgs();
+#if DEBUG
+            acceptEventArg.UserToken = new dbugAcceptOpUserToken(acceptArgsPool.dbugGetNewTokenId() + 10000);
+#endif
+
             //SocketAsyncEventArgs.Completed is an event, (the only event,) 
             //declared in the SocketAsyncEventArgs class.
             //See http://msdn.microsoft.com/en-us/library/system.net.sockets.socketasynceventargs.completed.aspx.
@@ -79,12 +124,25 @@ namespace SharpConnect.Internal
             //to determine when the operation completes.
             //Attach the event handler, which causes the calling of the 
             //AcceptEventArg_Completed object when the accept op completes.
-            acceptEventArg.Completed += AcceptIO_Completed;
+            acceptEventArg.Completed += (s, e) =>
+            {
+                // This method is the callback method associated with Socket.AcceptAsync 
+                // operations and is invoked when an async accept operation completes.
+                // This is only when a new connection is being accepted.
+                // Notice that Socket.AcceptAsync is returning a value of true, and
+                // raising the Completed event when the AcceptAsync method completes. 
+                //Any code that you put in this method will NOT be called if
+                //the operation completes synchronously, which will probably happen when
+                //there is some kind of socket error. It might be better to put the code
+                //in the ProcessAccept method. 
 #if DEBUG
-            acceptEventArg.UserToken = new dbugAcceptOpUserToken(acceptArgsPool.dbugGetNewTokenId() + 10000);
+                dbugAcceptLog(e, "AcceptIO_Completed");
 #endif
+                ProcessAccept(e);
+            };
+
             return acceptEventArg;
-            // accept operations do NOT need a buffer.   ****             
+            //accept operations do NOT need a buffer.   ****             
             //You can see that is true by looking at the
             //methods in the .NET Socket class on the Microsoft website. AcceptAsync does
             //not take require a parameter for buffer size.
@@ -127,13 +185,17 @@ namespace SharpConnect.Internal
 
 #if DEBUG
             var acceptToken = (dbugAcceptOpUserToken)acceptEventArg.UserToken;
-            if (dbugLOG.watchThreads)   //for testing
+            if (dbugLOG.enableDebugLog)
             {
-                dbugDealWithThreadsForTesting("StartAccept()", acceptToken);
-            }
-            if (dbugLOG.watchProgramFlow)   //for testing
-            {
-                dbugLOG.WriteLine("still in StartAccept, id = " + acceptToken.dbugTokenId);
+
+                if (dbugLOG.watchThreads)   //for testing
+                {
+                    //dbugLOG.dbugDealWithThreadsForTesting("StartAccept()", acceptToken);
+                }
+                if (dbugLOG.watchProgramFlow)   //for testing
+                {
+                    dbugLOG.WriteLine("still in StartAccept, id = " + acceptToken.dbugTokenId);
+                }
             }
 #endif
             //Semaphore class is used to control access to a resource or pool of 
@@ -166,7 +228,7 @@ namespace SharpConnect.Internal
             if (!listenSocket.AcceptAsync(acceptEventArg))
             {
 #if DEBUG
-                if (dbugLOG.watchProgramFlow)   //for testing
+                if (dbugLOG.enableDebugLog && dbugLOG.watchProgramFlow)   //for testing
                 {
 
                     dbugLOG.WriteLine("StartAccept in if (!willRaiseEvent), accept token id " + acceptToken.dbugTokenId);
@@ -185,24 +247,6 @@ namespace SharpConnect.Internal
             }
         }
 
-
-
-        void AcceptIO_Completed(object sender, SocketAsyncEventArgs e)
-        {
-            // This method is the callback method associated with Socket.AcceptAsync 
-            // operations and is invoked when an async accept operation completes.
-            // This is only when a new connection is being accepted.
-            // Notice that Socket.AcceptAsync is returning a value of true, and
-            // raising the Completed event when the AcceptAsync method completes. 
-            //Any code that you put in this method will NOT be called if
-            //the operation completes synchronously, which will probably happen when
-            //there is some kind of socket error. It might be better to put the code
-            //in the ProcessAccept method. 
-#if DEBUG
-            dbugAcceptLog(e, "AcceptIO_Completed");
-#endif
-            ProcessAccept(e);
-        }
         void ProcessAccept(SocketAsyncEventArgs acceptEventArgs)
         {
 
@@ -226,50 +270,27 @@ namespace SharpConnect.Internal
                 //Jump out of the method.
                 return;
             }
-            //-----------------------------------------------------------------------------------------------
+            //----------------------------------------------------------------------------------------------- 
 
-            int max = GlobalSessionNumber.maxSimultaneousClientsThatWereConnected;
-            int numberOfConnectedSockets = Interlocked.Increment(ref this.NumberOfActiveRecvSendConnSession);
-            if (numberOfConnectedSockets > max)
-            {
-                Interlocked.Increment(ref GlobalSessionNumber.maxSimultaneousClientsThatWereConnected);
-            }
+#if DEBUG
+
             dbugAcceptLog(acceptEventArgs, "processAccept, then startAccept");
+#endif
+
             //Now that the accept operation completed, we can start another
             //accept operation, which will do the same. 
             //Notice that we are NOT passing the SAEA object here.  
             StartAccept(); //start accept again ***
-            //----------------------------------------------------------------------
+            //----------------------------------------------------------------------             
 
-            //Get a SocketAsyncEventArgs object from the pool of receive/send op 
-
-            //every receive arg has prebuilt connection session 
-            //Create sessionId in UserToken.
-            SocketConnection connSession = this.recvSendArgPool.Pop();
-#if DEBUG
-            connSession.dbugCreateSessionId();
-#endif
             //A new socket was created by the AcceptAsync method. The 
             //SocketAsyncEventArgs object which did the accept operation has that 
             //socket info in its AcceptSocket property. Now we will give
             //a reference for that socket to the SocketAsyncEventArgs 
             //object which will do receive/send.
             //----------------------------------------------------------------------
-            connSession.AcceptSocket(acceptEventArgs.AcceptSocket);//*** (move socket object from acceptArgs to recvSendArgs 
-            //----------------------------------------------------------------------
-
-#if DEBUG
-            if ((dbugLOG.watchProgramFlow) || (dbugLOG.watchConnectAndDisconnect))
-            {
-                var acceptToken = (dbugAcceptOpUserToken)acceptEventArgs.UserToken;
-                dbugLOG.WriteLine("Accept id " + acceptToken.dbugTokenId +
-                    ". RecSend id " + connSession.dbugTokenId +
-                    ".  Remote endpoint = " + IPAddress.Parse(((IPEndPoint)connSession.RemoteEndPoint).Address.ToString()) +
-                    ": " + ((IPEndPoint)connSession.RemoteEndPoint).Port.ToString() +
-                    ". client(s) connected = " + this.NumberOfActiveRecvSendConnSession);
-            }
-#endif
-
+            acceptNewConnectionHandler(acceptEventArgs.AcceptSocket);//*** (move socket object from acceptArgs to recvSendArgs 
+            //---------------------------------------------------------------------- 
             //We have handed off the connection info from the
             //accepting socket to the receiving socket. So, now we can
             //put the SocketAsyncEventArgs object that did the accept operation 
@@ -283,7 +304,7 @@ namespace SharpConnect.Internal
             dbugAcceptLog(acceptEventArgs, "back to poolOfAcceptEventArgs");
 #endif
 
-            connSession.StartReceive();
+
 
         }
         void HandleBadAccept(SocketAsyncEventArgs acceptEventArgs)
@@ -302,7 +323,7 @@ namespace SharpConnect.Internal
         static void dbugAcceptLog(SocketAsyncEventArgs acceptEventArgs, string logMsg)
         {
 #if DEBUG
-            if (dbugLOG.watchProgramFlow)   //for testing
+            if (dbugLOG.enableDebugLog && dbugLOG.watchProgramFlow)   //for testing
             {
                 var acceptOpToken = acceptEventArgs.UserToken as dbugAcceptOpUserToken;
                 dbugLOG.WriteLine("acc_log:" + acceptOpToken.dbugTokenId + " " + logMsg);
@@ -310,5 +331,26 @@ namespace SharpConnect.Internal
 #endif
         }
 
+
+        public void NotifyFreeAcceptQuota()
+        {
+            //Release Semaphore so that its connection counter will be decremented.
+            //This must be done AFTER putting the SocketAsyncEventArg back into the pool,
+            //or you can run into problems.   
+            maxConnEnforcer.Release();
+        }
+        public void StopAccept()
+        {
+            //close listen socket
+            listenSocket.Close();
+        }
+        public void DisposePool()
+        {
+            while (this.acceptArgsPool.Count > 0)
+            {
+                acceptArgsPool.Pop().Dispose();
+            }
+        }
     }
+
 }

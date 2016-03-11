@@ -5,7 +5,7 @@ using System.Text;
 using System.Collections.Generic;
 
 
-namespace SharpConnect.WebServer
+namespace SharpConnect.WebServers
 {
 
     public class WebRequestParameter
@@ -42,17 +42,25 @@ namespace SharpConnect.WebServer
     }
 
 
-    public class HttpRequest : System.IDisposable
+    public class HttpRequest : IDisposable
     {
-        readonly HttpConnectionSession connSession;
+        enum HttpParsingState
+        {
+            Head,
+            Body,
+            Complete
+        }
+
         Dictionary<string, string> headerKeyValues = new Dictionary<string, string>();
         MemoryStream bodyMs;
+        byte[] tmpReadBuffer = new byte[512];
+
         int contentByteCount;
         int targetContentLength;
-
-        internal HttpRequest(HttpConnectionSession connSession)
+        HttpContext context;
+        internal HttpRequest(HttpContext context)
         {
-            this.connSession = connSession;
+            this.context = context;
             bodyMs = new MemoryStream();
         }
         public void Dispose()
@@ -70,6 +78,7 @@ namespace SharpConnect.WebServer
         }
         internal void Reset()
         {
+
             headerKeyValues.Clear();
             Url = null;
             ReqParameters = null;
@@ -78,28 +87,14 @@ namespace SharpConnect.WebServer
             contentByteCount = 0;
             bodyMs.Position = 0;
             targetContentLength = 0;
+            parseState = HttpParsingState.Head;
+
         }
-        internal void AddHeaderInfo(string key, string value)
-        {
-            //replace if exist
-            headerKeyValues[key] = value;
-            //translate some key eg. content-length,encoding
-            switch (key)
-            {
-                case "Content-Length":
-                    {
-                        int.TryParse(value, out this.targetContentLength);
-                    }
-                    break;
-            }
-        }
-        internal int ContentLength
+
+
+        int ContentLength
         {
             get { return targetContentLength; }
-        }
-        internal int CollectingContentByteCount
-        {
-            get { return contentByteCount; }
         }
 
         public string GetHeaderKey(string key)
@@ -107,15 +102,6 @@ namespace SharpConnect.WebServer
             string found;
             headerKeyValues.TryGetValue(key, out found);
             return found;
-        }
-        internal bool IsMsgBodyComplete
-        {
-            get { return contentByteCount >= targetContentLength; }
-        }
-        internal void AddMsgBody(byte[] buffer, int start, int count)
-        {
-            bodyMs.Write(buffer, start, count);
-            contentByteCount += count;
         }
         public string GetBodyContentAsString()
         {
@@ -133,7 +119,6 @@ namespace SharpConnect.WebServer
                 return "";
             }
         }
-
         public string Url
         {
             get;
@@ -146,6 +131,228 @@ namespace SharpConnect.WebServer
         }
 
 
+        //===================
+        //parsing 
+        HttpParsingState parseState;
+        bool IsMsgBodyComplete
+        {
+            get { return contentByteCount >= targetContentLength; }
+        }
+        void AddMsgBody(byte[] buffer, int start, int count)
+        {
+            bodyMs.Write(buffer, start, count);
+            contentByteCount += count;
+        }
+        void AddHeaderInfo(string key, string value)
+        {
+            //replace if exist
+            headerKeyValues[key] = value;
+            //translate some key eg. content-length,encoding
+            switch (key)
+            {
+                case "Content-Length":
+                    {
+                        int.TryParse(value, out this.targetContentLength);
+                    }
+                    break;
+            }
+        }
+        /// <summary>
+        /// add and parse data
+        /// </summary>
+        /// <param name="buffer"></param>
+        internal ProcessReceiveBufferResult LoadData(Internal.RecvIO recvIO)
+        {
+            switch (parseState)
+            {
+                case HttpParsingState.Head:
+                    {
+                        //find html header 
+                        int readpos = ParseHttpRequestHeader(recvIO);
+                        //check if complete or not
+                        if (parseState == HttpParsingState.Body)
+                        {
+                            ProcessHtmlPostBody(readpos, recvIO);
+                        }
+                    }
+                    break;
+                case HttpParsingState.Body:
+                    ProcessHtmlPostBody(0, recvIO);
+                    break;
+                case HttpParsingState.Complete:
+                    break;
+                default:
+                    throw new NotSupportedException();
+            }
+
+            if (parseState == HttpParsingState.Complete)
+            {
+                return ProcessReceiveBufferResult.Complete;
+            }
+            else
+            {
+                return ProcessReceiveBufferResult.Continue;
+            }
+
+        }
+        //===================
+        void AddReqHeader(string line)
+        {
+            if (Url == null)
+            {
+                //check if GET or POST
+                bool foundHttpMethod = false;
+                HttpMethod httpMethod = HttpMethod.Get;
+                if (line.StartsWith("GET"))
+                {
+                    foundHttpMethod = true;
+                }
+                else if (line.StartsWith("POST"))
+                {
+                    foundHttpMethod = true;
+                    httpMethod = HttpMethod.Post;
+                }
+
+                //--------------------------------------------------------------
+                if (foundHttpMethod)
+                {
+
+                    //parse req url
+                    string[] splitedLines = line.Split(' ');
+                    if (splitedLines.Length > 1)
+                    {
+
+                        string getContent = splitedLines[1];
+                        int qpos = getContent.IndexOf('?');
+                        if (qpos > -1)
+                        {
+                            Url = getContent.Substring(0, qpos);
+                            string[] paramsParts = getContent.Substring(qpos + 1).Split('&');
+                            int paramLength = paramsParts.Length;
+                            var reqParams = new WebRequestParameter[paramLength];
+                            for (int p = 0; p < paramLength; ++p)
+                            {
+                                string p_piece = paramsParts[p];
+                                int eq_pos = p_piece.IndexOf('=');
+                                if (eq_pos > -1)
+                                {
+                                    reqParams[p] = new WebRequestParameter(p_piece.Substring(0, eq_pos),
+                                        p_piece.Substring(eq_pos + 1));
+                                }
+                                else
+                                {
+                                    reqParams[p] = new WebRequestParameter(p_piece, "");
+                                }
+                            }
+                            ReqParameters = reqParams;
+                        }
+                        else
+                        {
+                            Url = getContent;
+                        }
+                    }
+                    HttpMethod = httpMethod;
+                    return;
+                }
+            }
+
+            //--------------------------------------------------------------
+            //sep key-value
+            int pos = line.IndexOf(':');
+            if (pos > -1)
+            {
+                string key = line.Substring(0, pos);
+                string value = line.Substring(pos + 1);
+                AddHeaderInfo(key.Trim(), value.Trim());
+            }
+            else
+            {
+            }
+        }
+
+        int ParseHttpRequestHeader(Internal.RecvIO recvIO)
+        {
+            //start from pos0
+            int readpos = 0;
+            int lim = recvIO.BytesTransferred - 1;
+            int i = 0;
+            for (; i <= lim; ++i)
+            {
+                //just read 
+                if (recvIO.ReadByte(i) == '\r' &&
+                    recvIO.ReadByte(i + 1) == '\n')
+                {
+                    //each line
+                    //translate
+                    if (i - readpos < 512)
+                    {
+                        //copy     
+                        recvIO.ReadTo(readpos, tmpReadBuffer, i - readpos);
+                        //translate
+                        string line = Encoding.UTF8.GetString(tmpReadBuffer, 0, i - readpos);
+                        readpos = i + 2;
+                        i++; //skip \n            
+                        //translate header ***
+                        if (line == "")
+                        {
+                            //complete http header                           
+                            parseState = HttpParsingState.Body;
+                            return readpos;
+                        }
+                        else
+                        {
+                            //parse header line
+                            AddReqHeader(line);
+                        }
+                    }
+                    else
+                    {
+                        //just skip?
+                        //skip too long line
+                        readpos = i + 2;
+                        i++; //skip \n 
+                    }
+                }
+            }
+            return readpos;
+        }
+        void ProcessHtmlPostBody(int readpos, Internal.RecvIO recvIO)
+        {
+            //parse body
+            int transferedBytes = recvIO.BytesTransferred;
+            int remaining = transferedBytes - readpos;
+            if (!IsMsgBodyComplete)
+            {
+                int wantBytes = ContentLength - contentByteCount;
+                if (wantBytes <= remaining)
+                {
+                    //complete here 
+                    byte[] buff = new byte[wantBytes];
+                    recvIO.ReadTo(readpos, buff, wantBytes);
+                    //add to req  
+                    AddMsgBody(buff, 0, wantBytes);
+                    //complete 
+                    this.parseState = HttpParsingState.Complete;
+                    return;
+                }
+                else
+                {
+                    //continue read             
+                    if (remaining > 0)
+                    {
+                        byte[] buff = new byte[remaining];
+                        recvIO.ReadTo(readpos, buff, remaining);
+                        //add to req  
+                        AddMsgBody(buff, 0, remaining);
+                    }
+
+                    return;
+                }
+            }
+            this.parseState = HttpParsingState.Complete;
+
+        }
+        //===================
     }
 
 }
