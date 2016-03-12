@@ -8,6 +8,38 @@ namespace SharpConnect
 
     class TestApp
     {
+        const string html = @"<html>
+                <head>
+                <script>
+                        var wsUri = ""ws://localhost:8080"";
+                        var websocket= null;
+                        (function init(){
+	  
+		                        //command queue 
+		                        websocket = new WebSocket(wsUri);
+		                        websocket.onopen = function(evt) { 
+			                        console.log('open');
+			                        websocket.send('client: Hello!');
+		                        };
+		                        websocket.onclose = function(evt) { 
+			                        console.log('close');
+		                        };
+		                        websocket.onmessage = function(evt) {  
+			                        console.log(evt.data);
+		                        };
+		                        websocket.onerror = function(evt) {  
+		                        };		
+                         })();
+                        function send_data(data){
+	                            websocket.send(data);
+                        }
+                </script>
+                </head>
+                <body>
+                        hello-websocket
+	                    <input type=""button"" id=""mytxt"" onclick=""send_data('hello')""></input>	
+                </body>    
+        </html>";
         public void HandleRequest(HttpRequest req, HttpResponse resp)
         {
             switch (req.Url)
@@ -16,6 +48,12 @@ namespace SharpConnect
                     {
                         resp.TransferEncoding = ResponseTransferEncoding.Chunked;
                         resp.End("hello!");
+                    }
+                    break;
+                case "/websocket":
+                    {
+                        resp.ContentType = WebResponseContentType.TextHtml;
+                        resp.End(html);
                     }
                     break;
                 case "/version":
@@ -29,6 +67,11 @@ namespace SharpConnect
                     }
                     break;
             }
+        }
+        int count = 0;
+        public void HandleWebSocket(WebSocketRequest req, WebSocketResponse resp)
+        {
+            resp.Write("server:" + (count++));
         }
 
     }
