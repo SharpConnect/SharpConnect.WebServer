@@ -2,28 +2,31 @@
 using System;
 using System.Net;
 using System.Text;
+
 using SharpConnect.WebServers;
-using SharpConnect.Internal;
 
 namespace SharpConnect
 {
     static class Program
     {
-        static bool runApp = true;
 
         static void Main(string[] args)
         {
             Main2();
         }
         static void Main2()
-        {
-
-
+        { 
             TestApp testApp = new TestApp();
             try
             {
                 //1. create  
                 WebServer webServer = new WebServer(8080, true, testApp.HandleRequest);
+
+                //test websocket
+
+                webServer.WebSocketServer = new WebSocketServer(testApp.HandleWebSocket);
+
+
                 webServer.Start();
 
                 string cmd = "";

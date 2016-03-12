@@ -38,7 +38,7 @@ namespace SharpConnect.WebServers
         readonly SocketAsyncEventArgs sockAsyncSender;
         readonly SocketAsyncEventArgs sockAsyncListener;
 
-        ConnHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler;
+        ReqRespHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler;
         Socket clientSocket;
 
         byte[] outputData = new byte[512];
@@ -54,7 +54,7 @@ namespace SharpConnect.WebServers
         int connectionId;
         static int connectionIdTotal;
 
-        public WebSocketContext(WebSocketServer webSocketServer, ConnHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler)
+        public WebSocketContext(WebSocketServer webSocketServer, ReqRespHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler)
         {
             this.webSocketReqHandler = webSocketReqHandler;
             this.webSocketServer = webSocketServer;
@@ -135,9 +135,6 @@ namespace SharpConnect.WebServers
             clientSocket.ReceiveAsync(sockAsyncListener);
             //------------------------------------------------------  
         }
-
-
-
         void recv_Complete(RecvEventCode recvCode)
         {
             switch (recvCode)
@@ -155,7 +152,6 @@ namespace SharpConnect.WebServers
                     } break;
                 case RecvEventCode.NoMoreReceiveData:
                     {
-
                     }
                     break;
                 case RecvEventCode.SocketError:
@@ -182,7 +178,7 @@ namespace SharpConnect.WebServers
         {
             get { return this.connectionId; }
         }
-        public void SetMessageHandler(ConnHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler)
+        public void SetMessageHandler(ReqRespHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler)
         {
             this.webSocketReqHandler = webSocketReqHandler;
         }
@@ -203,13 +199,6 @@ namespace SharpConnect.WebServers
             sockAsyncSender.SetBuffer(data, 0, data.Length);
             clientSocket.SendAsync(sockAsyncSender);
         }
-        //internal void SendUpgradeResponse(string sec_websocket_key)
-        //{
-        //    //this is http msg, first time after accept client
-        //    byte[] data = MakeWebSocketUpgradeResponse(MakeResponseMagicCode(sec_websocket_key));
-        //    sockAsyncSender.SetBuffer(data, 0, data.Length);
-        //    clientSocket.SendAsync(sockAsyncSender);
-        //}
 
     }
 

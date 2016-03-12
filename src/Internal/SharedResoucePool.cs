@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading;
 
-namespace SharpConnect
+namespace SharpConnect.Internal
 {
 
     sealed class SharedResoucePool<T>

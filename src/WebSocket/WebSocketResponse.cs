@@ -13,7 +13,7 @@ namespace SharpConnect.WebServers
 
         MemoryStream bodyMs = new MemoryStream();
         readonly WebSocketContext conn;
-        
+
         SendIO sendIO;
         internal WebSocketResponse(WebSocketContext conn, SendIO sendIO)
         {
@@ -37,7 +37,7 @@ namespace SharpConnect.WebServers
         internal void ResetAll()
         {
             //NeedFlush = false;
-            bodyMs.Position = 0; 
+            bodyMs.Position = 0;
         }
         static byte[] CreateSendBuffer(string msg)
         {

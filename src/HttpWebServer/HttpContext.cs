@@ -47,7 +47,7 @@ namespace SharpConnect.WebServers
 
         HttpRequest httpReq;
         HttpResponse httpResp;
-        ConnHandler<HttpRequest, HttpResponse> reqHandler;
+        ReqRespHandler<HttpRequest, HttpResponse> reqHandler;
         WebServer ownerServer;
 
         public HttpContext(
@@ -183,7 +183,7 @@ namespace SharpConnect.WebServers
         {
             this.recvSendArgs.AcceptSocket = clientSocket;
         }
-        internal void BindReqHandler(ConnHandler<HttpRequest, HttpResponse> reqHandler)
+        internal void BindReqHandler(ReqRespHandler<HttpRequest, HttpResponse> reqHandler)
         {
             this.reqHandler = reqHandler;
         }

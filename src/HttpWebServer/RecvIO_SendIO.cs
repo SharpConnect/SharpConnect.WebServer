@@ -62,7 +62,7 @@ namespace SharpConnect.Internal
         {
             int bytesTransfer = recvArgs.BytesTransferred;
             byte[] destBuffer = new byte[bytesTransfer];
-            //TODO: change to read to
+
             Buffer.BlockCopy(recvArgs.Buffer,
                 recvStartOffset,
                 destBuffer,
@@ -81,24 +81,14 @@ namespace SharpConnect.Internal
             //1. socket error
             if (recvArgs.SocketError != SocketError.Success)
             {
-                //connection.OnSocketError();
-                //OnSocketError();
-                //CloseClientSocket(ClosingReason.Error);
+
                 recvNotify(RecvEventCode.SocketError);
                 return;
             }
             //2. no more receive 
             if (recvArgs.BytesTransferred == 0)
             {
-                //no more receive data
-                //if keepAlive then wait not close connection
-                //connection.OnNoMoreReceiveData();
                 recvNotify(RecvEventCode.NoMoreReceiveData);
-                //OnNoMoreReceiveData();
-                //if (!connection.KeepAlive)
-                //{
-                //    CloseClientSocket(ClosingReason.Finish);
-                //}
                 return;
             }
             recvNotify(RecvEventCode.HasSomeData);
@@ -125,11 +115,11 @@ namespace SharpConnect.Internal
         SendComplete,
         SocketError,
     }
+
     class SendIO
     {
         //send,
-        //resp
-
+        //resp 
         readonly int sendStartOffset;
         readonly int sendBufferSize;
         readonly SocketAsyncEventArgs sendArgs;
@@ -164,24 +154,8 @@ namespace SharpConnect.Internal
             }
             else
             {
-                //add to queue
                 sendingQueue.Enqueue(dataToSend);
             }
-
-
-            //if (isSending)
-            //{
-            //    //push to queue
-            //    dataQueue.Enqueue(dataToSend);
-            //    return;
-            //}
-
-            //isSending = true; //start sending
-            ////---------------------------------------------
-            ////format data for websocket client
-            //byte[] outputData = CreateSendBuffer(dataToSend);
-            //sockAsyncSender.SetBuffer(outputData, 0, outputData.Length);
-            //clientSocket.SendAsync(this.sockAsyncSender);
         }
         public void StartSendAsync()
         {
@@ -245,9 +219,6 @@ namespace SharpConnect.Internal
                     sendArgs.Buffer,
                     this.sendStartOffset,
                     this.sendBufferSize);
-
-                //We'll change the value of sendUserToken.sendBytesRemainingCount
-                //in the ProcessSend method.
             }
 
 
