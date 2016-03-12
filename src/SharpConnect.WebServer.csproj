@@ -40,12 +40,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="General\BufferManager.cs" />
-    <Compile Include="General\ConnectionBase.cs" />
+    <Compile Include="General\ConnHandler.cs" />
     <Compile Include="General\dbugAcceptOpUserToken.cs" />
     <Compile Include="General\dbugLOG.cs" />
     <Compile Include="General\dbugTestFileWriter.cs" />
     <Compile Include="General\NewConnListener.cs" />
-    <Compile Include="General\ServerSettings.cs" />
+    <Compile Include="General\NewConnListenerSettings.cs" />
     <Compile Include="General\SharedResoucePool.cs" />
     <Compile Include="HttpWebServer\HttpContext.cs" />
     <Compile Include="HttpWebServer\HttpRequest.cs" />
@@ -54,7 +54,7 @@
     <Compile Include="HttpWebServer\WebServer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="WebSocket\Flags.cs" />
-    <Compile Include="WebSocket\WebSocketContext.cs" />
+    <Compile Include="WebSocket\WebSocketConnection.cs" />
     <Compile Include="WebSocket\WebSocketRequest.cs" />
     <Compile Include="WebSocket\WebSocketResponse.cs" />
     <Compile Include="WebSocket\WebSocketServer.cs" />

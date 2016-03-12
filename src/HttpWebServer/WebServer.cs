@@ -22,22 +22,20 @@ namespace SharpConnect.WebServers
         SharedResoucePool<HttpContext> contextPool;
         public WebServer(int port, bool localOnly, ConnHandler<HttpRequest, HttpResponse> reqHandler)
         {
+            this.reqHandler = reqHandler;
 
             int maxNumberOfConnections = 1000;
             int excessSaeaObjectsInPool = 200;
             int backlog = 100;
             int maxSimultaneousAcceptOps = 100;
 
-            var setting = new ServerSettings(maxNumberOfConnections,
+            var setting = new NewConnListenerSettings(maxNumberOfConnections,
                    excessSaeaObjectsInPool,
                    backlog,
                    maxSimultaneousAcceptOps,
                    new IPEndPoint(localOnly ? IPAddress.Loopback : IPAddress.Any, port));//check only local host or not
 
-            this.reqHandler = reqHandler;
-
-            bufferMan = BufferManager.CreateBufferManager(setting);
-            CreateContextPool(setting);
+            CreateContextPool(maxNumberOfConnections);
             newConnListener = new NewConnectionListener(setting,
                 clientSocket =>
                 {
@@ -48,23 +46,26 @@ namespace SharpConnect.WebServers
                 });
         }
 
-        void CreateContextPool(ServerSettings setting)
+        void CreateContextPool(int maxNumberOfConnnections)
         {
+            int recvSize = 1024;
+            int sendSize = 1024;
+            bufferMan = new BufferManager((recvSize + sendSize) * maxNumberOfConnnections, (recvSize + sendSize));
             //Allocate memory for buffers. We are using a separate buffer space for
             //receive and send, instead of sharing the buffer space, like the Microsoft
             //example does.    
-            this.contextPool = new SharedResoucePool<HttpContext>(setting.NumOfConnSession);
+            this.contextPool = new SharedResoucePool<HttpContext>(maxNumberOfConnnections);
             //------------------------------------------------------------------
             //It is NOT mandatory that you preallocate them or reuse them. But, but it is 
             //done this way to illustrate how the API can 
             // easily be used to create ***reusable*** objects to increase server performance. 
             //------------------------------------------------------------------
             //connection session: socket async = 1:1 
-            for (int i = setting.NumOfConnSession - 1; i >= 0; --i)
+            for (int i = maxNumberOfConnnections - 1; i >= 0; --i)
             {
                 var context = new HttpContext(this,
-                    setting.RecvBufferSize,
-                    setting.SendBufferSize);
+                    recvSize,
+                   sendSize);
 
                 context.BindReqHandler(this.reqHandler); //client handler
 
@@ -101,7 +102,7 @@ namespace SharpConnect.WebServers
         }
         public void Stop()
         {
-            
+
             newConnListener.DisposePool();
 
             while (this.contextPool.Count > 0)
@@ -123,16 +124,32 @@ namespace SharpConnect.WebServers
         {
             get { return webSocketServer != null; }
         }
+
         internal bool CheckWebSocketUpgradeRequest(HttpContext httpConn)
         {
-            if (webSocketServer != null)
-            {
-                return webSocketServer.CheckWebSocketUpgradeRequest(httpConn);
-            }
-            else
+            if (webSocketServer == null)
             {
                 return false;
             }
+
+            HttpRequest httpReq = httpConn.HttpReq;
+            HttpResponse httpResp = httpConn.HttpResp;
+
+            string upgradeKey = httpReq.GetHeaderKey("Upgrade");
+            if (upgradeKey != null && upgradeKey == "websocket")
+            {
+
+                string sec_websocket_key = httpReq.GetHeaderKey("Sec-WebSocket-Key");
+
+                Socket clientSocket = httpConn.RemoteSocket;
+                httpConn.UnBindSocket(false);//unbind  but not close client socket 
+
+                WebSocketConnection wbSocketConn = webSocketServer.RegisterNewWebSocket(clientSocket);
+                wbSocketConn.SendUpgradeResponse(sec_websocket_key);
+
+                return true;
+            }
+            return false;
         }
     }
 

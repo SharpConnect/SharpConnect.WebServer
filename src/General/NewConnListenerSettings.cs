@@ -7,31 +7,28 @@ using System.Net;
 using System.Text;
 using System.Net.Sockets;
 
-namespace SharpConnect
+namespace SharpConnect.Internal
 {
-    public sealed class ServerSettings
+    public sealed class NewConnListenerSettings
     {
 #if DEBUG
-        static ServerSettings()
+        static NewConnListenerSettings()
         {
             dbugLOG.StartLog();
 
         }
 #endif
-        public ServerSettings(int maxConnections,
-            int numOfSocketAsyncEventArgsInPool,
+        public NewConnListenerSettings(int maxConnections,
+            int excessNumberOfSocketAsyncsInPool,
             int backlog,
-            int maxSimultaneousAcceptOps,
-            IPEndPoint listenerEndPoint)
+            int maxSimultaneousAcceptOps, IPEndPoint listenerEndPoint)
         {
             this.MaxConnections = maxConnections;
-            this.NumOfConnSession = maxConnections + numOfSocketAsyncEventArgsInPool;
+            this.NumOfConnSession = maxConnections + excessNumberOfSocketAsyncsInPool;
             this.Backlog = backlog;
             this.MaxAcceptOps = maxSimultaneousAcceptOps;
             this.ListnerEndPoint = listenerEndPoint;
 
-            RecvBufferSize = 1024;
-            SendBufferSize = 1024;
         }
 
         /// <summary>
@@ -51,21 +48,10 @@ namespace SharpConnect
         /// </summary>
         public int MaxAcceptOps { get; private set; }
 
-        /// <summary>
-        /// Endpoint for the listener.
-        /// </summary>
+        ///// <summary>
+        ///// Endpoint for the listener.
+        ///// </summary>
         public IPEndPoint ListnerEndPoint { get; private set; }
-
-        public int RecvBufferSize
-        {
-            get;
-            set;
-        }
-        public int SendBufferSize
-        {
-            get;
-            set;
-        }
     }
 
 }

@@ -37,37 +37,22 @@ namespace SharpConnect.WebServers
     {
 
         ConnHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler;
-        Dictionary<int, WebSocketContext> workingWebSocketConns = new Dictionary<int, WebSocketContext>();
+        Dictionary<int, WebSocketConnection> workingWebSocketConns = new Dictionary<int, WebSocketConnection>();
 
         public WebSocketServer(ConnHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler)
         {
             this.webSocketReqHandler = webSocketReqHandler;
         }
-        internal bool CheckWebSocketUpgradeRequest(HttpContext httpConn)
+
+        internal WebSocketConnection RegisterNewWebSocket(Socket clientSocket)
         {
-            HttpRequest httpReq = httpConn.HttpReq;
-            HttpResponse httpResp = httpConn.HttpResp;
-
-            string upgradeKey = httpReq.GetHeaderKey("Upgrade");
-            if (upgradeKey != null && upgradeKey == "websocket")
-            {
-               
-                string sec_websocket_key = httpReq.GetHeaderKey("Sec-WebSocket-Key"); 
-
-                WebSocketContext wbSocketConn = new WebSocketContext(this, webSocketReqHandler);
-                workingWebSocketConns.Add(wbSocketConn.ConnectionId, wbSocketConn);//add to working socket 
-
-                Socket clientSocket = httpConn.RemoteSocket;
-                httpConn.UnBindSocket(false);//unbind  but not close client socket          
-
-                wbSocketConn.Bind(clientSocket); //move client socket to webSocketConn  
-                wbSocketConn.SendUpgradeResponse(sec_websocket_key);
-                 
-                return true;
-            }
-            return false;
+            WebSocketConnection wbSocketConn = new WebSocketConnection(this, webSocketReqHandler);
+            workingWebSocketConns.Add(wbSocketConn.ConnectionId, wbSocketConn);//add to working socket 
+            wbSocketConn.Bind(clientSocket); //move client socket to webSocketConn  
+            return wbSocketConn;
         }
-     
+       
+
 
     }
 

@@ -1,26 +1,4 @@
-﻿//2015-2016, MIT, EngineKit
-/* The MIT License
-*
-* Copyright (c) 2013-2015 sta.blockhead
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-* THE SOFTWARE.
-*/
+﻿//2015-2016, MIT, EngineKit 
 using System;
 using System.IO;
 using System.Collections.Generic;
@@ -30,14 +8,13 @@ using SharpConnect.Internal;
 
 namespace SharpConnect.WebServers
 {
-
     public class WebSocketResponse : IDisposable
-    {
+    {   
         MemoryStream bodyMs = new MemoryStream();
-        readonly WebSocketContext conn;
-
+        readonly WebSocketConnection conn;
+        int contentByteCount;
         SendIO sendIO;
-        internal WebSocketResponse(WebSocketContext conn, SendIO sendIO)
+        internal WebSocketResponse(WebSocketConnection conn, SendIO sendIO)
         {
             this.conn = conn;
             this.sendIO = sendIO;
@@ -50,56 +27,31 @@ namespace SharpConnect.WebServers
                 bodyMs = null;
             }
         }
-        public void Write(string dataToSend)
-        {   
-            
-            //format data for websocket client
-            byte[] outputData = CreateSendBuffer(dataToSend);
-            sendIO.EnqueueOutputData(outputData, outputData.Length);
-            sendIO.StartSendAsync(); 
+        public void Write(string content)
+        {
+            conn.Send(content);
+        }
+        internal bool NeedFlush
+        {
+            get;
+            set;
+        }
+        public void Flush()
+        {
+            byte[] dataToSend = bodyMs.ToArray();
+            //----------------------------------------------------
+            //copy data to send buffer
+            //connProtocol.EnqueueOutputData(dataToSend, dataToSend.Length);
+            sendIO.EnqueueOutputData(dataToSend, dataToSend.Length);
+            //---------------------------------------------------- 
+            ResetAll();
         }
         internal void ResetAll()
         {
+            NeedFlush = false;
             bodyMs.Position = 0;
-
+            contentByteCount = 0;
         }
-        static byte[] CreateSendBuffer(string msg)
-        {
-            byte[] data = null;
-            using (MemoryStream ms = new MemoryStream())
-            {
-                //create data   
-                byte b1 = ((byte)Fin.Final) << 7; //final
-                //// FIN
-                //Fin fin = (b1 & (1 << 7)) == (1 << 7) ? Fin.Final : Fin.More; 
-                //// RSV1
-                //Rsv rsv1 = (b1 & (1 << 6)) == (1 << 6) ? Rsv.On : Rsv.Off;  //on compress
-                //// RSV2
-                //Rsv rsv2 = (b1 & (1 << 5)) == (1 << 5) ? Rsv.On : Rsv.Off; 
-                //// RSV3
-                //Rsv rsv3 = (b1 & (1 << 4)) == (1 << 4) ? Rsv.On : Rsv.Off; 
 
-                //opcode: 1 = text
-                b1 |= 1;
-
-                byte[] dataToClient = Encoding.UTF8.GetBytes(msg);
-                //if len <126  then               
-                byte b2 = (byte)dataToClient.Length; // < 126
-                //-----------------------------
-                //no extened payload length
-                //no mask key
-                ms.WriteByte(b1);
-                ms.WriteByte(b2);
-                ms.Write(dataToClient, 0, dataToClient.Length);
-                ms.Flush();
-                //-----------------------------
-                //mask : send to client no mask
-                data = ms.ToArray();
-                ms.Close();
-            }
-
-            return data;
-        }
     }
-
 }

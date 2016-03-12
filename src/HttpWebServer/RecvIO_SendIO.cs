@@ -139,7 +139,6 @@ namespace SharpConnect.Internal
         byte[] currentSendingData = null;
         Queue<byte[]> sendingQueue = new Queue<byte[]>();
         Action<SendIOEventCode> notify;
-        bool isSending;
 
         public SendIO(SocketAsyncEventArgs sendArgs, int sendStartOffset, int sendBufferSize, Action<SendIOEventCode> notify)
         {
@@ -150,7 +149,6 @@ namespace SharpConnect.Internal
         }
         public void ResetBuffer()
         {
-
             currentSendingData = null;
             sendingTransferredBytes = 0;
             sendingTargetBytes = 0;
@@ -189,16 +187,12 @@ namespace SharpConnect.Internal
             //to post more than one send operation. If it is less than or equal to the
             //size of the send buffer, then we can accomplish it in one send op. 
 
-            if (isSending) { return; }
-
-            isSending = true;
 
             //send this data first
             int remaining = this.sendingTargetBytes - this.sendingTransferredBytes;
             if (remaining == 0)
             {
                 //no data to send ?
-                isSending = false;
                 return;
             }
 
@@ -241,29 +235,40 @@ namespace SharpConnect.Internal
         }
         public void ProcessSend()
         {
+            // This method is called by I/O Completed() when an asynchronous send completes.  
+            // If all of the data has been sent, then this method calls StartReceive
+            //to start another receive op on the socket to read any additional 
+            // data sent from the client. If all of the data has NOT been sent, then it 
+            //calls StartSend to send more data.          
+            // dbugSendLog(connSession, "ProcessSend"); 
 
             if (sendArgs.SocketError == SocketError.Success)
             {
-                isSending = false;
                 //success !                 
                 this.sendingTransferredBytes += sendArgs.BytesTransferred;
                 if ((this.sendingTargetBytes - sendingTransferredBytes) <= 0)
                 {
-                    //check if there are more data waiting in queue
+                    //check if no other data in chuck 
                     if (sendingQueue.Count > 0)
                     {
-
+                        //move new chunck to current Sending data
                         this.currentSendingData = sendingQueue.Dequeue();
                         this.sendingTargetBytes = currentSendingData.Length;
-                        this.sendingTransferredBytes = 0; 
-                        StartSendAsync(); 
+                        this.sendingTransferredBytes = 0;
+
+                        //conitnue read 
+                        //So let's loop back to StartSend().
+                        StartSendAsync();
+                        return;
                     }
                     else
                     {
                         //no data
                         ResetBuffer();
                         //notify no more data
-                        notify(SendIOEventCode.SendComplete);  
+                        notify(SendIOEventCode.SendComplete);
+
+                        return;
                     }
                 }
                 else
@@ -271,7 +276,8 @@ namespace SharpConnect.Internal
 
                     //conitnue read 
                     //So let's loop back to StartSend().
-                    StartSendAsync(); 
+                    StartSendAsync();
+                    return;
                 }
             }
             else

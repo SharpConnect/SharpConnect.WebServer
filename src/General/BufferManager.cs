@@ -97,13 +97,7 @@ namespace SharpConnect
             args.SetBuffer(null, 0, 0);
         }
         //-------------------------------------------------------------------------------------------------------
-        public static BufferManager CreateBufferManager(ServerSettings setting)
-        {
-            int totalBufferForEachRecvSendArgs = setting.RecvBufferSize + setting.SendBufferSize; //recv + send
-            return new BufferManager(
-                  totalBufferForEachRecvSendArgs * setting.NumOfConnSession,
-                  totalBufferForEachRecvSendArgs);
-        }
+      
 
     }
 

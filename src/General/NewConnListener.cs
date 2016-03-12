@@ -22,7 +22,7 @@ namespace SharpConnect.Internal
         /// reusable AsyncEventArgs  pool for accept ops
         /// </summary>
         SharedResoucePool<SocketAsyncEventArgs> acceptArgsPool;
-        ServerSettings setting;
+        NewConnListenerSettings setting;
         //A Semaphore has two parameters, the initial number of available slots
         //and the maximum number of slots. We'll make them the same. 
         //This Semaphore is used to keep from going over max connection number. (It is not about 
@@ -34,7 +34,7 @@ namespace SharpConnect.Internal
         /// </summary>
         Action<Socket> acceptNewConnectionHandler;
 
-        public NewConnectionListener(ServerSettings setting, Action<Socket> acceptNewConnectionHandler)
+        public NewConnectionListener(NewConnListenerSettings setting, Action<Socket> acceptNewConnectionHandler)
         {
             this.setting = setting;
             this.acceptArgsPool = new SharedResoucePool<SocketAsyncEventArgs>(this.setting.MaxAcceptOps);
