@@ -65,14 +65,14 @@ namespace SharpConnect.WebServers
         {
             headerStBuilder.Length = 0;
             StatusCode = 200;
-            
-            isSend = false;
+
+            isSending = false;
             TransferEncoding = ResponseTransferEncoding.Identity;
             writeContentState = WriteContentState.HttpHead;
             ContentType = WebResponseContentType.TextPlain;//reset content type
             headers.Clear();
             ResetWritingBuffer();
-            
+
         }
         void ResetWritingBuffer()
         {
@@ -116,7 +116,7 @@ namespace SharpConnect.WebServers
             //write to stream
             bodyMs.Write(bytes, 0, bytes.Length);
             contentByteCount += bytes.Length;
-             
+
         }
         public void End(string str)
         {
@@ -173,7 +173,7 @@ namespace SharpConnect.WebServers
                                     //chunked transfer
                                     var headBuffer = Encoding.UTF8.GetBytes(headerStBuilder.ToString().ToCharArray());
                                     sendIO.EnqueueOutputData(headBuffer, headBuffer.Length);
-                                    WriteContentBodyInChunkMode();
+                                    WriteContentBodyInChunkMode();//TODO: Review Here
                                     ResetAll();
                                 } break;
                         }
@@ -193,19 +193,18 @@ namespace SharpConnect.WebServers
 
             //-----------------------
             //send 
-
-            StartSend();
-        }
-        bool isSend = false;
-        void StartSend()
-        {
-            if (isSend)
+            //-----------------------
+            if (isSending)
             {
                 return;
             }
-            isSend = true;
+            isSending = true;
             sendIO.StartSendAsync();
+            //-----------------------
         }
+
+        bool isSending;
+
         void WriteContentBodyInChunkMode()
         {
             //---------------------------------------------------- 
@@ -235,7 +234,7 @@ namespace SharpConnect.WebServers
             sendIO.EnqueueOutputData(endChuckedBlock, endChuckedBlock.Length);
             //---------------------------------------------------- 
             ResetWritingBuffer();
-        } 
+        }
         public ResponseTransferEncoding TransferEncoding
         {
             get;
@@ -245,7 +244,7 @@ namespace SharpConnect.WebServers
         {
             get;
             set;
-        } 
+        }
 
         //-------------------------------------------------
         static string GetTransferEncoing(ResponseTransferEncoding te)
