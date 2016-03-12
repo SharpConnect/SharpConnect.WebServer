@@ -37,7 +37,7 @@ namespace SharpConnect.WebServers
     {
 
         ConnHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler;
-        Dictionary<int, WebSocketConnection> workingWebSocketConns = new Dictionary<int, WebSocketConnection>();
+        Dictionary<int, WebSocketContext> workingWebSocketConns = new Dictionary<int, WebSocketContext>();
 
         public WebSocketServer(ConnHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler)
         {
@@ -54,7 +54,7 @@ namespace SharpConnect.WebServers
                
                 string sec_websocket_key = httpReq.GetHeaderKey("Sec-WebSocket-Key"); 
 
-                WebSocketConnection wbSocketConn = new WebSocketConnection(this, webSocketReqHandler);
+                WebSocketContext wbSocketConn = new WebSocketContext(this, webSocketReqHandler);
                 workingWebSocketConns.Add(wbSocketConn.ConnectionId, wbSocketConn);//add to working socket 
 
                 Socket clientSocket = httpConn.RemoteSocket;

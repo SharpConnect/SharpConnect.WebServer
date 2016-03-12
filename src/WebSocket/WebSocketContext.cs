@@ -26,13 +26,12 @@ using System.IO;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Security.Cryptography;
+using System.Text; 
 using SharpConnect.Internal;
 
 namespace SharpConnect.WebServers
 {
-    public class WebSocketConnection : IDisposable
+    public class WebSocketContext : IDisposable
     {
         readonly WebSocketServer webSocketServer;
         readonly SocketAsyncEventArgs sockAsyncSender;
@@ -44,7 +43,7 @@ namespace SharpConnect.WebServers
         byte[] outputData = new byte[512];
 
 
-        WebSocketRequest webSocketReq = new WebSocketRequest();
+        WebSocketRequest webSocketReq;
         WebSocketResponse webSocketResp;
 
         Encoding utf8Enc = new UTF8Encoding();
@@ -60,7 +59,7 @@ namespace SharpConnect.WebServers
         int connectionId;
         static int connectionIdTotal;
 
-        public WebSocketConnection(WebSocketServer webSocketServer, ConnHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler)
+        public WebSocketContext(WebSocketServer webSocketServer, ConnHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler)
         {
             this.webSocketReqHandler = webSocketReqHandler;
             this.webSocketServer = webSocketServer;
@@ -118,6 +117,7 @@ namespace SharpConnect.WebServers
                 }
             });
             //------------------------------------------------------------------------------------
+            webSocketReq = new WebSocketRequest(recvIO);
             webSocketResp = new WebSocketResponse(this, sendIO);
         }
         public void Bind(Socket clientSocket)
@@ -132,6 +132,7 @@ namespace SharpConnect.WebServers
             //when bind we start listening 
             clientSocket.ReceiveAsync(sockAsyncListener);
             //------------------------------------------------------  
+            
         }
 
         internal void SendUpgradeResponse(string sec_websocket_key)
@@ -150,10 +151,11 @@ namespace SharpConnect.WebServers
                     {
                         //parse recv msg
                         ParseWebSocketRequestHeader();
+                        //
                         webSocketReqHandler(webSocketReq, webSocketResp);
                         //start next recv
                         byte[] newRecvBuffer = new byte[512];
-                        recvIO.StartReceive(newRecvBuffer,512);
+                        recvIO.StartReceive(newRecvBuffer, 512);
                     } break;
                 case RecvEventCode.NoMoreReceiveData:
                     {
@@ -229,14 +231,11 @@ namespace SharpConnect.WebServers
             clientSocket.SendAsync(this.sockAsyncSender);
         }
 
-        int socketRecvState;
-        int remainingBytes;
+       
 
         int ParseWebSocketRequestHeader()
         {
-            int readpos = 0;
-
-
+            int readpos = 0; 
             if (socketRecvState == 1)
             {
                 //skip remaining bytes
@@ -368,9 +367,7 @@ namespace SharpConnect.WebServers
                     //read mask data                     
                     maskKey = new byte[maskLen];
                     recvIO.ReadTo(readpos, maskKey, maskLen);
-                    readpos += maskLen;
-
-
+                    readpos += maskLen; 
                     //throw new WebSocketException("The masking key of a frame cannot be read from the stream.");
                 }
                 //----------------------------------------------------
@@ -517,8 +514,7 @@ namespace SharpConnect.WebServers
         }
         static ulong GetFullPayloadLength(int _payloadLength, byte[] fullPayloadLengthBuffer)
         {
-            // Payload length:  7 bits, 7+16 bits, or 7+64 bits
-
+            // Payload length:  7 bits, 7+16 bits, or 7+64 bits 
             //The length of the "Payload data", in bytes: if 0-125, that is the
             //payload length.  If 126, the following 2 bytes interpreted as a
             //16-bit unsigned integer are the payload length.  If 127, the
