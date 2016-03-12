@@ -109,6 +109,11 @@ namespace SharpConnect.Internal
             recvArgs.SetBuffer(this.recvStartOffset, this.recvBufferSize);
             recvArgs.AcceptSocket.ReceiveAsync(recvArgs);
         }
+        public void StartReceive(byte[] buffer, int len)
+        {
+            recvArgs.SetBuffer(buffer, 0, len);
+            recvArgs.AcceptSocket.ReceiveAsync(recvArgs);
+        }
         public int BytesTransferred
         {
             get { return recvArgs.BytesTransferred; }

@@ -151,7 +151,9 @@ namespace SharpConnect.WebServers
                         //parse recv msg
                         ParseWebSocketRequestHeader();
                         webSocketReqHandler(webSocketReq, webSocketResp);
-
+                        //start next recv
+                        byte[] newRecvBuffer = new byte[512];
+                        recvIO.StartReceive(newRecvBuffer,512);
                     } break;
                 case RecvEventCode.NoMoreReceiveData:
                     {
