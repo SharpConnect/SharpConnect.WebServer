@@ -6,9 +6,7 @@ using System.Net;
 using System.Text;
 using System.Threading;
 
- 
-
-namespace SharpConnect 
+namespace SharpConnect.Internal
 {
 #if DEBUG
     static class dbugLOG
@@ -167,7 +165,7 @@ namespace SharpConnect
                 Console.WriteLine();
             }
         }
-         
+
 
         static void WriteLogData()
         {
@@ -185,7 +183,7 @@ namespace SharpConnect
             //}
             //testWriter.WriteLine("\r\nHighest # of simultaneous connections was " + maxSimultaneousClientsThatWereConnected);
             //testWriter.WriteLine("# of transmissions received was " + (mainTransMissionId - startingTid));
-        } 
+        }
     }
 
 #endif

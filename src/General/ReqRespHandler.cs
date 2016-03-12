@@ -9,7 +9,6 @@ using System.Threading;
 using System.Text; //for testing
 
 namespace SharpConnect
-{ 
-    public delegate void ConnHandler<REQ, RESP>(REQ req, RESP resp);
-
+{
+    public delegate void ReqRespHandler<REQ, RESP>(REQ req, RESP resp);
 }

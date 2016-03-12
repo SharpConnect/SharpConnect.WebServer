@@ -36,22 +36,18 @@ namespace SharpConnect.WebServers
     public class WebSocketServer
     {
 
-        ConnHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler;
+        ReqRespHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler;
         Dictionary<int, WebSocketContext> workingWebSocketConns = new Dictionary<int, WebSocketContext>();
-        public WebSocketServer(ConnHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler)
+        public WebSocketServer(ReqRespHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler)
         {
             this.webSocketReqHandler = webSocketReqHandler;
         }
-
         internal WebSocketContext RegisterNewWebSocket(Socket clientSocket, string sec_websocket_key)
         {
             WebSocketContext wbSocketConn = new WebSocketContext(this, webSocketReqHandler);
             workingWebSocketConns.Add(wbSocketConn.ConnectionId, wbSocketConn);//add to working socket 
-            wbSocketConn.Bind(clientSocket); //move client socket to webSocketConn  
-
-            byte[] data = MakeWebSocketUpgradeResponse(MakeResponseMagicCode(sec_websocket_key));
-
-            wbSocketConn.SendExternalRaw(data);
+            wbSocketConn.Bind(clientSocket); //move client socket to webSocketConn    
+            wbSocketConn.SendExternalRaw(MakeWebSocketUpgradeResponse(MakeResponseMagicCode(sec_websocket_key)));
             return wbSocketConn;
         }
         static byte[] MakeWebSocketUpgradeResponse(string webSocketSecCode)
@@ -83,11 +79,7 @@ namespace SharpConnect.WebServers
             var sha1 = SHA1.Create();
             byte[] shaHash = sha1.ComputeHash(Encoding.ASCII.GetBytes(total));
             return Convert.ToBase64String(shaHash);
-
         }
-        //----------------------------
-
-
     }
 
 

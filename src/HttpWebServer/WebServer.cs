@@ -14,13 +14,13 @@ namespace SharpConnect.WebServers
     public class WebServer
     {
         bool isRunning;
-        ConnHandler<HttpRequest, HttpResponse> reqHandler;
+        ReqRespHandler<HttpRequest, HttpResponse> reqHandler;
         NewConnectionListener newConnListener; //listen to a new connection
 
         WebSocketServer webSocketServer;
         BufferManager bufferMan;
         SharedResoucePool<HttpContext> contextPool;
-        public WebServer(int port, bool localOnly, ConnHandler<HttpRequest, HttpResponse> reqHandler)
+        public WebServer(int port, bool localOnly, ReqRespHandler<HttpRequest, HttpResponse> reqHandler)
         {
             this.reqHandler = reqHandler;
 
