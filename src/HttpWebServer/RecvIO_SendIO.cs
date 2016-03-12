@@ -218,7 +218,7 @@ namespace SharpConnect.Internal
                     this.sendingTransferredBytes,
                     sendArgs.Buffer,
                     this.sendStartOffset,
-                    this.sendBufferSize); 
+                    this.sendBufferSize);
             }
 
 

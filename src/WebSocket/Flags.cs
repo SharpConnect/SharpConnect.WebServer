@@ -26,7 +26,7 @@
  */
 #endregion
 
-using System; 
+using System;
 namespace SharpConnect.WebServers
 {
     /// <summary>

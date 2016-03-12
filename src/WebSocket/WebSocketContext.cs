@@ -134,7 +134,7 @@ namespace SharpConnect.WebServers
             //when bind we start listening 
             clientSocket.ReceiveAsync(sockAsyncListener);
             //------------------------------------------------------  
-        } 
+        }
         void recv_Complete(RecvEventCode recvCode)
         {
             switch (recvCode)
@@ -151,7 +151,7 @@ namespace SharpConnect.WebServers
                         recvIO.StartReceive(newRecvBuffer, 512);
                     } break;
                 case RecvEventCode.NoMoreReceiveData:
-                    { 
+                    {
                     }
                     break;
                 case RecvEventCode.SocketError:
