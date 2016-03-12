@@ -144,7 +144,7 @@ namespace SharpConnect.WebServers
                 Socket clientSocket = httpConn.RemoteSocket;
                 httpConn.UnBindSocket(false);//unbind  but not close client socket 
 
-                WebSocketConnection wbSocketConn = webSocketServer.RegisterNewWebSocket(clientSocket);
+                WebSocketContext wbSocketConn = webSocketServer.RegisterNewWebSocket(clientSocket);
                 wbSocketConn.SendUpgradeResponse(sec_websocket_key);
 
                 return true;

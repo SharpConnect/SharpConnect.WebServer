@@ -11,10 +11,10 @@ namespace SharpConnect.WebServers
     public class WebSocketResponse : IDisposable
     {   
         MemoryStream bodyMs = new MemoryStream();
-        readonly WebSocketConnection conn;
+        readonly WebSocketContext conn;
         int contentByteCount;
         SendIO sendIO;
-        internal WebSocketResponse(WebSocketConnection conn, SendIO sendIO)
+        internal WebSocketResponse(WebSocketContext conn, SendIO sendIO)
         {
             this.conn = conn;
             this.sendIO = sendIO;

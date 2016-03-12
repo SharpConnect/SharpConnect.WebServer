@@ -54,7 +54,7 @@
     <Compile Include="HttpWebServer\WebServer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="WebSocket\Flags.cs" />
-    <Compile Include="WebSocket\WebSocketConnection.cs" />
+    <Compile Include="WebSocket\WebSocketContext.cs" />
     <Compile Include="WebSocket\WebSocketRequest.cs" />
     <Compile Include="WebSocket\WebSocketResponse.cs" />
     <Compile Include="WebSocket\WebSocketServer.cs" />

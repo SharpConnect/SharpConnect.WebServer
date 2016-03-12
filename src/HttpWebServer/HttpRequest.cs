@@ -58,6 +58,11 @@ namespace SharpConnect.WebServers
         int contentByteCount;
         int targetContentLength;
         HttpContext context;
+        
+        int socketRecvState;
+        int remainingBytes;
+
+
         internal HttpRequest(HttpContext context)
         {
             this.context = context;

@@ -37,16 +37,16 @@ namespace SharpConnect.WebServers
     {
 
         ConnHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler;
-        Dictionary<int, WebSocketConnection> workingWebSocketConns = new Dictionary<int, WebSocketConnection>();
+        Dictionary<int, WebSocketContext> workingWebSocketConns = new Dictionary<int, WebSocketContext>();
 
         public WebSocketServer(ConnHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler)
         {
             this.webSocketReqHandler = webSocketReqHandler;
         }
 
-        internal WebSocketConnection RegisterNewWebSocket(Socket clientSocket)
+        internal WebSocketContext RegisterNewWebSocket(Socket clientSocket)
         {
-            WebSocketConnection wbSocketConn = new WebSocketConnection(this, webSocketReqHandler);
+            WebSocketContext wbSocketConn = new WebSocketContext(this, webSocketReqHandler);
             workingWebSocketConns.Add(wbSocketConn.ConnectionId, wbSocketConn);//add to working socket 
             wbSocketConn.Bind(clientSocket); //move client socket to webSocketConn  
             return wbSocketConn;
