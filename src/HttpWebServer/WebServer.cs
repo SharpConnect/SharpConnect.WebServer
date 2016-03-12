@@ -142,11 +142,9 @@ namespace SharpConnect.WebServers
                 string sec_websocket_key = httpReq.GetHeaderKey("Sec-WebSocket-Key");
 
                 Socket clientSocket = httpConn.RemoteSocket;
-                httpConn.UnBindSocket(false);//unbind  but not close client socket 
-
-                WebSocketContext wbSocketConn = webSocketServer.RegisterNewWebSocket(clientSocket);
-                wbSocketConn.SendUpgradeResponse(sec_websocket_key);
-
+                httpConn.UnBindSocket(false);//unbind  but not close client socket  
+                
+                webSocketServer.RegisterNewWebSocket(clientSocket, sec_websocket_key);//the bind client to websocket server
                 return true;
             }
             return false;

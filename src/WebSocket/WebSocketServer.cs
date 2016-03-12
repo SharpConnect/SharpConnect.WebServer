@@ -38,20 +38,54 @@ namespace SharpConnect.WebServers
 
         ConnHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler;
         Dictionary<int, WebSocketContext> workingWebSocketConns = new Dictionary<int, WebSocketContext>();
-
         public WebSocketServer(ConnHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler)
         {
             this.webSocketReqHandler = webSocketReqHandler;
         }
 
-        internal WebSocketContext RegisterNewWebSocket(Socket clientSocket)
+        internal WebSocketContext RegisterNewWebSocket(Socket clientSocket, string sec_websocket_key)
         {
             WebSocketContext wbSocketConn = new WebSocketContext(this, webSocketReqHandler);
             workingWebSocketConns.Add(wbSocketConn.ConnectionId, wbSocketConn);//add to working socket 
             wbSocketConn.Bind(clientSocket); //move client socket to webSocketConn  
+
+            byte[] data = MakeWebSocketUpgradeResponse(MakeResponseMagicCode(sec_websocket_key));
+
+            wbSocketConn.SendExternalRaw(data);
             return wbSocketConn;
         }
-       
+        static byte[] MakeWebSocketUpgradeResponse(string webSocketSecCode)
+        {
+            int contentByteCount = 0; // "" empty string 
+            StringBuilder headerStBuilder = new StringBuilder();
+            headerStBuilder.Length = 0;
+            headerStBuilder.Append("HTTP/1.1 ");
+            headerStBuilder.Append("101 Switching Protocols\r\n");
+            headerStBuilder.Append("Upgrade: websocket\r\n");
+            headerStBuilder.Append("Connection: Upgrade\r\n");
+            headerStBuilder.Append("Sec-WebSocket-Accept: " + webSocketSecCode + "\r\n");
+            headerStBuilder.Append("Content-Length: " + contentByteCount + "\r\n");
+            headerStBuilder.Append("\r\n");
+
+            //-----------------------------------------------------------------
+            //switch transfer encoding method of the body***
+            var headBuffer = Encoding.UTF8.GetBytes(headerStBuilder.ToString().ToCharArray());
+            byte[] dataToSend = new byte[headBuffer.Length + contentByteCount];
+            Buffer.BlockCopy(headBuffer, 0, dataToSend, 0, headBuffer.Length);
+            return dataToSend;
+        }
+        //----------------------------
+        //websocket
+        const string magicString = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+        static string MakeResponseMagicCode(string reqMagicString)
+        {
+            string total = reqMagicString + magicString;
+            var sha1 = SHA1.Create();
+            byte[] shaHash = sha1.ComputeHash(Encoding.ASCII.GetBytes(total));
+            return Convert.ToBase64String(shaHash);
+
+        }
+        //----------------------------
 
 
     }

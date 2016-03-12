@@ -50,11 +50,7 @@ namespace SharpConnect.WebServers
         RecvIO recvIO;
         SendIO sendIO;
 
-        /// <summary>
-        /// TODO: review data type
-        /// </summary>
-        Queue<string> dataQueue = new Queue<string>();
-        bool isSending = false;
+
         int connectionId;
         static int connectionIdTotal;
 
@@ -79,12 +75,14 @@ namespace SharpConnect.WebServers
                         {
                             //switch sockAsync to receive 
                             //when complete send
-                            isSending = false;
-                            if (dataQueue.Count > 0)
-                            {
-                                string dataToSend = dataQueue.Dequeue();
-                                Send(dataToSend);
-                            }
+                            sendIO.ProcessSend();
+
+                            //isSending = false;
+                            //if (dataQueue.Count > 0)
+                            //{
+                            //    string dataToSend = dataQueue.Dequeue();
+                            //    Send(dataToSend);
+                            //}
                         }
                         break;
                     case SocketAsyncOperation.Receive:
@@ -138,13 +136,7 @@ namespace SharpConnect.WebServers
             //------------------------------------------------------  
         }
 
-        internal void SendUpgradeResponse(string sec_websocket_key)
-        {
-            //this is http msg, first time after accept client
-            byte[] data = MakeWebSocketUpgradeResponse(MakeResponseMagicCode(sec_websocket_key));
-            sockAsyncSender.SetBuffer(data, 0, data.Length);
-            clientSocket.SendAsync(sockAsyncSender);
-        }
+
 
         void recv_Complete(RecvEventCode recvCode)
         {
@@ -203,94 +195,22 @@ namespace SharpConnect.WebServers
         public void Send(string dataToSend)
         {
             //send data to server
-            //and wait for result
-
-            if (isSending)
-            {
-                //push to queue
-                dataQueue.Enqueue(dataToSend);
-                return;
-            }
-
-            isSending = true; //start sending
-            //---------------------------------------------
-            //format data for websocket client
-            byte[] outputData = CreateSendBuffer(dataToSend);
-            sockAsyncSender.SetBuffer(outputData, 0, outputData.Length);
-            clientSocket.SendAsync(this.sockAsyncSender);
+            //and wait for result 
+            webSocketResp.Write(dataToSend);
         }
-        static byte[] CreateSendBuffer(string msg)
+        internal void SendExternalRaw(byte[] data)
         {
-            byte[] data = null;
-            using (MemoryStream ms = new MemoryStream())
-            {
-                //create data  
-
-                byte b1 = ((byte)Fin.Final) << 7; //final
-                //// FIN
-                //Fin fin = (b1 & (1 << 7)) == (1 << 7) ? Fin.Final : Fin.More; 
-                //// RSV1
-                //Rsv rsv1 = (b1 & (1 << 6)) == (1 << 6) ? Rsv.On : Rsv.Off;  //on compress
-                //// RSV2
-                //Rsv rsv2 = (b1 & (1 << 5)) == (1 << 5) ? Rsv.On : Rsv.Off; 
-                //// RSV3
-                //Rsv rsv3 = (b1 & (1 << 4)) == (1 << 4) ? Rsv.On : Rsv.Off;
-
-
-                //opcode: 1 = text
-                b1 |= 1;
-
-                byte[] dataToClient = Encoding.UTF8.GetBytes(msg);
-                //if len <126  then               
-                byte b2 = (byte)dataToClient.Length; // < 126
-                //-----------------------------
-                //no extened payload length
-                //no mask key
-                ms.WriteByte(b1);
-                ms.WriteByte(b2);
-                ms.Write(dataToClient, 0, dataToClient.Length);
-                ms.Flush();
-                //-----------------------------
-                //mask : send to client no mask
-                data = ms.ToArray();
-                ms.Close();
-            }
-
-            return data;
+            sockAsyncSender.SetBuffer(data, 0, data.Length);
+            clientSocket.SendAsync(sockAsyncSender);
         }
+        //internal void SendUpgradeResponse(string sec_websocket_key)
+        //{
+        //    //this is http msg, first time after accept client
+        //    byte[] data = MakeWebSocketUpgradeResponse(MakeResponseMagicCode(sec_websocket_key));
+        //    sockAsyncSender.SetBuffer(data, 0, data.Length);
+        //    clientSocket.SendAsync(sockAsyncSender);
+        //}
 
-        static byte[] MakeWebSocketUpgradeResponse(string webSocketSecCode)
-        {
-            int contentByteCount = 0; // "" empty string 
-            StringBuilder headerStBuilder = new StringBuilder();
-            headerStBuilder.Length = 0;
-            headerStBuilder.Append("HTTP/1.1 ");
-            headerStBuilder.Append("101 Switching Protocols\r\n");
-            headerStBuilder.Append("Upgrade: websocket\r\n");
-            headerStBuilder.Append("Connection: Upgrade\r\n");
-            headerStBuilder.Append("Sec-WebSocket-Accept: " + webSocketSecCode + "\r\n");
-            headerStBuilder.Append("Content-Length: " + contentByteCount + "\r\n");
-            headerStBuilder.Append("\r\n");
-
-            //-----------------------------------------------------------------
-            //switch transfer encoding method of the body***
-            var headBuffer = Encoding.UTF8.GetBytes(headerStBuilder.ToString().ToCharArray());
-            byte[] dataToSend = new byte[headBuffer.Length + contentByteCount];
-            Buffer.BlockCopy(headBuffer, 0, dataToSend, 0, headBuffer.Length);
-            return dataToSend;
-        }
-        //----------------------------
-        //websocket
-        const string magicString = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-        static string MakeResponseMagicCode(string reqMagicString)
-        {
-            string total = reqMagicString + magicString;
-            var sha1 = SHA1.Create();
-            byte[] shaHash = sha1.ComputeHash(Encoding.ASCII.GetBytes(total));
-            return Convert.ToBase64String(shaHash);
-
-        }
-        //----------------------------
     }
 
 }

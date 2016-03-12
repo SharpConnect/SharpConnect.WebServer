@@ -140,6 +140,8 @@ namespace SharpConnect.Internal
         Queue<byte[]> sendingQueue = new Queue<byte[]>();
         Action<SendIOEventCode> notify;
 
+        bool isSending;
+
         public SendIO(SocketAsyncEventArgs sendArgs, int sendStartOffset, int sendBufferSize, Action<SendIOEventCode> notify)
         {
             this.sendArgs = sendArgs;
@@ -165,6 +167,21 @@ namespace SharpConnect.Internal
                 //add to queue
                 sendingQueue.Enqueue(dataToSend);
             }
+
+
+            //if (isSending)
+            //{
+            //    //push to queue
+            //    dataQueue.Enqueue(dataToSend);
+            //    return;
+            //}
+
+            //isSending = true; //start sending
+            ////---------------------------------------------
+            ////format data for websocket client
+            //byte[] outputData = CreateSendBuffer(dataToSend);
+            //sockAsyncSender.SetBuffer(outputData, 0, outputData.Length);
+            //clientSocket.SendAsync(this.sockAsyncSender);
         }
         public void StartSendAsync()
         {
@@ -187,12 +204,19 @@ namespace SharpConnect.Internal
             //to post more than one send operation. If it is less than or equal to the
             //size of the send buffer, then we can accomplish it in one send op. 
 
+            if (isSending)
+            {
+                return;
+            }
+
+            isSending = true;
 
             //send this data first
             int remaining = this.sendingTargetBytes - this.sendingTransferredBytes;
             if (remaining == 0)
             {
                 //no data to send ?
+                isSending = false;
                 return;
             }
 
@@ -242,8 +266,10 @@ namespace SharpConnect.Internal
             //calls StartSend to send more data.          
             // dbugSendLog(connSession, "ProcessSend"); 
 
+
             if (sendArgs.SocketError == SocketError.Success)
             {
+                isSending = false;
                 //success !                 
                 this.sendingTransferredBytes += sendArgs.BytesTransferred;
                 if ((this.sendingTargetBytes - sendingTransferredBytes) <= 0)
@@ -282,6 +308,7 @@ namespace SharpConnect.Internal
             }
             else
             {
+                isSending = false;
                 //error, socket error
                 ResetBuffer();
                 notify(SendIOEventCode.SocketError);
