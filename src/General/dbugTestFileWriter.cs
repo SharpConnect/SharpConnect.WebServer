@@ -7,7 +7,7 @@ using System.IO;
 using System.Text;
 using System.Reflection;
 
-namespace SharpConnect.Internal
+namespace SharpConnect 
 {
 #if DEBUG
     class dbugTestFileWriter
@@ -26,7 +26,7 @@ namespace SharpConnect.Internal
 
         private string GetSaveFileName()
         {
-            string saveDirectory = @"c:\LogForSaeaTest\";
+            string saveDirectory = @"LogForSaeaTest";
 
             try
             {
@@ -45,7 +45,7 @@ namespace SharpConnect.Internal
             string saveFile = assemblyFullName.Substring(0, index);
             string dt = DateTime.Now.ToString("yyMMddHHmmss");
             //Save directory is created in ConfigFileHandler
-            saveFile = saveDirectory + saveFile + "-" + dt + ".txt";
+            saveFile = saveDirectory +"\\" + saveFile + "-" + dt + ".txt";
             return saveFile;
         }
 

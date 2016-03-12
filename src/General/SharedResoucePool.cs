@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading;
 
-namespace SharpConnect.Internal
+namespace SharpConnect
 {
 
     sealed class SharedResoucePool<T>
@@ -30,7 +30,7 @@ namespace SharpConnect.Internal
         }
 
         // The number of SocketAsyncEventArgs instances in the pool.         
-        internal Int32 Count
+        internal int Count
         {
             get { return this.pool.Count; }
         }

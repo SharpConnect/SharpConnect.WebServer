@@ -2,7 +2,7 @@
 using System;
 using System.Net;
 using System.Text;
-using SharpConnect.WebServer;
+using SharpConnect.WebServers;
 using SharpConnect.Internal;
 
 namespace SharpConnect
@@ -23,14 +23,13 @@ namespace SharpConnect
             try
             {
                 //1. create  
-                HttpServer webServer = new HttpServer(4444, testApp.HandleRequest);
+                WebServer webServer = new WebServer(8080, true, testApp.HandleRequest);
                 webServer.Start();
 
-                //run 
-                //main thread
-                while (runApp)
+                string cmd = "";
+                while (cmd != "X")
                 {
-                    System.Threading.Thread.Sleep(10);
+                    cmd = Console.ReadLine();
                 }
             }
             catch (Exception ex)

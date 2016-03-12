@@ -9,19 +9,26 @@ using System.Net.Sockets;
 
 namespace SharpConnect.Internal
 {
-    public abstract class SocketServerSettings
+    public sealed class NewConnListenerSettings
     {
-        public SocketServerSettings(int maxConnections,
-            int numOfSocketAsyncEventArgsInPool,
+#if DEBUG
+        static NewConnListenerSettings()
+        {
+            dbugLOG.StartLog();
+
+        }
+#endif
+        public NewConnListenerSettings(int maxConnections,
+            int excessNumberOfSocketAsyncsInPool,
             int backlog,
-            int maxSimultaneousAcceptOps,
-            IPEndPoint listenerEndPoint)
+            int maxSimultaneousAcceptOps, IPEndPoint listenerEndPoint)
         {
             this.MaxConnections = maxConnections;
-            this.NumberOfSaeaForRecvSend = maxConnections + numOfSocketAsyncEventArgsInPool;
+            this.NumOfConnSession = maxConnections + excessNumberOfSocketAsyncsInPool;
             this.Backlog = backlog;
             this.MaxAcceptOps = maxSimultaneousAcceptOps;
             this.ListnerEndPoint = listenerEndPoint;
+
         }
 
         /// <summary>
@@ -31,7 +38,7 @@ namespace SharpConnect.Internal
         /// <summary>
         /// this variable allows us to create some extra SAEA objects for the pool,if we wish.         
         /// </summary>
-        public int NumberOfSaeaForRecvSend { get; private set; }
+        public int NumOfConnSession { get; private set; }
         /// <summary>
         ///  max number of pending connections the listener can hold in queue
         /// </summary>
@@ -41,13 +48,10 @@ namespace SharpConnect.Internal
         /// </summary>
         public int MaxAcceptOps { get; private set; }
 
-        /// <summary>
-        /// Endpoint for the listener.
-        /// </summary>
+        ///// <summary>
+        ///// Endpoint for the listener.
+        ///// </summary>
         public IPEndPoint ListnerEndPoint { get; private set; }
-
-        internal abstract BufferManager CreateBufferManager();
-        internal abstract SocketConnection CreatePrebuiltReadWriteSession(SocketAsyncEventArgs e);
     }
 
 }

@@ -2,7 +2,7 @@
 //2015, MIT, EngineKit
 
 using System;
-namespace SharpConnect.Internal
+namespace SharpConnect 
 {
 #if DEBUG
     class dbugAcceptOpUserToken

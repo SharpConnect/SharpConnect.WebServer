@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
 
-namespace SharpConnect.Internal
+namespace SharpConnect
 {
     class BufferManager
     {
@@ -18,7 +18,11 @@ namespace SharpConnect.Internal
         //to each SocketAsyncEventArgs object, and
         //reuse that buffer space each time we reuse the SocketAsyncEventArgs object.
         //Create a large reusable set of buffers for all socket operations.
+        //---------------------------------------------------------------------------------
 
+        // Allocate one large byte buffer block, which all I/O operations will 
+        //use a piece of. This gaurds against memory fragmentation.
+        //---------------------------------------------------------------------------------
 
         // This class creates a single large buffer which can be divided up 
         // and assigned to SocketAsyncEventArgs objects for use with each 
@@ -34,28 +38,18 @@ namespace SharpConnect.Internal
         // Byte array maintained by the Buffer Manager.
         byte[] bufferBlock;
         Stack<int> freeIndexPool;
-        Int32 currentIndex;
-        Int32 totalBufferBytesInEachSocketAsyncEventArgs;
+        int currentIndex;
+        int totalBufferBytesInEachSocketAsyncEventArgs;
 
-        public BufferManager(Int32 totalBytes, Int32 totalBufferBytesInEachSocketAsyncEventArgs)
+        public BufferManager(int totalBytes, int totalBufferBytesInEachSocketAsyncEventArgs)
         {
             totalBytesInBufferBlock = totalBytes;
             this.currentIndex = 0;
             this.totalBufferBytesInEachSocketAsyncEventArgs = totalBufferBytesInEachSocketAsyncEventArgs;
             this.freeIndexPool = new Stack<int>();
 
-            // Allocate one large byte buffer block, which all I/O operations will 
-            //use a piece of. This gaurds against memory fragmentation.
-            InitBuffer();
-        }
-
-        // Allocates buffer space used by the buffer pool
-        void InitBuffer()
-        {
-            // Create one large buffer block.
             this.bufferBlock = new byte[totalBytesInBufferBlock];
         }
-
         // Divide that one large buffer block out to each SocketAsyncEventArg object.
         // Assign a buffer space from the buffer block to the 
         // specified SocketAsyncEventArgs object.
@@ -66,7 +60,7 @@ namespace SharpConnect.Internal
         /// </summary>
         /// <param name="args"></param>
         /// <returns></returns>
-        internal bool SetBufferTo(SocketAsyncEventArgs args)
+        internal bool SetBufferFor(SocketAsyncEventArgs args)
         {
 
             if (this.freeIndexPool.Count > 0)
@@ -102,6 +96,9 @@ namespace SharpConnect.Internal
             this.freeIndexPool.Push(args.Offset);
             args.SetBuffer(null, 0, 0);
         }
+        //-------------------------------------------------------------------------------------------------------
+      
 
     }
+
 }

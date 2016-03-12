@@ -2,7 +2,7 @@
 using System;
 using System.Net;
 using System.Text;
-using SharpConnect.WebServer;
+using SharpConnect.WebServers;
 namespace SharpConnect
 {
 
@@ -15,17 +15,17 @@ namespace SharpConnect
                 case "/":
                     {
                         resp.TransferEncoding = ResponseTransferEncoding.Chunked;
-                        resp.Write("hello!");
+                        resp.End("hello!");
                     }
                     break;
                 case "/version":
                     {
-                        resp.Write("1.0");
+                        resp.End("1.0");
                     }
                     break;
                 default:
                     {
-                        resp.Write("");
+                        resp.End("");
                     }
                     break;
             }
