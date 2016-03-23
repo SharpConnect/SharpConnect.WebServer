@@ -10,25 +10,27 @@ namespace SharpConnect.WebServers
     /// <summary>
     /// content type
     /// </summary>
-    public enum WebResponseContentType
+    public enum WebResponseContentType : byte
     {
         TextHtml,
         TextPlain,
         TextXml,
-        ApplicationJson,
         TextJavascript,
 
         ImagePng,
         ImageJpeg,
-        ApplicationOctetStream
+
+        ApplicationOctetStream,
+        ApplicationJson,
     }
-    public enum ContentEncoding
+
+    public enum TextCharSet : byte
     {
         Ascii,
-        Utf8,
-        Hex
+        Utf8
     }
-    public enum ResponseTransferEncoding
+
+    public enum ResponseTransferEncoding : byte
     {
         Identity,//no encoding
         Chunked,
@@ -37,7 +39,54 @@ namespace SharpConnect.WebServers
         Deflate
     }
 
+    public enum ContentEncoding : byte
+    {
+        Plain,//no encoding
+        Gzip,
+        Deflate,
+    }
 
+    public enum AllowCrossOrigin : byte
+    {
+        None,
+        All,
+        Some
+    }
+
+    public class CrossOriginPolicy
+    {
+        public CrossOriginPolicy(AllowCrossOrigin allowKind, string originList)
+        {
+            this.AllowCrossOriginKind = allowKind;
+            this.AllowOriginList = originList;
+
+#if DEBUG
+            if (allowKind == AllowCrossOrigin.Some && originList == null)
+            {
+                throw new NotSupportedException();
+            }
+#endif
+        }
+        public string AllowOriginList { get; private set; }
+        public AllowCrossOrigin AllowCrossOriginKind { get; private set; }
+
+        internal void WriteHeader(StringBuilder stbuilder)
+        {
+            switch (AllowCrossOriginKind)
+            {
+                case AllowCrossOrigin.All:
+                    stbuilder.Append("Access-Control-Allow-Origin: *\r\n");
+                    break;
+                case AllowCrossOrigin.None:
+                    break;
+                case AllowCrossOrigin.Some:
+                    stbuilder.Append("Access-Control-Allow-Origin: ");
+                    stbuilder.Append(AllowOriginList);
+                    stbuilder.Append("\r\n");
+                    break;
+            }
+        }
+    }
 
     public class HttpResponse : IDisposable
     {
@@ -56,12 +105,19 @@ namespace SharpConnect.WebServers
         StringBuilder headerStBuilder = new StringBuilder();
         SendIO sendIO;
 
+
         internal HttpResponse(HttpContext context, SendIO sendIO)
         {
             this.context = context;
             bodyMs = new MemoryStream();
             StatusCode = 200; //init
             this.sendIO = sendIO;
+            this.ContentTypeCharSet = WebServers.TextCharSet.Utf8;
+        }
+        public CrossOriginPolicy AllowCrossOriginPolicy
+        {
+            get;
+            set;
         }
         internal void ResetAll()
         {
@@ -72,9 +128,11 @@ namespace SharpConnect.WebServers
             TransferEncoding = ResponseTransferEncoding.Identity;
             writeContentState = WriteContentState.HttpHead;
             ContentType = WebResponseContentType.TextPlain;//reset content type
+            ContentEncoding = ContentEncoding.Plain;
+            this.ContentTypeCharSet = TextCharSet.Utf8;
+            AllowCrossOriginPolicy = null;
             headers.Clear();
             ResetWritingBuffer();
-
         }
         void ResetWritingBuffer()
         {
@@ -107,6 +165,17 @@ namespace SharpConnect.WebServers
             get;
             set;
         }
+        public ContentEncoding ContentEncoding
+        {
+            get;
+            set;
+        }
+        public TextCharSet ContentTypeCharSet
+        {
+            get;
+            set;
+        }
+
         /// <summary>
         /// write to output
         /// </summary>
@@ -126,6 +195,12 @@ namespace SharpConnect.WebServers
             Write(str);
             End();
         }
+        public void End(byte[] data)
+        {
+            bodyMs.Write(data, 0, data.Length);
+            contentByteCount += data.Length;
+            End();
+        }
         public void End()
         {
             switch (writeContentState)
@@ -137,19 +212,48 @@ namespace SharpConnect.WebServers
                         headerStBuilder.Append("HTTP/1.1 ");
                         HeaderAppendStatusCode(headerStBuilder, StatusCode);
                         HeaderAppendConnectionType(headerStBuilder, this.context.KeepAlive);
-
-                        //TODO: review content encoding ***
+                        //--------------------------------------------------------------------------------------------------------
                         headerStBuilder.Append("Content-Type: " + GetContentType(this.ContentType) + " ; charset=utf-8\r\n");
-                        //-----------------------------------------------------------------
-
+                        switch (ContentTypeCharSet)
+                        {
+                            case TextCharSet.Utf8:
+                                headerStBuilder.Append(" ; charset=utf-8\r\n");
+                                break;
+                            case TextCharSet.Ascii:
+                                headerStBuilder.Append("\r\n");
+                                break;
+                            default:
+                                throw new NotSupportedException();
+                        }
+                        //--------------------------------------------------------------------------------------------------------
+                        switch (ContentEncoding)
+                        {
+                            case WebServers.ContentEncoding.Plain:
+                                //nothing
+                                break;
+                            case WebServers.ContentEncoding.Gzip:
+                                headerStBuilder.Append("Content-Encoding: gzip\r\n");
+                                break;
+                            default:
+                                throw new NotSupportedException();
+                        }
+                        //--------------------------------------------------------------------------------------------------------
+                        //Access-Control-Allow-Origin
+                        if (AllowCrossOriginPolicy != null)
+                        {
+                            AllowCrossOriginPolicy.WriteHeader(headerStBuilder);
+                        }
+                        //--------------------------------------------------------------------------------------------------------
                         switch (this.TransferEncoding)
                         {
                             default:
                             case ResponseTransferEncoding.Identity:
                                 {
-                                    headerStBuilder.Append("Content-Length: " + contentByteCount + "\r\n");
+                                    headerStBuilder.Append("Content-Length: ");
+                                    headerStBuilder.Append(headerStBuilder);
                                     headerStBuilder.Append("\r\n");
-
+                                    //-----------------------------------------------------------------                                    
+                                    headerStBuilder.Append("\r\n");//end header part                                     
                                     writeContentState = WriteContentState.HttpBody;
                                     //-----------------------------------------------------------------
                                     //switch transfer encoding method of the body***
@@ -165,10 +269,11 @@ namespace SharpConnect.WebServers
 
                                     //---------------------------------------------------- 
                                     ResetAll();
-                                } break;
+                                }
+                                break;
                             case ResponseTransferEncoding.Chunked:
                                 {
-                                    headerStBuilder.Append("Transfer-Encoding: " + GetTransferEncoing(TransferEncoding) + "\r\n");
+                                    headerStBuilder.Append("Transfer-Encoding: " + GetTransferEncoding(TransferEncoding) + "\r\n");
                                     headerStBuilder.Append("\r\n");
                                     writeContentState = WriteContentState.HttpBody;
 
@@ -177,16 +282,19 @@ namespace SharpConnect.WebServers
                                     sendIO.EnqueueOutputData(headBuffer, headBuffer.Length);
                                     WriteContentBodyInChunkMode();
                                     ResetAll();
-                                } break;
+                                }
+                                break;
                         }
-                    } break;
+                    }
+                    break;
                 //==============================
                 case WriteContentState.HttpBody:
                     {
                         //in chunked case, 
                         WriteContentBodyInChunkMode();
                         ResetAll();
-                    } break;
+                    }
+                    break;
                 default:
                     {
                         throw new NotSupportedException();
@@ -250,7 +358,7 @@ namespace SharpConnect.WebServers
         }
 
         //-------------------------------------------------
-        static string GetTransferEncoing(ResponseTransferEncoding te)
+        static string GetTransferEncoding(ResponseTransferEncoding te)
         {
             switch (te)
             {
@@ -286,7 +394,6 @@ namespace SharpConnect.WebServers
                     return "text/html";
                 case WebResponseContentType.TextJavascript:
                     return "text/javascript";
-
                 case WebResponseContentType.TextPlain:
                     return "text/plain";
                 default:
@@ -300,8 +407,8 @@ namespace SharpConnect.WebServers
                 headerStBuilder.Append("Connection: keep-alive\r\n");
             else
                 headerStBuilder.Append("Connection: close\r\n");
-
         }
+
         static void HeaderAppendStatusCode(StringBuilder stBuilder, int statusCode)
         {
             switch (statusCode)
