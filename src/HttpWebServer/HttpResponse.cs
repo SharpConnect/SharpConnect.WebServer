@@ -213,7 +213,7 @@ namespace SharpConnect.WebServers
                         HeaderAppendStatusCode(headerStBuilder, StatusCode);
                         HeaderAppendConnectionType(headerStBuilder, this.context.KeepAlive);
                         //--------------------------------------------------------------------------------------------------------
-                        headerStBuilder.Append("Content-Type: " + GetContentType(this.ContentType) + " ; charset=utf-8\r\n");
+                        headerStBuilder.Append("Content-Type: " + GetContentType(this.ContentType));
                         switch (ContentTypeCharSet)
                         {
                             case TextCharSet.Utf8:
@@ -250,7 +250,7 @@ namespace SharpConnect.WebServers
                             case ResponseTransferEncoding.Identity:
                                 {
                                     headerStBuilder.Append("Content-Length: ");
-                                    headerStBuilder.Append(headerStBuilder);
+                                    headerStBuilder.Append(contentByteCount);
                                     headerStBuilder.Append("\r\n");
                                     //-----------------------------------------------------------------                                    
                                     headerStBuilder.Append("\r\n");//end header part                                     
