@@ -62,6 +62,9 @@ namespace SharpConnect.WebServers
             //-------------------
             //send,resp
             sockAsyncSender = new SocketAsyncEventArgs();
+            sockAsyncSender.SetBuffer(new byte[512], 0, 512);
+            sockAsyncSender.UserToken = "from ws:" + connectionId;
+            //send io for web sockets
             sendIO = new SendIO(sockAsyncSender, 0, 512, send_Complete);
             sockAsyncSender.Completed += new EventHandler<SocketAsyncEventArgs>((s, e) =>
             {
@@ -196,8 +199,10 @@ namespace SharpConnect.WebServers
         }
         internal void SendExternalRaw(byte[] data)
         {
-            sockAsyncSender.SetBuffer(data, 0, data.Length);
-            clientSocket.SendAsync(sockAsyncSender);
+            sendIO.EnqueueOutputData(data, data.Length);
+            //sockAsyncSender.SetBuffer(data, 0, data.Length);
+            //clientSocket.SendAsync(sockAsyncSender);
+            sendIO.StartSendAsync();
         }
 
     }
