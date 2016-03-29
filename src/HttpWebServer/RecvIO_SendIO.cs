@@ -151,6 +151,9 @@ namespace SharpConnect.Internal
             {
                 currentSendingData = dataToSend;
                 sendingTargetBytes = count;
+                //if (sendingTargetBytes > 30000)
+                //{
+                //}
             }
             else
             {
@@ -193,6 +196,7 @@ namespace SharpConnect.Internal
                 isSending = false;
                 return;
             }
+            //string retainData= Encoding.UTF8.GetString(sendArgs.Buffer, 0, sendArgs.Buffer.Length);
 
             if (remaining <= this.sendBufferSize)
             {
@@ -251,6 +255,8 @@ namespace SharpConnect.Internal
                         //move new chunck to current Sending data
                         this.currentSendingData = sendingQueue.Dequeue();
                         this.sendingTargetBytes = currentSendingData.Length;
+                        
+
                         this.sendingTransferredBytes = 0;
 
                         //conitnue read 
@@ -270,7 +276,7 @@ namespace SharpConnect.Internal
                 }
                 else
                 {
-
+                   
                     //conitnue read 
                     //So let's loop back to StartSend().
                     StartSendAsync();

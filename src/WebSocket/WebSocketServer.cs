@@ -33,10 +33,12 @@ using SharpConnect.Internal;
 namespace SharpConnect.WebServers
 {
 
+
     public class WebSocketServer
     {
 
         ReqRespHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler;
+        Action<WebSocketContext> newContextConnected;
         Dictionary<int, WebSocketContext> workingWebSocketConns = new Dictionary<int, WebSocketContext>();
         public WebSocketServer(ReqRespHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler)
         {
@@ -48,7 +50,17 @@ namespace SharpConnect.WebServers
             workingWebSocketConns.Add(wbSocketConn.ConnectionId, wbSocketConn);//add to working socket 
             wbSocketConn.Bind(clientSocket); //move client socket to webSocketConn    
             wbSocketConn.SendExternalRaw(MakeWebSocketUpgradeResponse(MakeResponseMagicCode(sec_websocket_key)));
+
+            if (newContextConnected != null)
+            {
+                newContextConnected(wbSocketConn);
+            }
+
             return wbSocketConn;
+        }
+        public void SetOnNewConnectionContext(Action<WebSocketContext> newContextConnected)
+        {
+            this.newContextConnected = newContextConnected;
         }
         static byte[] MakeWebSocketUpgradeResponse(string webSocketSecCode)
         {
