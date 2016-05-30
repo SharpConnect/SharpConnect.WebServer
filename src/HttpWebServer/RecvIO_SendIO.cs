@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading;
-using System.Text; //for testing
+
 
 namespace SharpConnect.Internal
 {
@@ -58,7 +58,10 @@ namespace SharpConnect.Internal
                 recvStartOffset + srcIndex,
                 count);
         }
-        public byte[] ReadToBytes()
+
+
+#if DEBUG
+        public byte[] dbugReadToBytes()
         {
             int bytesTransfer = recvArgs.BytesTransferred;
             byte[] destBuffer = new byte[bytesTransfer];
@@ -67,21 +70,19 @@ namespace SharpConnect.Internal
                 recvStartOffset,
                 destBuffer,
                 0, bytesTransfer);
+
             return destBuffer;
         }
+#endif
 
-        public void ProcessReceive()
+        /// <summary>
+        /// process just received data, called when IO complete
+        /// </summary>
+        public void ProcessReceivedData()
         {
-            // This method is invoked by the IO_Completed method
-            // when an asynchronous receive operation completes. 
-            // If the remote host closed the connection, then the socket is closed.
-            // Otherwise, we process the received data. And if a complete message was
-            // received, then we do some additional processing, to 
-            // respond to the client.  
             //1. socket error
             if (recvArgs.SocketError != SocketError.Success)
             {
-
                 recvNotify(RecvEventCode.SocketError);
                 return;
             }
@@ -93,12 +94,20 @@ namespace SharpConnect.Internal
             }
             recvNotify(RecvEventCode.HasSomeData);
         }
+
+        /// <summary>
+        /// start new receive
+        /// </summary>
         public void StartReceive()
         {
-
             recvArgs.SetBuffer(this.recvStartOffset, this.recvBufferSize);
             recvArgs.AcceptSocket.ReceiveAsync(recvArgs);
         }
+        /// <summary>
+        /// start new receive
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="len"></param>
         public void StartReceive(byte[] buffer, int len)
         {
             recvArgs.SetBuffer(buffer, 0, len);
@@ -116,6 +125,17 @@ namespace SharpConnect.Internal
         SocketError,
     }
 
+
+
+    enum SendIOState : byte
+    {
+        ReadyNextSend,
+        Sending,
+        ProcessSending,
+        Error,
+    }
+
+
     class SendIO
     {
         //send,
@@ -123,80 +143,123 @@ namespace SharpConnect.Internal
         readonly int sendStartOffset;
         readonly int sendBufferSize;
         readonly SocketAsyncEventArgs sendArgs;
-
         int sendingTargetBytes; //target to send
         int sendingTransferredBytes; //has transfered bytes
         byte[] currentSendingData = null;
         Queue<byte[]> sendingQueue = new Queue<byte[]>();
         Action<SendIOEventCode> notify;
+        object stateLock = new object();
+        SendIOState _sendingState = SendIOState.ReadyNextSend;
 
-        bool isSending;
 
-        public SendIO(SocketAsyncEventArgs sendArgs, int sendStartOffset, int sendBufferSize, Action<SendIOEventCode> notify)
+        public SendIO(SocketAsyncEventArgs sendArgs,
+            int sendStartOffset,
+            int sendBufferSize,
+            Action<SendIOEventCode> notify)
         {
             this.sendArgs = sendArgs;
             this.sendStartOffset = sendStartOffset;
             this.sendBufferSize = sendBufferSize;
             this.notify = notify;
         }
-        public void ResetBuffer()
+        SendIOState sendingState
+        {
+            get { return _sendingState; }
+            set
+            {
+                switch (_sendingState)
+                {
+                    case SendIOState.Error:
+                        {
+                        } break;
+                    case SendIOState.ProcessSending:
+                        {
+                            if (value != SendIOState.ReadyNextSend)
+                            {
+
+                            }
+                            else
+                            {
+                            }
+                        } break;
+                    case SendIOState.ReadyNextSend:
+                        {
+                            if (value != SendIOState.Sending)
+                            {
+
+                            }
+                            else
+                            {
+                            }
+                        } break;
+                    case SendIOState.Sending:
+                        {
+                            if (value != SendIOState.ProcessSending)
+                            {
+                            }
+                            else
+                            {
+                            }
+                        } break;
+
+                }
+                _sendingState = value;
+            }
+        }
+        void ResetBuffer()
         {
             currentSendingData = null;
             sendingTransferredBytes = 0;
             sendingTargetBytes = 0;
         }
+        public void Reset()
+        {
+            //TODO: review reset
+            sendingTargetBytes = sendingTransferredBytes = 0;
+            currentSendingData = null;
+            sendingQueue.Clear();
+        }
         public void EnqueueOutputData(byte[] dataToSend, int count)
         {
-            if (currentSendingData == null)
-            {
-                currentSendingData = dataToSend;
-                sendingTargetBytes = count;
-                //if (sendingTargetBytes > 30000)
-                //{
-                //}
-            }
-            else
-            {
-                sendingQueue.Enqueue(dataToSend);
-            }
+            sendingQueue.Enqueue(dataToSend);
         }
         public void StartSendAsync()
         {
-            //dbugSendLog(connSession.dbugGetAsyncSocketEventArgs(), "start send ...");
-            //Set the buffer. You can see on Microsoft's page at 
-            //http://msdn.microsoft.com/en-us/library/system.net.sockets.socketasynceventargs.setbuffer.aspx
-            //that there are two overloads. One of the overloads has 3 parameters.
-            //When setting the buffer, you need 3 parameters the first time you set it,
-            //which we did in the Init method. The first of the three parameters
-            //tells what byte array to use as the buffer. After we tell what byte array
-            //to use we do not need to use the overload with 3 parameters any more.
-            //(That is the whole reason for using the buffer block. You keep the same
-            //byte array as buffer always, and keep it all in one block.)
-            //Now we use the overload with two parameters. We tell 
-            // (1) the offset and
-            // (2) the number of bytes to use, starting at the offset.
-
-            //The number of bytes to send depends on whether the message is larger than
-            //the buffer or not. If it is larger than the buffer, then we will have
-            //to post more than one send operation. If it is less than or equal to the
-            //size of the send buffer, then we can accomplish it in one send op. 
-
-            if (isSending)
+            lock (stateLock)
             {
-                return;
+                if (sendingState != SendIOState.ReadyNextSend)
+                {
+                    //if in other state then return
+                    return;
+                }
+                sendingState = SendIOState.Sending;
             }
 
-            isSending = true;
-
+            //------------------------------------------------------------------------
             //send this data first
+
             int remaining = this.sendingTargetBytes - this.sendingTransferredBytes;
             if (remaining == 0)
             {
-                //no data to send ?
-                isSending = false;
-                return;
+
+                if (this.sendingQueue.Count > 0)
+                {
+                    this.currentSendingData = sendingQueue.Dequeue();
+                    this.sendingTargetBytes = currentSendingData.Length;
+                    this.sendingTransferredBytes = 0;
+                }
+                else
+                {   //no data to send ?
+                    sendingState = SendIOState.ReadyNextSend;
+                    return;
+                }
             }
-            //string retainData= Encoding.UTF8.GetString(sendArgs.Buffer, 0, sendArgs.Buffer.Length);
+            else if (remaining < 0)
+            {
+                //?
+                throw new NotSupportedException();
+            }
+
 
             if (remaining <= this.sendBufferSize)
             {
@@ -228,76 +291,82 @@ namespace SharpConnect.Internal
 
             if (!sendArgs.AcceptSocket.SendAsync(sendArgs))
             {
-                //dbugSendLog(connSession.dbugGetAsyncSocketEventArgs(), "start send( not async)");
-                ProcessSend();
+                //when SendAsync return false 
+                //this means the socket can't do async send     
+                ProcessWaitingData();
             }
         }
-        public void ProcessSend()
+        /// <summary>
+        /// send next data, after prev IO complete
+        /// </summary>
+        public void ProcessWaitingData()
         {
-            // This method is called by I/O Completed() when an asynchronous send completes.  
-            // If all of the data has been sent, then this method calls StartReceive
-            //to start another receive op on the socket to read any additional 
-            // data sent from the client. If all of the data has NOT been sent, then it 
-            //calls StartSend to send more data.          
-            // dbugSendLog(connSession, "ProcessSend"); 
+            // This method is called by I/O Completed() when an asynchronous send completes.   
+            //after IO completed, what to do next....
 
+            sendingState = SendIOState.ProcessSending;
 
             if (sendArgs.SocketError == SocketError.Success)
             {
-                isSending = false;
-                //success !                 
+
                 this.sendingTransferredBytes += sendArgs.BytesTransferred;
-                if ((this.sendingTargetBytes - sendingTransferredBytes) <= 0)
+                int remainingBytes = this.sendingTargetBytes - sendingTransferredBytes;
+                if (remainingBytes > 0)
                 {
-                    //check if no other data in chuck 
+                    //no complete!, 
+                    //start next send ...
+                    //****
+                    sendingState = SendIOState.ReadyNextSend;
+                    StartSendAsync();
+                    //****
+                }
+                else if (remainingBytes == 0)
+                {
+                    //complete sending  
+                    //check the queue again ...
                     if (sendingQueue.Count > 0)
                     {
                         //move new chunck to current Sending data
                         this.currentSendingData = sendingQueue.Dequeue();
-                        this.sendingTargetBytes = currentSendingData.Length;
-                        
+                        if (this.currentSendingData == null)
+                        {
 
+                        }
+                        this.sendingTargetBytes = currentSendingData.Length;
                         this.sendingTransferredBytes = 0;
 
-                        //conitnue read 
-                        //So let's loop back to StartSend().
+                        //****
+                        sendingState = SendIOState.ReadyNextSend;
                         StartSendAsync();
-                        return;
+                        //****
                     }
                     else
                     {
                         //no data
                         ResetBuffer();
                         //notify no more data
+                        //****
+                        sendingState = SendIOState.ReadyNextSend;
                         notify(SendIOEventCode.SendComplete);
-
-                        return;
+                        //****   
                     }
                 }
                 else
-                {
-                   
-                    //conitnue read 
-                    //So let's loop back to StartSend().
-                    StartSendAsync();
-                    return;
+                {   //< 0 ????
+                    throw new NotSupportedException();
                 }
             }
             else
             {
-                isSending = false;
                 //error, socket error
+
                 ResetBuffer();
+                sendingState = SendIOState.Error;
                 notify(SendIOEventCode.SocketError);
+                //manage socket errors here
             }
         }
 
-        public void Reset()
-        {
-            sendingTargetBytes = sendingTransferredBytes = 0;
-            currentSendingData = null;
-            sendingQueue.Clear();
-        }
     }
 
 }

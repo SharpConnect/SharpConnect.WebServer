@@ -11,5 +11,8 @@ https://msdn.microsoft.com/en-us/library/system.net.sockets.socketasynceventargs
 
 http://www.codeproject.com/Articles/83102/C-SocketAsyncEventArgs-High-Performance-Socket-Cod
 
+3) sta.blockhead's websocket-sharp
+
+https://github.com/sta/websocket-sharp
 
 
