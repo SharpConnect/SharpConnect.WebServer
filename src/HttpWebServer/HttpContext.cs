@@ -68,16 +68,16 @@ namespace SharpConnect.WebServers
             httpReq = new HttpRequest(this);
             httpResp = new HttpResponse(this, sendIO);
 
-            //common event listener***
+            //common(shared) event listener***
             recvSendArgs.Completed += (object sender, SocketAsyncEventArgs e) =>
             {
                 switch (e.LastOperation)
                 {
-                    case SocketAsyncOperation.Receive:
-                        recvIO.ProcessReceive();
+                    case SocketAsyncOperation.Receive:                         
+                        recvIO.ProcessReceivedData();
                         break;
                     case SocketAsyncOperation.Send:
-                        sendIO.ProcessSend();
+                        sendIO.ProcessWaitingData();
                         break;
                     default:
                         throw new ArgumentException("The last operation completed on the socket was not a receive or send");

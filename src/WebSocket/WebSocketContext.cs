@@ -41,16 +41,16 @@ namespace SharpConnect.WebServers
         ReqRespHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler;
         Socket clientSocket;
 
-        byte[] outputData = new byte[512];
+        const int RECV_BUFF_SIZE = 512;
+        byte[] outputData = new byte[RECV_BUFF_SIZE];
 
 
-        WebSocketRequest webSocketReq;
+
         WebSocketResponse webSocketResp;
+        WebSocketProtocalParser webSocketReqParser;
 
         RecvIO recvIO;
         SendIO sendIO;
-
-
         int connectionId;
         static int connectionIdTotal;
 
@@ -62,10 +62,10 @@ namespace SharpConnect.WebServers
             //-------------------
             //send,resp
             sockAsyncSender = new SocketAsyncEventArgs();
-            sockAsyncSender.SetBuffer(new byte[512], 0, 512);
+            sockAsyncSender.SetBuffer(new byte[RECV_BUFF_SIZE], 0, RECV_BUFF_SIZE);
             sockAsyncSender.UserToken = "from ws:" + connectionId;
             //send io for web sockets
-            sendIO = new SendIO(sockAsyncSender, 0, 512, send_Complete);
+            sendIO = new SendIO(sockAsyncSender, 0, RECV_BUFF_SIZE, sendIO_SendCompleted);
             sockAsyncSender.Completed += new EventHandler<SocketAsyncEventArgs>((s, e) =>
             {
                 switch (e.LastOperation)
@@ -78,20 +78,11 @@ namespace SharpConnect.WebServers
                         {
                             //switch sockAsync to receive 
                             //when complete send
-                            sendIO.ProcessSend();
-
-                            //isSending = false;
-                            //if (dataQueue.Count > 0)
-                            //{
-                            //    string dataToSend = dataQueue.Dequeue();
-                            //    Send(dataToSend);
-                            //}
+                            sendIO.ProcessWaitingData();
                         }
                         break;
                     case SocketAsyncOperation.Receive:
                         {
-
-
                         }
                         break;
                 }
@@ -101,7 +92,7 @@ namespace SharpConnect.WebServers
             //------------------------------------------------------------------------------------
             //recv,req
             sockAsyncListener = new SocketAsyncEventArgs();
-            recvIO = new RecvIO(sockAsyncListener, 0, 512, recv_Complete);
+            recvIO = new RecvIO(sockAsyncListener, 0, RECV_BUFF_SIZE, HandleReceivedData);
             sockAsyncListener.Completed += new EventHandler<SocketAsyncEventArgs>((s, e) =>
             {
                 switch (e.LastOperation)
@@ -116,42 +107,63 @@ namespace SharpConnect.WebServers
                         break;
                     case SocketAsyncOperation.Receive:
                         {
-                            recvIO.ProcessReceive();
+                            recvIO.ProcessReceivedData();
                         }
                         break;
                 }
             });
-            //------------------------------------------------------------------------------------
+            //------------------------------------------------------------------------------------             
+            this.webSocketReqParser = new WebSocketProtocalParser(recvIO);
 
-            webSocketReq = new WebSocketRequest(recvIO);
         }
         public void Bind(Socket clientSocket)
         {
             this.clientSocket = clientSocket;
+            //sender
             sockAsyncSender.AcceptSocket = clientSocket;
             //------------------------------------------------------
+            //listener   
             sockAsyncListener.AcceptSocket = clientSocket;
-            //------------------------------------------------------
-            sockAsyncListener.SetBuffer(new byte[1024], 0, 1024);
+            sockAsyncListener.SetBuffer(new byte[RECV_BUFF_SIZE], 0, RECV_BUFF_SIZE);
             //------------------------------------------------------
             //when bind we start listening 
             clientSocket.ReceiveAsync(sockAsyncListener);
             //------------------------------------------------------  
         }
-        void recv_Complete(RecvEventCode recvCode)
+        void HandleReceivedData(RecvEventCode recvCode)
         {
             switch (recvCode)
             {
                 case RecvEventCode.HasSomeData:
                     {
                         //parse recv msg
-                        if (webSocketReq.LoadData())
+                        switch (this.webSocketReqParser.ParseRecvData())
                         {
-                            webSocketReqHandler(webSocketReq, webSocketResp);
+                            case ProcessReceiveBufferResult.Complete:
+                                { 
+                                    //you can choose ...
+                                    //invoke webSocketReqHandler in this thread or another thread
+                                    while (webSocketReqParser.ReqCount > 0)
+                                    {  
+                                        WebSocketRequest req = webSocketReqParser.Dequeue();
+                                        webSocketReqHandler(req, webSocketResp);
+                                        req.Clear(); //clear
+                                    } 
+                                    //start next recv
+                                    byte[] newRecvBuffer = new byte[RECV_BUFF_SIZE];
+                                    recvIO.StartReceive(newRecvBuffer, RECV_BUFF_SIZE); 
+                                } break;
+                            case ProcessReceiveBufferResult.Continue:
+                                {
+                                    //start next recv
+                                    byte[] newRecvBuffer = new byte[RECV_BUFF_SIZE];
+                                    recvIO.StartReceive(newRecvBuffer, RECV_BUFF_SIZE);
+                                } break;
+                            case ProcessReceiveBufferResult.Error:
+                            default:
+                                throw new NotSupportedException();
                         }
-                        //start next recv
-                        byte[] newRecvBuffer = new byte[512];
-                        recvIO.StartReceive(newRecvBuffer, 512);
+
                     } break;
                 case RecvEventCode.NoMoreReceiveData:
                     {
@@ -163,7 +175,7 @@ namespace SharpConnect.WebServers
                     break;
             }
         }
-        void send_Complete(SendIOEventCode eventCode)
+        void sendIO_SendCompleted(SendIOEventCode eventCode)
         {
 
         }
@@ -200,8 +212,6 @@ namespace SharpConnect.WebServers
         internal void SendExternalRaw(byte[] data)
         {
             sendIO.EnqueueOutputData(data, data.Length);
-            //sockAsyncSender.SetBuffer(data, 0, data.Length);
-            //clientSocket.SendAsync(sockAsyncSender);
             sendIO.StartSendAsync();
         }
 
