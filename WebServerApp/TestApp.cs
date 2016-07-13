@@ -1,13 +1,24 @@
 ﻿//2015, MIT, EngineKit
+
 using System;
 using System.Net;
 using System.Text;
 using SharpConnect.WebServers;
 namespace SharpConnect
 {
-
     class TestApp
     {
+        //test cross origin policy 1
+        static CrossOriginPolicy crossOriginPolicy = new CrossOriginPolicy(AllowCrossOrigin.All, "*");
+        static TestApp()
+        {
+            //eg.
+            //stBuilder.Append("Access-Control-Allow-Methods: GET, POST\r\n");
+            //stBuilder.Append("Access-Control-Allow-Headers: Content-Type\r\n");
+            crossOriginPolicy.AllowHeaders = "Content-Type";
+            crossOriginPolicy.AllowMethods = "GET, POST";
+        }
+
         const string html = @"<html>
                 <head>
                 <script>
@@ -61,6 +72,12 @@ namespace SharpConnect
                         resp.End("1.0");
                     }
                     break;
+                case "/cross":
+                    {
+                        resp.AllowCrossOriginPolicy = crossOriginPolicy;
+                        resp.End("ok");
+                    }
+                    break;
                 default:
                     {
                         resp.End("");
@@ -73,7 +90,5 @@ namespace SharpConnect
         {
             resp.Write("server:" + (count++));
         }
-
     }
-
 }
