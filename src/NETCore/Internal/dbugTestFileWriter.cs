@@ -21,7 +21,8 @@ namespace SharpConnect.Internal
             //We create a new log file every time we run the app.
             this.saveFile = GetSaveFileName();
             // create a writer and open the file
-            tw = new StreamWriter(this.saveFile);
+            FileStream fs = new FileStream(this.saveFile, FileMode.Create);
+            tw = new StreamWriter(fs);
         }
 
         private string GetSaveFileName()
@@ -40,7 +41,7 @@ namespace SharpConnect.Internal
                 Console.WriteLine("Could not create save directory for log. See TestFileWriter.cs."); Console.ReadLine();
             }
 
-            string assemblyFullName = Assembly.GetExecutingAssembly().FullName;
+            string assemblyFullName = Assembly.GetEntryAssembly().FullName;
             Int32 index = assemblyFullName.IndexOf(',');
             string saveFile = assemblyFullName.Substring(0, index);
             string dt = DateTime.Now.ToString("yyMMddHHmmss");

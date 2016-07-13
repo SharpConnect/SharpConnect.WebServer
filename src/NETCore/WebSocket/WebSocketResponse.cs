@@ -30,10 +30,15 @@ using SharpConnect.Internal;
 
 namespace SharpConnect.WebServers
 {
+
+    static class Extension
+    { }
+
+
     public class WebSocketResponse : IDisposable
-    { 
+    {
         MemoryStream bodyMs = new MemoryStream();
-        readonly WebSocketContext conn; 
+        readonly WebSocketContext conn;
         SendIO sendIO;
         internal WebSocketResponse(WebSocketContext conn, SendIO sendIO)
         {
@@ -54,7 +59,7 @@ namespace SharpConnect.WebServers
             sendIO.EnqueueOutputData(dataToSend, dataToSend.Length);
             sendIO.StartSendAsync();
         }
-         
+
         static byte[] CreateSendBuffer(string msg)
         {
             byte[] data = null;

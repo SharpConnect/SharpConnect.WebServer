@@ -1,4 +1,6 @@
 # SharpConnect.WebServer
+Go Cross-Platform with .NETCore 1.0 ! (.net standard 1.6)
+
 license: MIT
 
 from 
