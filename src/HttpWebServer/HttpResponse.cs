@@ -1,10 +1,10 @@
 ﻿//2015-2016, MIT, EngineKit
+
 using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Text;
 using SharpConnect.Internal;
-
 namespace SharpConnect.WebServers
 {
     /// <summary>
@@ -16,10 +16,8 @@ namespace SharpConnect.WebServers
         TextPlain,
         TextXml,
         TextJavascript,
-
         ImagePng,
         ImageJpeg,
-
         ApplicationOctetStream,
         ApplicationJson,
     }
@@ -59,7 +57,6 @@ namespace SharpConnect.WebServers
         {
             this.AllowCrossOriginKind = allowKind;
             this.AllowOriginList = originList;
-
 #if DEBUG
             if (allowKind == AllowCrossOrigin.Some && originList == null)
             {
@@ -69,21 +66,36 @@ namespace SharpConnect.WebServers
         }
         public string AllowOriginList { get; private set; }
         public AllowCrossOrigin AllowCrossOriginKind { get; private set; }
-
+        public string AllowMethods { get; set; }
+        public string AllowHeaders { get; set; }
         internal void WriteHeader(StringBuilder stbuilder)
         {
             switch (AllowCrossOriginKind)
             {
+                default:
+                case AllowCrossOrigin.None:
+                    return;
                 case AllowCrossOrigin.All:
                     stbuilder.Append("Access-Control-Allow-Origin: *\r\n");
-                    break;
-                case AllowCrossOrigin.None:
                     break;
                 case AllowCrossOrigin.Some:
                     stbuilder.Append("Access-Control-Allow-Origin: ");
                     stbuilder.Append(AllowOriginList);
                     stbuilder.Append("\r\n");
                     break;
+            }
+            if (AllowMethods != null)
+            {
+                stbuilder.Append("Access-Control-Allow-Methods: ");
+                stbuilder.Append(AllowMethods);
+                stbuilder.Append("\r\n");
+            }
+
+            if (AllowHeaders != null)
+            {
+                stbuilder.Append("Access-Control-Allow-Methods: ");
+                stbuilder.Append(AllowHeaders);
+                stbuilder.Append("\r\n");
             }
         }
     }
@@ -104,8 +116,6 @@ namespace SharpConnect.WebServers
         Dictionary<string, string> headers = new Dictionary<string, string>();
         StringBuilder headerStBuilder = new StringBuilder();
         SendIO sendIO;
-
-
         internal HttpResponse(HttpContext context, SendIO sendIO)
         {
             this.context = context;
@@ -123,7 +133,6 @@ namespace SharpConnect.WebServers
         {
             headerStBuilder.Length = 0;
             StatusCode = 200;
-
             isSend = false;
             TransferEncoding = ResponseTransferEncoding.Identity;
             writeContentState = WriteContentState.HttpHead;
@@ -187,7 +196,6 @@ namespace SharpConnect.WebServers
             //write to stream
             bodyMs.Write(bytes, 0, bytes.Length);
             contentByteCount += bytes.Length;
-
         }
         public void End(string str)
         {
@@ -266,7 +274,6 @@ namespace SharpConnect.WebServers
                                     //----------------------------------------------------
                                     //copy data to send buffer
                                     sendIO.EnqueueOutputData(dataToSend, dataToSend.Length);
-
                                     //---------------------------------------------------- 
                                     ResetAll();
                                 }
@@ -276,7 +283,6 @@ namespace SharpConnect.WebServers
                                     headerStBuilder.Append("Transfer-Encoding: " + GetTransferEncoding(TransferEncoding) + "\r\n");
                                     headerStBuilder.Append("\r\n");
                                     writeContentState = WriteContentState.HttpBody;
-
                                     //chunked transfer
                                     var headBuffer = Encoding.UTF8.GetBytes(headerStBuilder.ToString().ToCharArray());
                                     sendIO.EnqueueOutputData(headBuffer, headBuffer.Length);
@@ -428,9 +434,5 @@ namespace SharpConnect.WebServers
                     return;
             }
         }
-
-
-
     }
-
 }

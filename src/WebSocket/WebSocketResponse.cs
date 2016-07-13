@@ -21,19 +21,19 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 * THE SOFTWARE.
 */
+
 using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Text;
 using SharpConnect.Internal;
-
 namespace SharpConnect.WebServers
 {
     public class WebSocketResponse : IDisposable
-    { 
+    {
         MemoryStream bodyMs = new MemoryStream();
-        readonly WebSocketContext conn; 
+        readonly WebSocketContext conn;
         SendIO sendIO;
         internal WebSocketResponse(WebSocketContext conn, SendIO sendIO)
         {
@@ -54,7 +54,7 @@ namespace SharpConnect.WebServers
             sendIO.EnqueueOutputData(dataToSend, dataToSend.Length);
             sendIO.StartSendAsync();
         }
-         
+
         static byte[] CreateSendBuffer(string msg)
         {
             byte[] data = null;
@@ -80,7 +80,6 @@ namespace SharpConnect.WebServers
                 byte[] dataToClient = Encoding.UTF8.GetBytes(msg);
                 //if len <126  then               
                 int dataLen = dataToClient.Length;
-
                 //The length of the "Payload data", in bytes: if 0-125, that is the
                 //payload length.  If 126, the following 2 bytes interpreted as a
                 //16-bit unsigned integer are the payload length.  If 127, the
@@ -96,7 +95,6 @@ namespace SharpConnect.WebServers
                 //"Application data". 
 
                 ms.WriteByte(b1);
-
                 if (dataLen < 126)
                 {
                     byte b2 = (byte)dataToClient.Length; // < 126
