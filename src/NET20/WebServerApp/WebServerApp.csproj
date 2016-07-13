@@ -36,13 +36,17 @@
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Program.cs" />
+    <Compile Include="..\..\Test\WebServerApp\Program.cs">
+      <Link>Program.cs</Link>
+    </Compile>
+    <Compile Include="..\..\Test\WebServerApp\TestApp.cs">
+      <Link>TestApp.cs</Link>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TestApp.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\src\SharpConnect.WebServer.csproj">
-      <Project>{03FE25C6-D58F-425E-ACBE-9FB8A897D0BF}</Project>
+    <ProjectReference Include="..\..\NET20\SharpConnect.WebServer\SharpConnect.WebServer.csproj">
+      <Project>{9960a15c-791d-4978-992f-69506cbcf2c7}</Project>
       <Name>SharpConnect.WebServer</Name>
     </ProjectReference>
   </ItemGroup>

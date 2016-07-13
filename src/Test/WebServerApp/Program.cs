@@ -15,7 +15,9 @@ namespace SharpConnect
             Main2();
         }
         static void Main2()
-        { 
+        {
+            Console.WriteLine("Hello!, from SharpConnect");
+                 
             TestApp testApp = new TestApp();
             try
             {
