@@ -69,21 +69,36 @@ namespace SharpConnect.WebServers
         }
         public string AllowOriginList { get; private set; }
         public AllowCrossOrigin AllowCrossOriginKind { get; private set; }
-
+        public string AllowMethods { get; set; }
+        public string AllowHeaders { get; set; }
         internal void WriteHeader(StringBuilder stbuilder)
         {
             switch (AllowCrossOriginKind)
             {
+                default:
+                case AllowCrossOrigin.None:
+                    return;
                 case AllowCrossOrigin.All:
                     stbuilder.Append("Access-Control-Allow-Origin: *\r\n");
-                    break;
-                case AllowCrossOrigin.None:
                     break;
                 case AllowCrossOrigin.Some:
                     stbuilder.Append("Access-Control-Allow-Origin: ");
                     stbuilder.Append(AllowOriginList);
                     stbuilder.Append("\r\n");
                     break;
+            }
+            if (AllowMethods != null)
+            {
+                stbuilder.Append("Access-Control-Allow-Methods: ");
+                stbuilder.Append(AllowMethods);
+                stbuilder.Append("\r\n");
+            }
+
+            if (AllowHeaders != null)
+            {
+                stbuilder.Append("Access-Control-Allow-Methods: ");
+                stbuilder.Append(AllowHeaders);
+                stbuilder.Append("\r\n");
             }
         }
     }
