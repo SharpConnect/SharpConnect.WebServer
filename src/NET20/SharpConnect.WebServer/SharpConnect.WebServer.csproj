@@ -1,0 +1,109 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{9960A15C-791D-4978-992F-69506CBCF2C7}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>SharpConnect.WebServer</RootNamespace>
+    <AssemblyName>SharpConnect.WebServer</AssemblyName>
+    <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;NET20</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\NETCore\General\ConnectionBase.cs">
+      <Link>General\ConnectionBase.cs</Link>
+    </Compile>
+    <Compile Include="..\..\NETCore\General\ReqRespHandler.cs">
+      <Link>General\ReqRespHandler.cs</Link>
+    </Compile>
+    <Compile Include="..\..\NETCore\General\Temp.cs">
+      <Link>General\Temp.cs</Link>
+    </Compile>
+    <Compile Include="..\..\NETCore\HttpWebServer\HttpContext.cs">
+      <Link>HttpWebServer\HttpContext.cs</Link>
+    </Compile>
+    <Compile Include="..\..\NETCore\HttpWebServer\HttpRequest.cs">
+      <Link>HttpWebServer\HttpRequest.cs</Link>
+    </Compile>
+    <Compile Include="..\..\NETCore\HttpWebServer\HttpResponse.cs">
+      <Link>HttpWebServer\HttpResponse.cs</Link>
+    </Compile>
+    <Compile Include="..\..\NETCore\HttpWebServer\RecvIO_SendIO.cs">
+      <Link>HttpWebServer\RecvIO_SendIO.cs</Link>
+    </Compile>
+    <Compile Include="..\..\NETCore\HttpWebServer\WebServer.cs">
+      <Link>HttpWebServer\WebServer.cs</Link>
+    </Compile>
+    <Compile Include="..\..\NETCore\Internal\BufferManager.cs">
+      <Link>Internal\BufferManager.cs</Link>
+    </Compile>
+    <Compile Include="..\..\NETCore\Internal\dbugAcceptOpUserToken.cs">
+      <Link>Internal\dbugAcceptOpUserToken.cs</Link>
+    </Compile>
+    <Compile Include="..\..\NETCore\Internal\dbugLOG.cs">
+      <Link>Internal\dbugLOG.cs</Link>
+    </Compile>
+    <Compile Include="..\..\NETCore\Internal\dbugTestFileWriter.cs">
+      <Link>Internal\dbugTestFileWriter.cs</Link>
+    </Compile>
+    <Compile Include="..\..\NETCore\Internal\NewConnListener.cs">
+      <Link>Internal\NewConnListener.cs</Link>
+    </Compile>
+    <Compile Include="..\..\NETCore\Internal\NewConnListenerSettings.cs">
+      <Link>Internal\NewConnListenerSettings.cs</Link>
+    </Compile>
+    <Compile Include="..\..\NETCore\Internal\SharedResoucePool.cs">
+      <Link>Internal\SharedResoucePool.cs</Link>
+    </Compile>
+    <Compile Include="..\..\NETCore\WebSocket\Flags.cs">
+      <Link>WebSocket\Flags.cs</Link>
+    </Compile>
+    <Compile Include="..\..\NETCore\WebSocket\WebSocketContext.cs">
+      <Link>WebSocket\WebSocketContext.cs</Link>
+    </Compile>
+    <Compile Include="..\..\NETCore\WebSocket\WebSocketProtocalParser.cs">
+      <Link>WebSocket\WebSocketProtocalParser.cs</Link>
+    </Compile>
+    <Compile Include="..\..\NETCore\WebSocket\WebSocketRequest.cs">
+      <Link>WebSocket\WebSocketRequest.cs</Link>
+    </Compile>
+    <Compile Include="..\..\NETCore\WebSocket\WebSocketResponse.cs">
+      <Link>WebSocket\WebSocketResponse.cs</Link>
+    </Compile>
+    <Compile Include="..\..\NETCore\WebSocket\WebSocketServer.cs">
+      <Link>WebSocket\WebSocketServer.cs</Link>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

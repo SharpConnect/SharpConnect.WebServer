@@ -15,7 +15,9 @@ namespace SharpConnect
             Main2();
         }
         static void Main2()
-        { 
+        {
+            Console.WriteLine("Hello!, from SharpConnect");
+                 
             TestApp testApp = new TestApp();
             try
             {
@@ -23,7 +25,7 @@ namespace SharpConnect
                 WebServer webServer = new WebServer(8080, true, testApp.HandleRequest);
 
                 //test websocket
-
+                
                 webServer.WebSocketServer = new WebSocketServer(testApp.HandleWebSocket);
 
 
