@@ -56,8 +56,8 @@ namespace SharpConnect
         public void HandleRequest(HttpRequest req, HttpResponse resp)
         {
 
-            string rootFolder = "c:\\apache2\\htdocs";
-            string absFile = Path.Combine(rootFolder, req.Url);
+            string rootFolder = @"C:\Apache24\htdocs\sdapp\www";
+            string absFile = rootFolder + "\\" + req.Url;
 
             if (File.Exists(absFile))
             {
@@ -71,14 +71,22 @@ namespace SharpConnect
                     case ".png":
                         resp.ContentType = WebResponseContentType.ImagePng;
                         break;
+                    case ".php":
                     case ".html":
                         resp.ContentType = WebResponseContentType.TextHtml;
                         break;
                     case ".js":
                         resp.ContentType = WebResponseContentType.TextJavascript;
                         break;
+                    case ".css":
+                        resp.ContentType = WebResponseContentType.TextCss;
+                        break;
                 }
                 resp.End(buffer);
+            }
+            else
+            {
+                resp.End("something wrong");
             }
 
 

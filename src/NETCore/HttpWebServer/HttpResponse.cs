@@ -16,6 +16,7 @@ namespace SharpConnect.WebServers
         TextPlain,
         TextXml,
         TextJavascript,
+        TextCss,
 
         ImagePng,
         ImageJpeg,
@@ -96,7 +97,7 @@ namespace SharpConnect.WebServers
 
             if (AllowHeaders != null)
             {
-                stbuilder.Append("Access-Control-Allow-Methods: ");
+                stbuilder.Append("Access-Control-Allow-Headers: ");
                 stbuilder.Append(AllowHeaders);
                 stbuilder.Append("\r\n");
             }
@@ -409,6 +410,8 @@ namespace SharpConnect.WebServers
                     return "text/html";
                 case WebResponseContentType.TextJavascript:
                     return "text/javascript";
+                case WebResponseContentType.TextCss:
+                    return "text/css";
                 case WebResponseContentType.TextPlain:
                     return "text/plain";
                 default:
