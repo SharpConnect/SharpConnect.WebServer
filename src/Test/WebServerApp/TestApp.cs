@@ -3,6 +3,8 @@
 using System;
 using System.Net;
 using System.Text;
+using System.IO;
+
 using SharpConnect.WebServers;
 namespace SharpConnect
 {
@@ -53,37 +55,72 @@ namespace SharpConnect
         </html>";
         public void HandleRequest(HttpRequest req, HttpResponse resp)
         {
-            switch (req.Url)
+
+            string rootFolder = @"C:\Apache24\htdocs\sdapp\www";
+            string absFile = rootFolder + "\\" + req.Url;
+
+            if (File.Exists(absFile))
             {
-                case "/":
-                    {
-                        resp.TransferEncoding = ResponseTransferEncoding.Chunked;
-                        resp.End("hello!");
-                    }
-                    break;
-                case "/websocket":
-                    {
+                byte[] buffer=  File.ReadAllBytes(absFile);
+                resp.AllowCrossOriginPolicy = crossOriginPolicy;
+                switch(Path.GetExtension(absFile))
+                {
+                    case ".jpg":
+                        resp.ContentType = WebResponseContentType.ImageJpeg;
+                        break;
+                    case ".png":
+                        resp.ContentType = WebResponseContentType.ImagePng;
+                        break;
+                    case ".php":
+                    case ".html":
                         resp.ContentType = WebResponseContentType.TextHtml;
-                        resp.End(html);
-                    }
-                    break;
-                case "/version":
-                    {
-                        resp.End("1.0");
-                    }
-                    break;
-                case "/cross":
-                    {
-                        resp.AllowCrossOriginPolicy = crossOriginPolicy;
-                        resp.End("ok");
-                    }
-                    break;
-                default:
-                    {
-                        resp.End("");
-                    }
-                    break;
+                        break;
+                    case ".js":
+                        resp.ContentType = WebResponseContentType.TextJavascript;
+                        break;
+                    case ".css":
+                        resp.ContentType = WebResponseContentType.TextCss;
+                        break;
+                }
+                resp.End(buffer);
             }
+            else
+            {
+                resp.End("something wrong");
+            }
+
+
+            //switch (req.Url)
+            //{
+            //    case "/":
+            //        {
+            //            resp.TransferEncoding = ResponseTransferEncoding.Chunked;
+            //            resp.End("hello!");
+            //        }
+            //        break;
+            //    case "/websocket":
+            //        {
+            //            resp.ContentType = WebResponseContentType.TextHtml;
+            //            resp.End(html);
+            //        }
+            //        break;
+            //    case "/version":
+            //        {
+            //            resp.End("1.0");
+            //        }
+            //        break;
+            //    case "/cross":
+            //        {
+            //            resp.AllowCrossOriginPolicy = crossOriginPolicy;
+            //            resp.End("ok");
+            //        }
+            //        break;
+            //    default:
+            //        {
+            //            resp.End("");
+            //        }
+            //        break;
+            //}
         }
         int count = 0;
         public void HandleWebSocket(WebSocketRequest req, WebSocketResponse resp)
