@@ -192,7 +192,7 @@ namespace SharpConnect.WebServers
             }
             else
             {
-                return ProcessReceiveBufferResult.Continue;
+                return ProcessReceiveBufferResult.NeedMore;
             }
 
         }

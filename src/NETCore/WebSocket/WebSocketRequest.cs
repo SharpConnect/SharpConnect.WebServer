@@ -24,9 +24,7 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
-using System.Net.Sockets;
-using System.Text;
-using SharpConnect.Internal;
+
 
 namespace SharpConnect.WebServers
 {
@@ -35,29 +33,41 @@ namespace SharpConnect.WebServers
     {
         //-----------------------
         byte[] data;
-        List<byte[]> moreFrames = new List<byte[]>(); 
+        List<byte[]> moreData;
+        int appendCount;
+
         internal WebSocketRequest()
-        { 
-        } 
+        {
+        }
         public Opcode OpCode
         {
             get;
             internal set;
         }
-        internal void SetRawBuffer(byte[] data)
-        {
-            this.data = data;
-        }
-        internal void AddNewFrame(byte[] newFrame)
+        internal void AppendData(byte[] newDataBuffer)
         {
             //append data
-            moreFrames.Add(newFrame);
-        } 
+            switch (appendCount)
+            {
+                case 0:
+                    this.data = newDataBuffer;
+                    break;
+                case 1:
+                    moreData = new List<byte[]>();
+                    moreData.Add(newDataBuffer);
+                    break;
+                default:
+                    //else
+                    moreData.Add(newDataBuffer);
+                    break;
+            }
+            appendCount++;
+        }
         public string ReadAsString()
         {
             if (data != null && this.OpCode == Opcode.Text)
             {
-                if (moreFrames.Count == 0)
+                if (moreData == null)
                 {
                     return System.Text.Encoding.UTF8.GetString(data);
                 }
@@ -67,10 +77,10 @@ namespace SharpConnect.WebServers
                     using (MemoryStream ms = new MemoryStream())
                     {
                         ms.Write(data, 0, data.Length);
-                        int j = moreFrames.Count;
+                        int j = moreData.Count;
                         for (int i = 0; i < j; ++i)
                         {
-                            byte[] f = moreFrames[i];
+                            byte[] f = moreData[i];
                             ms.Write(f, 0, f.Length);
                         }
                         ms.Flush();
@@ -90,7 +100,7 @@ namespace SharpConnect.WebServers
         {
             if (data != null && this.OpCode == Opcode.Text)
             {
-                if (moreFrames.Count == 0)
+                if (moreData == null)
                 {
                     return System.Text.Encoding.UTF8.GetChars(data);
                 }
@@ -99,10 +109,10 @@ namespace SharpConnect.WebServers
                     using (MemoryStream ms = new MemoryStream())
                     {
                         ms.Write(data, 0, data.Length);
-                        int j = moreFrames.Count;
+                        int j = moreData.Count;
                         for (int i = 0; i < j; ++i)
                         {
-                            byte[] f = moreFrames[i];
+                            byte[] f = moreData[i];
                             ms.Write(f, 0, f.Length);
                         }
                         ms.Flush();
@@ -117,12 +127,7 @@ namespace SharpConnect.WebServers
             {
                 return null;
             }
-        } 
-        public void Clear()
-        {
-            moreFrames.Clear();
-            data = null;
-             
         }
+
     }
 }
