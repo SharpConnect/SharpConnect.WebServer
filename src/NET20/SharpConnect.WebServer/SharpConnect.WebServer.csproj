@@ -84,8 +84,8 @@
     <Compile Include="..\..\NETCore\WebSocket\WebSocketContext.cs">
       <Link>WebSocket\WebSocketContext.cs</Link>
     </Compile>
-    <Compile Include="..\..\NETCore\WebSocket\WebSocketProtocalParser.cs">
-      <Link>WebSocket\WebSocketProtocalParser.cs</Link>
+    <Compile Include="..\..\NETCore\WebSocket\WebSocketProtocolParser.cs">
+      <Link>WebSocket\WebSocketProtocolParser.cs</Link>
     </Compile>
     <Compile Include="..\..\NETCore\WebSocket\WebSocketRequest.cs">
       <Link>WebSocket\WebSocketRequest.cs</Link>

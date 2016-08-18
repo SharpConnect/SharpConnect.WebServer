@@ -117,7 +117,7 @@ namespace SharpConnect.WebServers
 
                                     reqHandler(this.httpReq, httpResp);
                                 } break;
-                            case ProcessReceiveBufferResult.Continue:
+                            case ProcessReceiveBufferResult.NeedMore:
                                 {
                                     recvIO.StartReceive();
                                 } break;
@@ -282,7 +282,7 @@ namespace SharpConnect.WebServers
     enum ProcessReceiveBufferResult
     {
         Error,
-        Continue,
+        NeedMore,
         Complete
     }
 }

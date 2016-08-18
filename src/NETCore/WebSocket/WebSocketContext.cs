@@ -22,12 +22,7 @@
 * THE SOFTWARE.
 */
 using System;
-using System.IO;
-using System.Collections.Generic;
-using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Security.Cryptography;
 using SharpConnect.Internal;
 
 namespace SharpConnect.WebServers
@@ -44,10 +39,8 @@ namespace SharpConnect.WebServers
         const int RECV_BUFF_SIZE = 512;
         byte[] outputData = new byte[RECV_BUFF_SIZE];
 
-
-
         WebSocketResponse webSocketResp;
-        WebSocketProtocalParser webSocketReqParser;
+        WebSocketProtocolParser webSocketReqParser;
 
         RecvIO recvIO;
         SendIO sendIO;
@@ -58,7 +51,7 @@ namespace SharpConnect.WebServers
         {
             this.webSocketReqHandler = webSocketReqHandler;
             this.webSocketServer = webSocketServer;
-            connectionId = System.Threading.Interlocked.Increment(ref  connectionIdTotal);
+            connectionId = System.Threading.Interlocked.Increment(ref connectionIdTotal);
             //-------------------
             //send,resp
             sockAsyncSender = new SocketAsyncEventArgs();
@@ -113,7 +106,7 @@ namespace SharpConnect.WebServers
                 }
             });
             //------------------------------------------------------------------------------------             
-            this.webSocketReqParser = new WebSocketProtocalParser(recvIO);
+            this.webSocketReqParser = new WebSocketProtocolParser(recvIO);
 
         }
         public void Bind(Socket clientSocket)
@@ -135,36 +128,44 @@ namespace SharpConnect.WebServers
             switch (recvCode)
             {
                 case RecvEventCode.HasSomeData:
-                    {
-                        //parse recv msg
-                        switch (this.webSocketReqParser.ParseRecvData())
-                        {
-                            case ProcessReceiveBufferResult.Complete:
-                                { 
-                                    //you can choose ...
-                                    //invoke webSocketReqHandler in this thread or another thread
-                                    while (webSocketReqParser.ReqCount > 0)
-                                    {  
-                                        WebSocketRequest req = webSocketReqParser.Dequeue();
-                                        webSocketReqHandler(req, webSocketResp);
-                                        req.Clear(); //clear
-                                    } 
-                                    //start next recv
-                                    byte[] newRecvBuffer = new byte[RECV_BUFF_SIZE];
-                                    recvIO.StartReceive(newRecvBuffer, RECV_BUFF_SIZE); 
-                                } break;
-                            case ProcessReceiveBufferResult.Continue:
-                                {
-                                    //start next recv
-                                    byte[] newRecvBuffer = new byte[RECV_BUFF_SIZE];
-                                    recvIO.StartReceive(newRecvBuffer, RECV_BUFF_SIZE);
-                                } break;
-                            case ProcessReceiveBufferResult.Error:
-                            default:
-                                throw new NotSupportedException();
-                        }
 
-                    } break;
+                    //parse recv msg
+                    switch (this.webSocketReqParser.ParseRecvData())
+                    {
+                        //in this version all data is copy into WebSocketRequest
+                        //so we can reuse recv buffer 
+                        //TODO: review this, if we need to copy?,  
+
+                        case ProcessReceiveBufferResult.Complete:
+                            {
+                                //you can choose ...
+                                //invoke webSocketReqHandler in this thread or another thread
+                                while (webSocketReqParser.ReqCount > 0)
+                                {
+                                    WebSocketRequest req = webSocketReqParser.Dequeue();
+                                    webSocketReqHandler(req, webSocketResp);
+                                }
+                                //start next recv
+                                //byte[] newRecvBuffer = new byte[RECV_BUFF_SIZE];
+                                //recvIO.StartReceive(newRecvBuffer, RECV_BUFF_SIZE);
+                                recvIO.StartReceive();
+                                //***no code after StartReceive***
+                            }
+                            return;
+                        case ProcessReceiveBufferResult.NeedMore:
+                            {
+                                //start next recv
+                                //byte[] newRecvBuffer = new byte[RECV_BUFF_SIZE];
+                                //recvIO.StartReceive(newRecvBuffer, RECV_BUFF_SIZE);
+                                recvIO.StartReceive();
+                                //***no code after StartReceive***
+                            }
+                            return;
+                        case ProcessReceiveBufferResult.Error:
+                        default:
+                            throw new NotSupportedException();
+                    }
+
                 case RecvEventCode.NoMoreReceiveData:
                     {
                     }
