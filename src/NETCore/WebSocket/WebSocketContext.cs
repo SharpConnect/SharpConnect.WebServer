@@ -40,7 +40,7 @@ namespace SharpConnect.WebServers
         byte[] outputData = new byte[RECV_BUFF_SIZE];
 
         WebSocketResponse webSocketResp;
-        WebSocketProtocalParser webSocketReqParser;
+        WebSocketProtocolParser webSocketReqParser;
 
         RecvIO recvIO;
         SendIO sendIO;
@@ -106,7 +106,7 @@ namespace SharpConnect.WebServers
                 }
             });
             //------------------------------------------------------------------------------------             
-            this.webSocketReqParser = new WebSocketProtocalParser(recvIO);
+            this.webSocketReqParser = new WebSocketProtocolParser(recvIO);
 
         }
         public void Bind(Socket clientSocket)

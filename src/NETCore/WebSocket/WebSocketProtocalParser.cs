@@ -28,7 +28,7 @@ using SharpConnect.Internal;
 namespace SharpConnect.WebServers
 {
 
-    class WebSocketProtocalParser
+    class WebSocketProtocolParser
     {
 
         enum ParseState
@@ -52,7 +52,7 @@ namespace SharpConnect.WebServers
         Opcode currentOpCode = Opcode.Cont;//use default 
         //-----------------------
 
-        internal WebSocketProtocalParser(RecvIO recvIO)
+        internal WebSocketProtocolParser(RecvIO recvIO)
         {
             this.recvIO = recvIO;
         }
