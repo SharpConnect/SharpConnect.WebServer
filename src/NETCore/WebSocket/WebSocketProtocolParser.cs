@@ -257,7 +257,7 @@ namespace SharpConnect.WebServers
                 switch (parseState)
                 {
                     default:
-                        throw new NotFiniteNumberException();
+                        throw new NotSupportedException();
                     case ParseState.Init:
                         //read header
                         if (txByteCount < 2)
