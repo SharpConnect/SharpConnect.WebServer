@@ -112,16 +112,37 @@ namespace SharpConnect.WebServers
                 }
                 else if (dataLen < ushort.MaxValue)
                 {
+                    //If 126, the following 2 bytes interpreted as a
+                    //16-bit unsigned integer are the payload length 
                     ms.WriteByte(126);
-                    //use 2 bytes for data  
+                    //use 2 bytes for dataLen  
                     ms.WriteByte((byte)(dataLen >> 8));
                     ms.WriteByte((byte)(dataLen & 0xff));
                 }
                 else
                 {
-                    throw new NotSupportedException();
-                }
+                    //If 127, the
+                    //following 8 bytes interpreted as a 64-bit unsigned integer (the
+                    //most significant bit MUST be 0) are the payload length 
+                    //this version we limit data len < int.MaxValue
+                    if (dataLen > int.MaxValue)
+                    {
+                        throw new NotSupportedException();
+                    }
+                    //-----------------------------------------
+                    ms.WriteByte(127);
+                    //use 8 bytes for dataLen  
+                    //so... first 4 bytes= 0
 
+                    ms.WriteByte(0);
+                    ms.WriteByte(0);
+                    ms.WriteByte(0);
+                    ms.WriteByte(0);
+                    ms.WriteByte((byte)((dataLen >> 24) & 0xff));
+                    ms.WriteByte((byte)((dataLen >> 16) & 0xff));
+                    ms.WriteByte((byte)((dataLen >> 8) & 0xff));
+                    ms.WriteByte((byte)(dataLen & 0xff));
+                }
 
                 ms.Write(dataToClient, 0, dataToClient.Length);
                 ms.Flush();
