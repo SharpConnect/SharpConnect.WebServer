@@ -171,7 +171,8 @@ namespace SharpConnect.Internal
                 {
                     case SendIOState.Error:
                         {
-                        } break;
+                        }
+                        break;
                     case SendIOState.ProcessSending:
                         {
                             if (value != SendIOState.ReadyNextSend)
@@ -181,7 +182,8 @@ namespace SharpConnect.Internal
                             else
                             {
                             }
-                        } break;
+                        }
+                        break;
                     case SendIOState.ReadyNextSend:
                         {
                             if (value != SendIOState.Sending)
@@ -191,7 +193,8 @@ namespace SharpConnect.Internal
                             else
                             {
                             }
-                        } break;
+                        }
+                        break;
                     case SendIOState.Sending:
                         {
                             if (value != SendIOState.ProcessSending)
@@ -200,7 +203,8 @@ namespace SharpConnect.Internal
                             else
                             {
                             }
-                        } break;
+                        }
+                        break;
 
                 }
                 _sendingState = value;
@@ -221,6 +225,10 @@ namespace SharpConnect.Internal
         }
         public void EnqueueOutputData(byte[] dataToSend, int count)
         {
+            if (dataToSend == null)
+            {
+
+            }
             sendingQueue.Enqueue(dataToSend);
         }
         public void StartSendAsync()
