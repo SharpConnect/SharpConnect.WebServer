@@ -23,8 +23,9 @@ namespace SharpConnect
 
         const string html = @"<html>
                 <head>
-                <script>
-                        var wsUri = ""ws://localhost:8080"";
+                <script> 
+                         
+                        var wsUri=get_wsurl(); 
                         var websocket= null;
                         (function init(){
 	  
@@ -45,6 +46,14 @@ namespace SharpConnect
                          })();
                         function send_data(data){
 	                            websocket.send(data);
+                        } 
+                        function get_wsurl(){
+                               
+                                if(window.location.protocol==""https:""){
+                                    return  ""wss://localhost:8000"";
+                                }else{
+                                    return  ""ws://localhost:8080"";
+                                }
                         }
                 </script>
                 </head>
@@ -56,71 +65,70 @@ namespace SharpConnect
         public void HandleRequest(HttpRequest req, HttpResponse resp)
         {
 
-            string rootFolder = @"C:\Apache24\htdocs\sdapp\www";
-            string absFile = rootFolder + "\\" + req.Url;
-
-            if (File.Exists(absFile))
-            {
-                byte[] buffer=  File.ReadAllBytes(absFile);
-                resp.AllowCrossOriginPolicy = crossOriginPolicy;
-                switch(Path.GetExtension(absFile))
-                {
-                    case ".jpg":
-                        resp.ContentType = WebResponseContentType.ImageJpeg;
-                        break;
-                    case ".png":
-                        resp.ContentType = WebResponseContentType.ImagePng;
-                        break;
-                    case ".php":
-                    case ".html":
-                        resp.ContentType = WebResponseContentType.TextHtml;
-                        break;
-                    case ".js":
-                        resp.ContentType = WebResponseContentType.TextJavascript;
-                        break;
-                    case ".css":
-                        resp.ContentType = WebResponseContentType.TextCss;
-                        break;
-                }
-                resp.End(buffer);
-            }
-            else
-            {
-                resp.End("something wrong");
-            }
-
-
-            //switch (req.Url)
+            //string rootFolder = @"C:\apache2\htdocs\";
+            //string absFile = rootFolder + "\\" + req.Url;  
+            //if (File.Exists(absFile))
             //{
-            //    case "/":
-            //        {
-            //            resp.TransferEncoding = ResponseTransferEncoding.Chunked;
-            //            resp.End("hello!");
-            //        }
-            //        break;
-            //    case "/websocket":
-            //        {
+            //    byte[] buffer = File.ReadAllBytes(absFile);
+            //    resp.AllowCrossOriginPolicy = crossOriginPolicy;
+            //    switch (Path.GetExtension(absFile))
+            //    {
+            //        case ".jpg":
+            //            resp.ContentType = WebResponseContentType.ImageJpeg;
+            //            break;
+            //        case ".png":
+            //            resp.ContentType = WebResponseContentType.ImagePng;
+            //            break;
+            //        case ".php":
+            //        case ".html":
             //            resp.ContentType = WebResponseContentType.TextHtml;
-            //            resp.End(html);
-            //        }
-            //        break;
-            //    case "/version":
-            //        {
-            //            resp.End("1.0");
-            //        }
-            //        break;
-            //    case "/cross":
-            //        {
-            //            resp.AllowCrossOriginPolicy = crossOriginPolicy;
-            //            resp.End("ok");
-            //        }
-            //        break;
-            //    default:
-            //        {
-            //            resp.End("");
-            //        }
-            //        break;
+            //            break;
+            //        case ".js":
+            //            resp.ContentType = WebResponseContentType.TextJavascript;
+            //            break;
+            //        case ".css":
+            //            resp.ContentType = WebResponseContentType.TextCss;
+            //            break;
+            //    }
+            //    resp.End(buffer);
             //}
+            //else
+            //{
+            //    resp.End("something wrong");
+            //}
+
+
+            switch (req.Url)
+            {
+                case "/":
+                    {
+                        resp.TransferEncoding = ResponseTransferEncoding.Chunked;
+                        resp.End("hello!");
+                    }
+                    break;
+                case "/websocket":
+                    {
+                        resp.ContentType = WebResponseContentType.TextHtml;
+                        resp.End(html);
+                    }
+                    break;
+                case "/version":
+                    {
+                        resp.End("1.0");
+                    }
+                    break; 
+                case "/cross":
+                    {
+                        resp.AllowCrossOriginPolicy = crossOriginPolicy;
+                        resp.End("ok");
+                    }
+                    break; 
+                default:
+                    {
+                        resp.End("");
+                    }
+                    break;
+            }
         }
         int count = 0;
         public void HandleWebSocket(WebSocketRequest req, WebSocketResponse resp)
