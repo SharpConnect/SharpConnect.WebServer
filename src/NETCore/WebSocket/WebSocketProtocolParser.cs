@@ -34,20 +34,23 @@ namespace SharpConnect.WebServers
         enum ParseState
         {
             Init,
+            ReadExtendedPayloadLen,
+            ReadMask,
             ExpectBody,
             Complete
         }
 
         Queue<WebSocketRequest> incommingReqs = new Queue<WebSocketRequest>();
-
+        RecvIOBufferStream myBufferStream;
         WebSocketRequest currentReq;
         RecvIO recvIO;
         ParseState parseState;
-        int remainingBytes;
-        int currentPacketLen;
 
+        int _currentPacketLen;
+        int _currentMaskLen;
         //-----------------------
-        byte[] maskKey = null;
+        byte[] maskKey = new byte[4];
+        byte[] fullPayloadLengthBuffer = new byte[8];
         bool useMask;
         Opcode currentOpCode = Opcode.Cont;//use default 
         //-----------------------
@@ -55,8 +58,9 @@ namespace SharpConnect.WebServers
         internal WebSocketProtocolParser(RecvIO recvIO)
         {
             this.recvIO = recvIO;
-        }
+            myBufferStream = new RecvIOBufferStream(recvIO);
 
+        }
         public int ReqCount
         {
             get
@@ -69,16 +73,20 @@ namespace SharpConnect.WebServers
             return incommingReqs.Dequeue();
         }
 
-
-        void ReadHeader(ref int readpos)
+        bool ReadHeader()
         {
-
+            if (!myBufferStream.Ensure(2))
+            {
+                myBufferStream.BackupRecvIO();
+                return false;
+            }
+            //----------------------------------------------------------
+            //when we read header we start a new websocket request
             currentReq = new WebSocketRequest();
             incommingReqs.Enqueue(currentReq);
 
-            int txByteCount = recvIO.BytesTransferred;
-            byte b1 = recvIO.ReadByte(readpos);
-            readpos++;
+
+            byte b1 = myBufferStream.ReadByte();
             // FIN
             Fin fin = (b1 & (1 << 7)) == (1 << 7) ? Fin.Final : Fin.More;
 
@@ -94,17 +102,14 @@ namespace SharpConnect.WebServers
             // Opcode
             currentOpCode = (Opcode)(b1 & 0x0f);//4 bits  
             //----------------------------------------------------------  
-            byte b2 = recvIO.ReadByte(readpos); //mask
-            readpos++;
-            //----------------------------------------------------------  
-            //finish first 2 bytes 
+            byte b2 = myBufferStream.ReadByte();          //mask
 
+            //----------------------------------------------------------  
+            //finish first 2 bytes  
             // MASK
             Mask currentMask = (b2 & (1 << 7)) == (1 << 7) ? Mask.On : Mask.Off;
-            //we should check receive frame here ...
-
+            //we should check receive frame here ... 
             this.useMask = currentMask == Mask.On;
-
             if (currentMask == Mask.Off)
             {
                 //if this act as WebSocketServer 
@@ -139,6 +144,13 @@ namespace SharpConnect.WebServers
                     }
                     break;
                 case Opcode.Text: //this is data
+                    {
+                        if (rsv1 == Rsv.On)
+                        {
+                            errCode = "A non data frame is compressed.";
+                        }
+                    }
+                    break;
                 case Opcode.Binary: //this is data
                     {
                         if (rsv1 == Rsv.On)
@@ -188,97 +200,96 @@ namespace SharpConnect.WebServers
                 throw new NotSupportedException();
             }
             //----------------------------------------------------------  
-
-            this.currentPacketLen = payloadLen;
+            this._currentPacketLen = payloadLen;
+            currentReq.OpCode = currentOpCode;
+            this._currentMaskLen = (currentMask == Mask.On) ? 4 : 0;
+            //----------------------------------------------------------
             if (payloadLen >= 126)
             {
-                int extendedPayloadByteCount = (payloadLen == 126 ? 2 : 8);
-                if (readpos + extendedPayloadByteCount >= txByteCount)
-                {
-                    //can't read  
-                    //for this version only
-                    throw new NotSupportedException();
-                }
-
-                byte[] fullPayloadLengthBuffer = new byte[extendedPayloadByteCount];
-                recvIO.ReadTo(readpos, fullPayloadLengthBuffer, extendedPayloadByteCount);
-                readpos += extendedPayloadByteCount;
-                ulong org_packetLen1 = GetFullPayloadLength(payloadLen, fullPayloadLengthBuffer);
-                if (org_packetLen1 >= int.MaxValue)
-                {
-                    //in this version ***
-                    throw new NotSupportedException();
-                }
-                this.currentPacketLen = (int)org_packetLen1;
+                this.parseState = ParseState.ReadExtendedPayloadLen;
+                return true;
             }
-            currentReq.OpCode = currentOpCode;
-
-
-
-            int maskLen = (currentMask == Mask.On) ? 4 : 0;
-            if (maskLen > 0)
-            {
-                if (readpos + maskLen >= txByteCount)
-                {
-                    //in this version ***
-                    throw new NotSupportedException();
-                }
-                //read mask data                     
-                maskKey = new byte[maskLen];
-                recvIO.ReadTo(readpos, maskKey, maskLen);
-                readpos += maskLen;
-                //throw new WebSocketException("The masking key of a frame cannot be read from the stream.");
-            }
-            //-----------------------------------   
-            this.remainingBytes = (currentPacketLen + readpos) - txByteCount;
-            //so remainingBytes may be negative
-            parseState = ParseState.ExpectBody;
-
+            //----------------------------------------------------------
+            this.parseState = this._currentMaskLen > 0 ?
+                ParseState.ReadMask :
+                ParseState.ExpectBody;
+            return true;
         }
+        bool ReadPayloadLen()
+        {
+            int extendedPayloadByteCount = (this._currentPacketLen == 126 ? 2 : 8);
+            if (!myBufferStream.Ensure(extendedPayloadByteCount))
+            {
+                myBufferStream.BackupRecvIO();
+                return false;
+            }
+            //----------------------------------------------------------
+           
+            myBufferStream.CopyBuffer(fullPayloadLengthBuffer, extendedPayloadByteCount);
+
+            ulong org_packetLen1 = GetFullPayloadLength(_currentPacketLen, fullPayloadLengthBuffer);
+            if (org_packetLen1 >= int.MaxValue)
+            {
+                //in this version ***
+                throw new NotSupportedException();
+            }
+            this._currentPacketLen = (int)org_packetLen1;
+            this.parseState = _currentMaskLen > 0 ?
+                     ParseState.ReadMask :
+                     ParseState.ExpectBody;
+            return true;
+        }
+        bool ReadMask()
+        {
+            if (!myBufferStream.Ensure(_currentMaskLen))
+            {
+                myBufferStream.BackupRecvIO();
+                return false;
+            }
+            //---------------------------------------------------------- 
+            //read mask data                     
+            
+            myBufferStream.CopyBuffer(maskKey, _currentMaskLen);
+            this.parseState = ParseState.ExpectBody;
+            return true;
+        }
+
         internal ProcessReceiveBufferResult ParseRecvData()
         {
-            //in this round
-            int readpos = 0;
-            int txByteCount = recvIO.BytesTransferred;//***
-            bool readMore = true;
-            bool moreThanOnePacket = false;
-            int saveRemainingByte = 0;
-            if (parseState != ParseState.Init)
+            myBufferStream.AppendNewRecvData();
+
+            for (;;)
             {
-                if ((remainingBytes - txByteCount) < 0)
-                {
-                    saveRemainingByte = remainingBytes;
-                    moreThanOnePacket = true;
-                }
-                remainingBytes -= txByteCount;
-            }
-            while (readMore)
-            {
+
                 switch (parseState)
                 {
                     default:
                         throw new NotSupportedException();
                     case ParseState.Init:
-                        //read header
-                        if (txByteCount < 2)
+
+                        if (!ReadHeader())
                         {
-                            throw new NotSupportedException();
+                            return ProcessReceiveBufferResult.NeedMore;
                         }
-                        //-------------------------------------
-                        //packet len,  is calculate from this step 
-                        ReadHeader(ref readpos);
+                        break;
+                    case ParseState.ReadExtendedPayloadLen:
+
+                        if (!ReadPayloadLen())
+                        {
+                            return ProcessReceiveBufferResult.NeedMore;
+                        }
+                        break;
+                    case ParseState.ReadMask:
+
+                        if (!ReadMask())
+                        {
+                            return ProcessReceiveBufferResult.NeedMore;
+                        }
+
                         break;
                     case ParseState.ExpectBody:
                         {
-
-                            //control frame 
-                            //-------------------------------
-                            if (remainingBytes > 0)
-                            {
-                                ReadBodyContent(ref readpos, txByteCount - readpos, currentOpCode);
-                                return ProcessReceiveBufferResult.NeedMore;
-                            }
-                            //-------------------------------
+                            //------------------------------------- 
                             switch (currentOpCode)
                             {
                                 //ping,
@@ -288,44 +299,47 @@ namespace SharpConnect.WebServers
                                 case Opcode.Binary:
                                 case Opcode.Text:
                                 case Opcode.Close:
-
-                                    if (moreThanOnePacket)
-                                    {
-                                        //other req
-                                        //review here
-                                        ReadBodyContent(ref readpos, saveRemainingByte - readpos, currentOpCode);
-                                        remainingBytes = 0;
-                                        saveRemainingByte = 0;
-                                        moreThanOnePacket = false;
-                                        parseState = ParseState.Init;
-                                        break;
-                                    }
-                                    else
-                                    {
-                                        ReadBodyContent(ref readpos, txByteCount - readpos, currentOpCode);
-                                        parseState = ParseState.Init;
-                                        return ProcessReceiveBufferResult.Complete;
-                                    }
-
+                                    break;
                             }
+
+                            if (!ReadBodyContent(_currentPacketLen))
+                            {
+                                return ProcessReceiveBufferResult.NeedMore;
+                            }
+
+
+                            parseState = ParseState.Init;
+
+                            if (myBufferStream.IsEnd())
+                            {
+                                myBufferStream.Clear();
+                                return ProcessReceiveBufferResult.Complete;
+                            }
+                            //more than 1 byte 
                         }
                         break;
                 }
             }
-            return ProcessReceiveBufferResult.Error;
         }
-        void ReadBodyContent(ref int readpos, int readLen, Opcode opCode)
+        bool ReadBodyContent(int readLen)
         {
+            if (!myBufferStream.Ensure(readLen))
+            {
+                myBufferStream.BackupRecvIO();
+                return false;
+            }
+            //------------------------------------
             byte[] data = new byte[readLen];
-            recvIO.ReadTo(readpos, data, readLen);
-            readpos += readLen;
+            myBufferStream.CopyBuffer(data, readLen);
             if (useMask)
             {
                 //unmask
                 MaskAgain(data, maskKey);
             }
-            currentReq.AppendData(data);
+            currentReq.SetData(data);
+            return true;
         }
+
         static ulong GetFullPayloadLength(int payloadLength, byte[] fullPayloadLengthBuffer)
         {
             // Payload length:  7 bits, 7+16 bits, or 7+64 bits
