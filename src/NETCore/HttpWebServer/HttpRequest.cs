@@ -288,7 +288,7 @@ namespace SharpConnect.WebServers
                     if (i - readpos < 512)
                     {
                         //copy     
-                        recvIO.ReadTo(readpos, tmpReadBuffer, i - readpos);
+                        recvIO.CopyTo(readpos, tmpReadBuffer, i - readpos);
                         //translate
                         string line = Encoding.UTF8.GetString(tmpReadBuffer, 0, i - readpos);
                         readpos = i + 2;
@@ -329,7 +329,7 @@ namespace SharpConnect.WebServers
                 {
                     //complete here 
                     byte[] buff = new byte[wantBytes];
-                    recvIO.ReadTo(readpos, buff, wantBytes);
+                    recvIO.CopyTo(readpos, buff, wantBytes);
                     //add to req  
                     AddMsgBody(buff, 0, wantBytes);
                     //complete 
@@ -342,7 +342,7 @@ namespace SharpConnect.WebServers
                     if (remaining > 0)
                     {
                         byte[] buff = new byte[remaining];
-                        recvIO.ReadTo(readpos, buff, remaining);
+                        recvIO.CopyTo(readpos, buff, remaining);
                         //add to req  
                         AddMsgBody(buff, 0, remaining);
                     }
