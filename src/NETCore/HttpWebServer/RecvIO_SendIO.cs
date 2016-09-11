@@ -1,13 +1,76 @@
 ﻿//2010, CPOL, Stan Kirk
-//2015-2016, MIT, EngineKit
+//MIT, 2015-2016, EngineKit and contributors
 
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net.Sockets; 
+using System.Net.Sockets;
 
 namespace SharpConnect.Internal
 {
+#if DEBUG
+    static class dbugConsole
+    {
+
+        static LogWriter logWriter;
+        static dbugConsole()
+        {
+            //set
+            logWriter = new LogWriter(null);//not write anything to disk
+            //logWriter = new LogWriter("d:\\WImageTest\\log1.txt");
+        }
+        [System.Diagnostics.Conditional("DEBUG")]
+        public static void WriteLine(string str)
+        {
+            logWriter.Write(str);
+            logWriter.Write("\r\n");
+        }
+        [System.Diagnostics.Conditional("DEBUG")]
+        public static void Write(string str)
+        {
+            logWriter.Write(str);
+        }
+        class LogWriter : IDisposable
+        {
+            string filename;
+            FileStream fs;
+            StreamWriter writer;
+            public LogWriter(string logFilename)
+            {
+                filename = logFilename;
+                if (!string.IsNullOrEmpty(logFilename))
+                {
+                    fs = new FileStream(logFilename, FileMode.Create);
+                    writer = new StreamWriter(fs);
+                }
+            }
+            public void Dispose()
+            {
+                if (writer != null)
+                {
+                    writer.Flush();
+                    writer.Dispose();
+                    writer = null;
+                }
+                if (fs != null)
+                {
+                    fs.Dispose();
+                    fs = null;
+                }
+            }
+            public void Write(string data)
+            {
+                if (writer != null)
+                {
+                    writer.Write(data);
+                    writer.Flush();
+                }
+            }
+        }
+
+    }
+#endif
+    //--------------------------------------------------
     enum RecvEventCode
     {
         SocketError,
@@ -17,8 +80,7 @@ namespace SharpConnect.Internal
     }
     class RecvIO
     {
-        //receive
-        //req 
+        
         readonly int recvStartOffset;
         readonly int recvBufferSize;
         readonly SocketAsyncEventArgs recvArgs;
@@ -30,28 +92,40 @@ namespace SharpConnect.Internal
             this.recvStartOffset = recvStartOffset;
             this.recvBufferSize = recvBufferSize;
             this.recvNotify = recvNotify;
+
         }
 
         public byte ReadByte(int index)
         {
             return recvArgs.Buffer[this.recvStartOffset + index];
         }
-        public void ReadTo(int srcIndex, byte[] destBuffer, int destIndex, int count)
+        public void CopyTo(int srcIndex, byte[] destBuffer, int destIndex, int count)
         {
             Buffer.BlockCopy(recvArgs.Buffer,
                 recvStartOffset + srcIndex,
                 destBuffer,
                 destIndex, count);
         }
-        public void ReadTo(int srcIndex, byte[] destBuffer, int count)
+        public void CopyTo(int srcIndex, byte[] destBuffer, int count)
         {
+
             Buffer.BlockCopy(recvArgs.Buffer,
                 recvStartOffset + srcIndex,
                 destBuffer,
                 0, count);
         }
-        public void ReadTo(int srcIndex, MemoryStream ms, int count)
+#if DEBUG
+        internal int StartRecvPos
         {
+            get
+            {
+                return recvStartOffset;
+            }
+        }
+#endif
+        public void CopyTo(int srcIndex, MemoryStream ms, int count)
+        {
+
             ms.Write(recvArgs.Buffer,
                 recvStartOffset + srcIndex,
                 count);
@@ -115,6 +189,11 @@ namespace SharpConnect.Internal
         {
             get { return recvArgs.BytesTransferred; }
         }
+        internal byte[] UnsafeGetInternalBuffer()
+        {
+            return recvArgs.Buffer;
+        }
+
     }
 
     enum SendIOEventCode
@@ -223,10 +302,6 @@ namespace SharpConnect.Internal
         }
         public void EnqueueOutputData(byte[] dataToSend, int count)
         {
-            if (dataToSend == null)
-            {
-
-            }
             sendingQueue.Enqueue(dataToSend);
         }
         public void StartSendAsync()
@@ -251,7 +326,7 @@ namespace SharpConnect.Internal
                 if (this.sendingQueue.Count > 0)
                 {
                     this.currentSendingData = sendingQueue.Dequeue();
-                    this.sendingTargetBytes = currentSendingData.Length;
+                    remaining = this.sendingTargetBytes = currentSendingData.Length;
                     this.sendingTransferredBytes = 0;
                 }
                 else
@@ -372,7 +447,561 @@ namespace SharpConnect.Internal
                 //manage socket errors here
             }
         }
+    }
+
+
+
+    class RecvIOBufferStream : IDisposable
+    {
+        SimpleBufferReader simpleBufferReader = new SimpleBufferReader();
+        List<byte[]> otherBuffers = new List<byte[]>();
+        int currentBufferIndex;
+
+        bool multipartMode;
+        int readpos = 0;
+        int totalLen = 0;
+        int bufferCount = 0;
+        RecvIO _latestRecvIO;
+        public RecvIOBufferStream(RecvIO recvIO)
+        {
+            this._latestRecvIO = recvIO;
+            AutoClearPrevBufferBlock = true;
+        }
+        public bool AutoClearPrevBufferBlock
+        {
+            get;
+            set;
+        }
+        public void Dispose()
+        {
+
+        }
+        public void Clear()
+        {
+
+            otherBuffers.Clear();
+            multipartMode = false;
+            bufferCount = 0;
+            currentBufferIndex = 0;
+            readpos = 0;
+            totalLen = 0;
+            simpleBufferReader.SetBuffer(null, 0, 0);
+        }
+
+        public void AppendNewRecvData()
+        {
+            if (bufferCount == 0)
+            {
+                //single part mode                             
+                totalLen = _latestRecvIO.BytesTransferred;
+                simpleBufferReader.SetBuffer(_latestRecvIO.UnsafeGetInternalBuffer(), 0, totalLen);
+                bufferCount++;
+            }
+            else
+            {
+                //more than 1 buffer
+                if (multipartMode)
+                {
+                    int thisPartLen = _latestRecvIO.BytesTransferred;
+                    byte[] o2copy = new byte[thisPartLen];
+                    Buffer.BlockCopy(_latestRecvIO.UnsafeGetInternalBuffer(), 0, o2copy, 0, thisPartLen);
+                    otherBuffers.Add(o2copy);
+                    totalLen += thisPartLen;
+                }
+                else
+                {
+                    //should not be here
+                    throw new NotSupportedException();
+                }
+                bufferCount++;
+            }
+        }
+
+        public int Length
+        {
+            get
+            {
+                return this.totalLen;
+            }
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="len"></param>
+        /// <returns></returns>
+        public bool Ensure(int len)
+        {
+            return readpos + len <= totalLen;
+        }
+        public void BackupRecvIO()
+        {
+            if (bufferCount == 1 && !multipartMode)
+            {
+                //only in single mode
+                int thisPartLen = _latestRecvIO.BytesTransferred;
+                byte[] o2copy = new byte[thisPartLen];
+                Buffer.BlockCopy(_latestRecvIO.UnsafeGetInternalBuffer(), 0, o2copy, 0, thisPartLen);
+                otherBuffers.Add(o2copy);
+                multipartMode = true;
+                int prevIndex = simpleBufferReader.Position;
+                simpleBufferReader.SetBuffer(o2copy, 0, thisPartLen);
+                simpleBufferReader.Position = prevIndex;
+            }
+        }
+        public byte ReadByte()
+        {
+            if (simpleBufferReader.Ensure(1))
+            {
+                readpos++;
+                return simpleBufferReader.ReadByte();
+            }
+            else
+            {
+                if (multipartMode)
+                {
+                    //this end of current buffer
+                    //so we switch to the new one
+                    if (currentBufferIndex < otherBuffers.Count)
+                    {
+                        MoveToNextBufferBlock();
+                        readpos++;
+                        return simpleBufferReader.ReadByte();
+                    }
+                }
+            }
+            throw new Exception();
+        }
+        void MoveToNextBufferBlock()
+        {
+            if (AutoClearPrevBufferBlock)
+            {
+                otherBuffers[currentBufferIndex] = null;
+            }
+
+            currentBufferIndex++;
+            byte[] buff = otherBuffers[currentBufferIndex];
+            simpleBufferReader.SetBuffer(buff, 0, buff.Length);
+        }
+        /// <summary>
+        /// copy data from current pos to output
+        /// </summary>
+        /// <param name="output"></param>
+        /// <param name="len"></param>
+        public void CopyBuffer(byte[] output, int len)
+        {
+            if (simpleBufferReader.Ensure(len))
+            {
+                simpleBufferReader.CopyBytes(output, 0, len);
+                readpos += len;
+            }
+            else
+            {
+                //need more than 1
+                int toCopyLen = simpleBufferReader.AvaialbleByteCount;
+                int remain = len;
+                int targetIndex = 0;
+                do
+                {
+                    simpleBufferReader.CopyBytes(output, targetIndex, toCopyLen);
+                    readpos += toCopyLen;
+                    targetIndex += toCopyLen;
+                    remain -= toCopyLen;
+                    //move to another
+                    if (remain > 0)
+                    {
+                        if (currentBufferIndex < otherBuffers.Count - 1)
+                        {
+                            MoveToNextBufferBlock();
+                            //-------------------------- 
+                            //evaluate after copy
+                            if (simpleBufferReader.Ensure(remain))
+                            {
+                                //end
+                                simpleBufferReader.CopyBytes(output, targetIndex, remain);
+                                readpos += remain;
+                                remain = 0;
+                                return;
+                            }
+                            else
+                            {
+                                //not complete on this round
+                                toCopyLen = simpleBufferReader.UsedBufferDataLen;
+                                //copy all
+                            }
+                        }
+                        else
+                        {
+                            throw new NotSupportedException();
+                        }
+                    }
+                } while (remain > 0);
+
+            }
+        }
+        public bool IsEnd()
+        {
+            return readpos >= totalLen;
+        }
 
     }
+
+    class SimpleBufferReader
+    {
+        //TODO: check endian  ***
+        byte[] originalBuffer;
+        int bufferStartIndex;
+        int readIndex;
+        int usedBuffersize;
+        byte[] buffer = new byte[16];
+        public SimpleBufferReader()
+        {
+
+#if DEBUG
+
+            if (dbug_EnableLog)
+            {
+                dbugInit();
+            }
+#endif
+        }
+        public void SetBuffer(byte[] originalBuffer, int bufferStartIndex, int bufferSize)
+        {
+            this.originalBuffer = originalBuffer;
+            this.usedBuffersize = bufferSize;
+            this.bufferStartIndex = bufferStartIndex;
+            this.readIndex = bufferStartIndex; //auto
+        }
+        public bool Ensure(int len)
+        {
+            return readIndex + len <= usedBuffersize;
+        }
+        public int AvaialbleByteCount
+        {
+            get
+            {
+                return usedBuffersize - readIndex;
+            }
+        }
+        public int Position
+        {
+            get
+            {
+                return readIndex;
+            }
+            set
+            {
+                readIndex = value;
+            }
+        }
+        public void Close()
+        {
+        }
+        public bool EndOfStream
+        {
+            get
+            {
+                return readIndex == usedBuffersize;
+            }
+        }
+        public byte ReadByte()
+        {
+
+#if DEBUG
+            if (dbug_enableBreak)
+            {
+                dbugCheckBreakPoint();
+            }
+            if (dbug_EnableLog)
+            {
+                //read from current index 
+                //and advanced the readIndex to next***
+                dbugWriteInfo(Position - 1 + " (byte) " + originalBuffer[readIndex + 1]);
+            }
+#endif          
+
+            return originalBuffer[readIndex++];
+        }
+        public uint ReadUInt32()
+        {
+            byte[] mybuffer = originalBuffer;
+            int s = bufferStartIndex + readIndex;
+            readIndex += 4;
+            uint u = (uint)(mybuffer[s] | mybuffer[s + 1] << 8 |
+                mybuffer[s + 2] << 16 | mybuffer[s + 3] << 24);
+
+#if DEBUG
+            if (dbug_enableBreak)
+            {
+                dbugCheckBreakPoint();
+            }
+            if (dbug_EnableLog)
+            {
+                dbugWriteInfo(Position - 4 + " (uint32) " + u);
+            }
+#endif
+
+            return u;
+        }
+        public unsafe double ReadDouble()
+        {
+            byte[] mybuffer = originalBuffer;
+            int s = bufferStartIndex + readIndex;
+            readIndex += 8;
+
+            uint num = (uint)(((mybuffer[s] | (mybuffer[s + 1] << 8)) | (mybuffer[s + 2] << 0x10)) | (mybuffer[s + 3] << 0x18));
+            uint num2 = (uint)(((mybuffer[s + 4] | (mybuffer[s + 5] << 8)) | (mybuffer[s + 6] << 0x10)) | (mybuffer[s + 7] << 0x18));
+            ulong num3 = (num2 << 0x20) | num;
+
+#if DEBUG
+            if (dbug_enableBreak)
+            {
+                dbugCheckBreakPoint();
+            }
+            if (dbug_EnableLog)
+            {
+                dbugWriteInfo(Position - 8 + " (double) " + *(((double*)&num3)));
+            }
+#endif
+
+            return *(((double*)&num3));
+        }
+        public unsafe float ReadFloat()
+        {
+
+            byte[] mybuffer = originalBuffer;
+            int s = bufferStartIndex + readIndex;
+            readIndex += 4;
+
+            uint num = (uint)(((mybuffer[s] | (mybuffer[s + 1] << 8)) | (mybuffer[s + 2] << 0x10)) | (mybuffer[s + 3] << 0x18));
+#if DEBUG
+
+
+            if (dbug_enableBreak)
+            {
+                dbugCheckBreakPoint();
+            }
+            if (dbug_EnableLog)
+            {
+                dbugWriteInfo(Position - 4 + " (float)");
+            }
+#endif
+
+            return *(((float*)&num));
+        }
+        public int ReadInt32()
+        {
+            byte[] mybuffer = originalBuffer;
+            int s = bufferStartIndex + readIndex;
+            readIndex += 4;
+            int i32 = (mybuffer[s] | mybuffer[s + 1] << 8 |
+                    mybuffer[s + 2] << 16 | mybuffer[s + 3] << 24);
+
+#if DEBUG
+            if (dbug_enableBreak)
+            {
+                dbugCheckBreakPoint();
+            }
+            if (dbug_EnableLog)
+            {
+                dbugWriteInfo(Position - 4 + " (int32) " + i32);
+            }
+
+#endif          
+            return i32;
+
+        }
+        public short ReadInt16()
+        {
+            byte[] mybuffer = originalBuffer;
+            int s = bufferStartIndex + readIndex;
+            readIndex += 2;
+            short i16 = (Int16)(mybuffer[s] | mybuffer[s + 1] << 8);
+
+#if DEBUG
+            if (dbug_enableBreak)
+            {
+                dbugCheckBreakPoint();
+            }
+
+            if (dbug_EnableLog)
+            {
+
+                dbugWriteInfo(Position - 2 + " (int16) " + i16);
+            }
+#endif
+
+            return i16;
+        }
+        public ushort ReadUInt16()
+        {
+            byte[] mybuffer = originalBuffer;
+            int s = bufferStartIndex + readIndex;
+            readIndex += 2;
+            ushort ui16 = (ushort)(mybuffer[s + 0] | mybuffer[s + 1] << 8);
+#if DEBUG
+            if (dbug_enableBreak)
+            {
+                dbugCheckBreakPoint();
+            }
+            if (dbug_EnableLog)
+            {
+                dbugWriteInfo(Position - 2 + " (uint16) " + ui16);
+            }
+
+#endif
+            return ui16;
+        }
+        public long ReadInt64()
+        {
+            byte[] mybuffer = originalBuffer;
+            int s = bufferStartIndex + readIndex;
+            readIndex += 8;
+            //
+            uint num = (uint)(((mybuffer[s] | (mybuffer[s + 1] << 8)) | (mybuffer[s + 2] << 0x10)) | (mybuffer[s + 3] << 0x18));
+            uint num2 = (uint)(((mybuffer[s + 4] | (mybuffer[s + 5] << 8)) | (mybuffer[s + 6] << 0x10)) | (mybuffer[s + 7] << 0x18));
+            long i64 = ((long)num2 << 0x20) | num;
+#if DEBUG
+            if (dbug_enableBreak)
+            {
+                dbugCheckBreakPoint();
+            }
+            if (dbug_EnableLog)
+            {
+
+                dbugWriteInfo(Position - 8 + " (int64) " + i64);
+
+            }
+#endif
+            return i64;
+        }
+        public ulong ReadUInt64()
+        {
+            byte[] mybuffer = originalBuffer;
+            int s = bufferStartIndex + readIndex;
+            readIndex += 8;
+            //
+            uint num = (uint)(((mybuffer[s] | (mybuffer[s + 1] << 8)) | (mybuffer[s + 2] << 0x10)) | (mybuffer[s + 3] << 0x18));
+            uint num2 = (uint)(((mybuffer[s + 4] | (mybuffer[s + 5] << 8)) | (mybuffer[s + 6] << 0x10)) | (mybuffer[s + 7] << 0x18));
+            ulong ui64 = ((ulong)num2 << 0x20) | num;
+
+#if DEBUG
+            if (dbug_enableBreak)
+            {
+                dbugCheckBreakPoint();
+            }
+            if (dbug_EnableLog)
+            {
+                dbugWriteInfo(Position - 8 + " (int64) " + ui64);
+            }
+#endif
+
+            return ui64;
+        }
+        public byte[] ReadBytes(int num)
+        {
+            byte[] mybuffer = originalBuffer;
+            int s = bufferStartIndex + readIndex;
+            readIndex += num;
+            byte[] buffer = new byte[num];
+
+#if DEBUG
+            if (dbug_enableBreak)
+            {
+                dbugCheckBreakPoint();
+            }
+            if (dbug_EnableLog)
+            {
+                dbugWriteInfo(Position - num + " (buffer:" + num + ")");
+            }
+#endif
+            Buffer.BlockCopy(originalBuffer, s, buffer, 0, num);
+            return buffer;
+        }
+        public void CopyBytes(byte[] buffer, int targetIndex, int num)
+        {
+            byte[] mybuffer = originalBuffer;
+            int s = bufferStartIndex + readIndex;
+            readIndex += num;
+
+#if DEBUG
+            if (dbug_enableBreak)
+            {
+                dbugCheckBreakPoint();
+            }
+            if (dbug_EnableLog)
+            {
+                dbugWriteInfo(Position - num + " (buffer:" + num + ")");
+            }
+#endif
+            Buffer.BlockCopy(originalBuffer, s, buffer, targetIndex, num);
+        }
+        internal byte[] UnsafeGetInternalBuffer()
+        {
+            return this.originalBuffer;
+        }
+        internal int UsedBufferDataLen
+        {
+            get { return usedBuffersize; }
+        }
+
+#if DEBUG
+        void dbugCheckBreakPoint()
+        {
+            if (dbug_enableBreak)
+            {
+                //if (Position == 35)
+                //{
+                //}
+            }
+        }
+
+        bool dbug_EnableLog = false;
+        bool dbug_enableBreak = false;
+        FileStream dbug_fs;
+        StreamWriter dbug_fsWriter;
+
+
+        void dbugWriteInfo(string info)
+        {
+            if (dbug_EnableLog)
+            {
+                dbug_fsWriter.WriteLine(info);
+                dbug_fsWriter.Flush();
+            }
+        }
+        void dbugInit()
+        {
+            if (dbug_EnableLog)
+            {
+                //if (this.stream.Position > 0)
+                //{
+
+                //    dbug_fs = new FileStream(((FileStream)stream).Name + ".r_bin_debug", FileMode.Append);
+                //    dbug_fsWriter = new StreamWriter(dbug_fs);
+                //}
+                //else
+                //{
+                //    dbug_fs = new FileStream(((FileStream)stream).Name + ".r_bin_debug", FileMode.Create);
+                //    dbug_fsWriter = new StreamWriter(dbug_fs);
+                //} 
+            }
+        }
+        void dbugClose()
+        {
+            if (dbug_EnableLog)
+            {
+
+                dbug_fs.Dispose();
+                dbug_fsWriter = null;
+                dbug_fs = null;
+            }
+
+        }
+
+#endif
+    }
+
 
 }

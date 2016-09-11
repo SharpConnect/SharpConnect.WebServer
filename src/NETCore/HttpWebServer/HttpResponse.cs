@@ -203,7 +203,15 @@ namespace SharpConnect.WebServers
             //write to stream
             bodyMs.Write(bytes, 0, bytes.Length);
             contentByteCount += bytes.Length;
-
+        }
+        /// <summary>
+        /// write to output
+        /// </summary>
+        /// <param name="str"></param>
+        public void Write(byte[] rawBuffer)
+        {   
+            bodyMs.Write(rawBuffer, 0, rawBuffer.Length);
+            contentByteCount += rawBuffer.Length;
         }
         public void End(string str)
         {

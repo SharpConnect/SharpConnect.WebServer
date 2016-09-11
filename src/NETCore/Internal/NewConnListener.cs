@@ -317,6 +317,7 @@ namespace SharpConnect.Internal
             //This method closes the socket and releases all resources, both
             //managed and unmanaged. It internally calls Dispose.           
             acceptEventArgs.AcceptSocket.Close();
+            acceptEventArgs.AcceptSocket = null;
             //Put the SAEA back in the pool.
             acceptArgsPool.Push(acceptEventArgs);
         }

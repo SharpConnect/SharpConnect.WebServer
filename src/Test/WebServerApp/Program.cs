@@ -24,11 +24,8 @@ namespace SharpConnect
                 //1. create  
                 WebServer webServer = new WebServer(8080, true, testApp.HandleRequest);
 
-                //test websocket
-                
-                webServer.WebSocketServer = new WebSocketServer(testApp.HandleWebSocket);
-
-
+                //test websocket 
+                webServer.WebSocketServer = new WebSocketServer(testApp.HandleWebSocket); 
                 webServer.Start();
 
                 string cmd = "";
