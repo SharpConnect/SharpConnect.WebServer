@@ -22,19 +22,12 @@
 * THE SOFTWARE.
 */
 using System;
-using System.IO;
-using System.Collections.Generic;
-using System.Net.Sockets;
+using System.IO; 
 using System.Text;
 using SharpConnect.Internal;
 
 namespace SharpConnect.WebServers
-{
-
-    static class Extension
-    { }
-
-
+{   
     public class WebSocketResponse : IDisposable
     {
         MemoryStream bodyMs = new MemoryStream();
