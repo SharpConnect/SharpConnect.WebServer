@@ -31,11 +31,8 @@ namespace SharpConnect.WebServers
 
     public class WebSocketRequest
     {
-        //-----------------------
-        byte[] data;
-        List<byte[]> moreData;
-        int appendCount;
 
+        byte[] data;
         internal WebSocketRequest()
         {
         }
@@ -44,52 +41,19 @@ namespace SharpConnect.WebServers
             get;
             internal set;
         }
-        internal void AppendData(byte[] newDataBuffer)
+        internal void SetData(byte[] newDataBuffer)
         {
-            //append data
-            switch (appendCount)
+            if (data != null)
             {
-                case 0:
-                    this.data = newDataBuffer;
-                    break;
-                case 1:
-                    moreData = new List<byte[]>();
-                    moreData.Add(newDataBuffer);
-                    break;
-                default:
-                    //else
-                    moreData.Add(newDataBuffer);
-                    break;
+                throw new NotSupportedException();
             }
-            appendCount++;
+            this.data = newDataBuffer;
         }
         public string ReadAsString()
         {
             if (data != null && this.OpCode == Opcode.Text)
             {
-                if (moreData == null)
-                {
-                    return System.Text.Encoding.UTF8.GetString(data);
-                }
-                else
-                {
-                    //merge
-                    using (MemoryStream ms = new MemoryStream())
-                    {
-                        ms.Write(data, 0, data.Length);
-                        int j = moreData.Count;
-                        for (int i = 0; i < j; ++i)
-                        {
-                            byte[] f = moreData[i];
-                            ms.Write(f, 0, f.Length);
-                        }
-                        ms.Flush();
-
-                        string strResult = System.Text.Encoding.UTF8.GetString(ms.ToArray());
-                        ms.Close();
-                        return strResult;
-                    }
-                }
+                return System.Text.Encoding.UTF8.GetString(data);
             }
             else
             {
@@ -99,29 +63,8 @@ namespace SharpConnect.WebServers
         public char[] ReadAsChars()
         {
             if (data != null && this.OpCode == Opcode.Text)
-            {
-                if (moreData == null)
-                {
-                    return System.Text.Encoding.UTF8.GetChars(data);
-                }
-                else
-                {
-                    using (MemoryStream ms = new MemoryStream())
-                    {
-                        ms.Write(data, 0, data.Length);
-                        int j = moreData.Count;
-                        for (int i = 0; i < j; ++i)
-                        {
-                            byte[] f = moreData[i];
-                            ms.Write(f, 0, f.Length);
-                        }
-                        ms.Flush();
-
-                        char[] charBuffer = System.Text.Encoding.UTF8.GetChars(ms.ToArray());
-                        ms.Close();
-                        return charBuffer;
-                    }
-                }
+            { 
+                return System.Text.Encoding.UTF8.GetChars(data); 
             }
             else
             {
