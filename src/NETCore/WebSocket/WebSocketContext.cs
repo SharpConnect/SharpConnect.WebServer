@@ -45,16 +45,16 @@ namespace SharpConnect.WebServers
         SendIO sendIO;
         int connectionId;
         static int connectionIdTotal;
-
-        public WebSocketContext(WebSocketServer webSocketServer, ReqRespHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler)
+         
+        public WebSocketContext(WebSocketServer webSocketServer)
         {
-            this.webSocketReqHandler = webSocketReqHandler;
+           
             this.webSocketServer = webSocketServer;
             connectionId = System.Threading.Interlocked.Increment(ref connectionIdTotal);
             //-------------------
             //send,resp 
             sockAsyncSender = new SocketAsyncEventArgs();
-            sockAsyncSender.SetBuffer(new byte[RECV_BUFF_SIZE], 0, RECV_BUFF_SIZE); 
+            sockAsyncSender.SetBuffer(new byte[RECV_BUFF_SIZE], 0, RECV_BUFF_SIZE);
             sendIO = new SendIO(sockAsyncSender, 0, RECV_BUFF_SIZE, sendIO_SendCompleted);
             sockAsyncSender.Completed += new EventHandler<SocketAsyncEventArgs>((s, e) =>
             {
@@ -102,9 +102,10 @@ namespace SharpConnect.WebServers
                 }
             });
             //------------------------------------------------------------------------------------             
-            this.webSocketReqParser = new WebSocketProtocolParser(recvIO);
+            this.webSocketReqParser = new WebSocketProtocolParser(this, recvIO);
 
         }
+
         public void Bind(Socket clientSocket)
         {
             this.clientSocket = clientSocket;
@@ -141,18 +142,12 @@ namespace SharpConnect.WebServers
                                     WebSocketRequest req = webSocketReqParser.Dequeue();
                                     webSocketReqHandler(req, webSocketResp);
                                 }
-                                //start next recv
-                                //byte[] newRecvBuffer = new byte[RECV_BUFF_SIZE];
-                                //recvIO.StartReceive(newRecvBuffer, RECV_BUFF_SIZE);
                                 recvIO.StartReceive();
                                 //***no code after StartReceive***
                             }
                             return;
                         case ProcessReceiveBufferResult.NeedMore:
                             {
-                                //start next recv
-                                //byte[] newRecvBuffer = new byte[RECV_BUFF_SIZE];
-                                //recvIO.StartReceive(newRecvBuffer, RECV_BUFF_SIZE);
                                 recvIO.StartReceive();
                                 //***no code after StartReceive***
                             }
@@ -211,7 +206,12 @@ namespace SharpConnect.WebServers
             sendIO.EnqueueOutputData(data, data.Length);
             sendIO.StartSendAsync();
         }
-
+        //---------------------------------------------
+        public string InitClientRequestUrl
+        {
+            get;
+            set;
+        }
     }
 
 }
