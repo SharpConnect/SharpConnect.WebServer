@@ -55,7 +55,7 @@ namespace SharpConnect
                                     return  ""ws://localhost:8080"";
                                 }
                         }
-                </script>
+                </script>                
                 </head>
                 <body>
                         hello-websocket

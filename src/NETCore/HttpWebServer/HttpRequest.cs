@@ -77,6 +77,23 @@ namespace SharpConnect.WebServers
             get;
             internal set;
         }
+        public string GetReqParameterValue(string key)
+        {
+            WebRequestParameter[] reqs = ReqParameters;
+            if (reqs != null)
+            {
+                int j = reqs.Length;
+                for (int i = 0; i < j; ++i)
+                {
+                    if (reqs[i].ParameterName == key)
+                    {
+                        return reqs[i].Value;
+                    }
+                }
+            }
+            return "";
+
+        }
         internal void Reset()
         {
 
