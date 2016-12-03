@@ -173,6 +173,13 @@ namespace SharpConnect.WebServers
                         int.TryParse(value, out this.targetContentLength);
                     }
                     break;
+                case "Connection":
+                    {
+                        if (value.ToLower().Trim() == "keep-alive")
+                        {
+                            this.context.KeepAlive = true;
+                        }
+                    } break;
             }
         }
         /// <summary>
