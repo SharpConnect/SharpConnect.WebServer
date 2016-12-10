@@ -37,26 +37,29 @@ namespace SharpConnect.WebServers
     public class WebSocketServer
     {
 
-        ReqRespHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler;
+        
         Action<WebSocketContext> newContextConnected;
         Dictionary<int, WebSocketContext> workingWebSocketConns = new Dictionary<int, WebSocketContext>();
-        public WebSocketServer(ReqRespHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler)
+        public WebSocketServer()
         {
-            this.webSocketReqHandler = webSocketReqHandler;
+            
         }
-        internal WebSocketContext RegisterNewWebSocket(Socket clientSocket, string sec_websocket_key)
+        internal WebSocketContext RegisterNewWebSocket(
+            Socket clientSocket,
+            string initUrl,
+            string sec_websocket_key)
         {
-            WebSocketContext wbSocketConn = new WebSocketContext(this, webSocketReqHandler);
-            workingWebSocketConns.Add(wbSocketConn.ConnectionId, wbSocketConn);//add to working socket 
-            wbSocketConn.Bind(clientSocket); //move client socket to webSocketConn    
-            wbSocketConn.SendExternalRaw(MakeWebSocketUpgradeResponse(MakeResponseMagicCode(sec_websocket_key)));
-
+            WebSocketContext wbcontext = new WebSocketContext(this );
+            workingWebSocketConns.Add(wbcontext.ConnectionId, wbcontext);//add to working socket 
+            wbcontext.Bind(clientSocket); //move client socket to webSocketConn    
+            wbcontext.SendExternalRaw(MakeWebSocketUpgradeResponse(MakeResponseMagicCode(sec_websocket_key)));
+            wbcontext.InitClientRequestUrl = initUrl;
             if (newContextConnected != null)
             {
-                newContextConnected(wbSocketConn);
+                newContextConnected(wbcontext);
             }
 
-            return wbSocketConn;
+            return wbcontext;
         }
         public void SetOnNewConnectionContext(Action<WebSocketContext> newContextConnected)
         {

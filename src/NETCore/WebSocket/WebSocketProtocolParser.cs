@@ -54,12 +54,12 @@ namespace SharpConnect.WebServers
         bool useMask;
         Opcode currentOpCode = Opcode.Cont;//use default 
         //-----------------------
-
-        internal WebSocketProtocolParser(RecvIO recvIO)
+        WebSocketContext _ownerContext;
+        internal WebSocketProtocolParser(WebSocketContext context, RecvIO recvIO)
         {
             this.recvIO = recvIO;
+            this._ownerContext = context;
             myBufferStream = new RecvIOBufferStream(recvIO);
-
         }
         public int ReqCount
         {
@@ -82,7 +82,7 @@ namespace SharpConnect.WebServers
             }
             //----------------------------------------------------------
             //when we read header we start a new websocket request
-            currentReq = new WebSocketRequest();
+            currentReq = new WebSocketRequest(this._ownerContext);
             incommingReqs.Enqueue(currentReq);
 
 
@@ -224,7 +224,7 @@ namespace SharpConnect.WebServers
                 return false;
             }
             //----------------------------------------------------------
-           
+
             myBufferStream.CopyBuffer(fullPayloadLengthBuffer, extendedPayloadByteCount);
 
             ulong org_packetLen1 = GetFullPayloadLength(_currentPacketLen, fullPayloadLengthBuffer);
@@ -248,7 +248,7 @@ namespace SharpConnect.WebServers
             }
             //---------------------------------------------------------- 
             //read mask data                     
-            
+
             myBufferStream.CopyBuffer(maskKey, _currentMaskLen);
             this.parseState = ParseState.ExpectBody;
             return true;

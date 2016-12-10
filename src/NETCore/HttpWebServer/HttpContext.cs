@@ -114,8 +114,7 @@ namespace SharpConnect.WebServers
                                         this.ownerServer.CheckWebSocketUpgradeRequest(this))
                                     {
                                         return;
-                                    }
-
+                                    } 
                                     reqHandler(this.httpReq, httpResp);
                                 } break;
                             case ProcessReceiveBufferResult.NeedMore:

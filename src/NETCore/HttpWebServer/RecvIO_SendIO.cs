@@ -80,7 +80,7 @@ namespace SharpConnect.Internal
     }
     class RecvIO
     {
-        
+
         readonly int recvStartOffset;
         readonly int recvBufferSize;
         readonly SocketAsyncEventArgs recvArgs;
@@ -302,6 +302,10 @@ namespace SharpConnect.Internal
         }
         public void EnqueueOutputData(byte[] dataToSend, int count)
         {
+            if (dataToSend == null)
+            {
+
+            }
             sendingQueue.Enqueue(dataToSend);
         }
         public void StartSendAsync()
