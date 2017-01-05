@@ -298,6 +298,12 @@ namespace SharpConnect.Internal
             //TODO: review reset
             sendingTargetBytes = sendingTransferredBytes = 0;
             currentSendingData = null;
+#if DEBUG
+            if (sendingQueue.Count > 0)
+            {
+
+            }
+#endif
             sendingQueue.Clear();
         }
         public void EnqueueOutputData(byte[] dataToSend, int count)
@@ -307,6 +313,13 @@ namespace SharpConnect.Internal
 
             }
             sendingQueue.Enqueue(dataToSend);
+        }
+        public int QueueCount
+        {
+            get
+            {
+                return sendingQueue.Count;
+            }
         }
         public void StartSendAsync()
         {
@@ -321,8 +334,7 @@ namespace SharpConnect.Internal
             }
 
             //------------------------------------------------------------------------
-            //send this data first
-
+            //send this data first 
             int remaining = this.sendingTargetBytes - this.sendingTransferredBytes;
             if (remaining == 0)
             {

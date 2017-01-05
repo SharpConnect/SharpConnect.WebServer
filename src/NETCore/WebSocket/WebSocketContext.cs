@@ -45,10 +45,10 @@ namespace SharpConnect.WebServers
         SendIO sendIO;
         int connectionId;
         static int connectionIdTotal;
-         
+
         public WebSocketContext(WebSocketServer webSocketServer)
         {
-           
+
             this.webSocketServer = webSocketServer;
             connectionId = System.Threading.Interlocked.Increment(ref connectionIdTotal);
             //-------------------
@@ -200,6 +200,10 @@ namespace SharpConnect.WebServers
             //send data to server
             //and wait for result 
             webSocketResp.Write(dataToSend);
+        }
+        public int SendQueueCount
+        {
+            get { return webSocketResp.SendQueueCount; }
         }
         internal void SendExternalRaw(byte[] data)
         {
