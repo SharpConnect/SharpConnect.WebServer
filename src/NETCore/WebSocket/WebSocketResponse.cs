@@ -38,6 +38,10 @@ namespace SharpConnect.WebServers
             this.conn = conn;
             this.sendIO = sendIO;
         }
+        public WebSocketContext OwnerContext
+        {
+            get { return this.conn; }
+        }
         public void Dispose()
         {
             if (bodyMs != null)
@@ -54,7 +58,7 @@ namespace SharpConnect.WebServers
         }
         public int SendQueueCount
         {
-             get
+            get
             {
                 return sendIO.QueueCount;
             }
