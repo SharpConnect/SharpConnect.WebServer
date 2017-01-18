@@ -1,6 +1,5 @@
 ﻿//2010, CPOL, Stan Kirk
-//2015-2016, MIT, EngineKit
-
+//2015-2016, MIT, EngineKit 
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
