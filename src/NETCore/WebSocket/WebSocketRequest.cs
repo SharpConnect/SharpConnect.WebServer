@@ -33,8 +33,10 @@ namespace SharpConnect.WebServers
     {
 
         byte[] data;
-        internal WebSocketRequest()
+        WebSocketContext context;
+        internal WebSocketRequest(WebSocketContext context)
         {
+            this.context = context;
         }
         public Opcode OpCode
         {
@@ -63,8 +65,8 @@ namespace SharpConnect.WebServers
         public char[] ReadAsChars()
         {
             if (data != null && this.OpCode == Opcode.Text)
-            { 
-                return System.Text.Encoding.UTF8.GetChars(data); 
+            {
+                return System.Text.Encoding.UTF8.GetChars(data);
             }
             else
             {
@@ -72,5 +74,10 @@ namespace SharpConnect.WebServers
             }
         }
 
+
+        public WebSocketContext Context
+        {
+            get { return this.context; }
+        }
     }
 }

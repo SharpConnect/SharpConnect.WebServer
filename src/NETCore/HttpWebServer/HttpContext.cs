@@ -59,7 +59,8 @@ namespace SharpConnect.WebServers
             this.ownerServer = ownerServer;
             //each recvSendArgs is created for this connection session only ***
             //---------------------------------------------------------------------------------------------------------- 
-            KeepAlive = true;
+            
+            KeepAlive = false;
             //set buffer for newly created saArgs
             ownerServer.SetBufferFor(this.recvSendArgs = new SocketAsyncEventArgs());
             recvIO = new RecvIO(recvSendArgs, recvSendArgs.Offset, recvBufferSize, HandleReceive);
@@ -73,7 +74,7 @@ namespace SharpConnect.WebServers
             {
                 switch (e.LastOperation)
                 {
-                    case SocketAsyncOperation.Receive:                         
+                    case SocketAsyncOperation.Receive:
                         recvIO.ProcessReceivedData();
                         break;
                     case SocketAsyncOperation.Send:
@@ -113,8 +114,7 @@ namespace SharpConnect.WebServers
                                         this.ownerServer.CheckWebSocketUpgradeRequest(this))
                                     {
                                         return;
-                                    }
-
+                                    } 
                                     reqHandler(this.httpReq, httpResp);
                                 } break;
                             case ProcessReceiveBufferResult.NeedMore:
@@ -135,6 +135,7 @@ namespace SharpConnect.WebServers
                 case SendIOEventCode.SocketError:
                     {
                         UnBindSocket(true);
+                        KeepAlive = false;
                     }
                     break;
                 case SendIOEventCode.SendComplete:
@@ -142,6 +143,7 @@ namespace SharpConnect.WebServers
                         Reset();
                         if (KeepAlive)
                         {
+                            //next recv on the same client
                             StartReceive();
                         }
                         else

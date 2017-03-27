@@ -102,16 +102,14 @@ namespace SharpConnect.WebServers
         }
         public void Stop()
         {
-
             newConnListener.DisposePool();
-
             while (this.contextPool.Count > 0)
             {
                 contextPool.Pop().Dispose();
             }
         }
 
-
+        //--------------------------------------------------
         public WebSocketServer WebSocketServer
         {
             get { return webSocketServer; }
@@ -134,17 +132,20 @@ namespace SharpConnect.WebServers
 
             HttpRequest httpReq = httpConn.HttpReq;
             HttpResponse httpResp = httpConn.HttpResp;
-
             string upgradeKey = httpReq.GetHeaderKey("Upgrade");
             if (upgradeKey != null && upgradeKey == "websocket")
             {
+                //1. websocket request come here first                
+                //2. web server can design what web socket server will handle this request, based on httpCon url
 
                 string sec_websocket_key = httpReq.GetHeaderKey("Sec-WebSocket-Key");
-
                 Socket clientSocket = httpConn.RemoteSocket;
+                //backup data before unbind socket
+                string webSocketInitUrl = httpReq.Url;
+                //--------------------  
                 httpConn.UnBindSocket(false);//unbind  but not close client socket  
-
-                webSocketServer.RegisterNewWebSocket(clientSocket, sec_websocket_key);//the bind client to websocket server
+                                             //--------------------
+                webSocketServer.RegisterNewWebSocket(clientSocket, webSocketInitUrl, sec_websocket_key);//the bind client to websocket server                 
                 return true;
             }
             return false;

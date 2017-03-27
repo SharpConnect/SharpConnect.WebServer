@@ -22,12 +22,12 @@
 * THE SOFTWARE.
 */
 using System;
-using System.IO; 
+using System.IO;
 using System.Text;
 using SharpConnect.Internal;
 
 namespace SharpConnect.WebServers
-{   
+{
     public class WebSocketResponse : IDisposable
     {
         MemoryStream bodyMs = new MemoryStream();
@@ -37,6 +37,10 @@ namespace SharpConnect.WebServers
         {
             this.conn = conn;
             this.sendIO = sendIO;
+        }
+        public WebSocketContext OwnerContext
+        {
+            get { return this.conn; }
         }
         public void Dispose()
         {
@@ -51,6 +55,13 @@ namespace SharpConnect.WebServers
             byte[] dataToSend = CreateSendBuffer(content);
             sendIO.EnqueueOutputData(dataToSend, dataToSend.Length);
             sendIO.StartSendAsync();
+        }
+        public int SendQueueCount
+        {
+            get
+            {
+                return sendIO.QueueCount;
+            }
         }
 
         static byte[] CreateSendBuffer(string msg)
