@@ -229,7 +229,7 @@ namespace SharpConnect.Internal
         object queueLock = new object();
         SendIOState _sendingState = SendIOState.ReadyNextSend;
 
-#if DEBUG
+#if DEBUG && !NETSTANDARD1_6
         readonly int dbugThradId = System.Threading.Thread.CurrentThread.ManagedThreadId;
 #endif
         public SendIO(SocketAsyncEventArgs sendArgs,
@@ -333,7 +333,7 @@ namespace SharpConnect.Internal
             lock (stateLock)
             {
                 SendIOState snap1 = this.sendingState;
-#if DEBUG
+#if DEBUG && !NETSTANDARD1_6
                 int currentThread = System.Threading.Thread.CurrentThread.ManagedThreadId;
                 if (snap1 != SendIOState.ReadyNextSend)
                 {
@@ -365,7 +365,7 @@ namespace SharpConnect.Internal
                     //if in other state then return
                     return;
                 }
-#if DEBUG
+#if DEBUG && !NETSTANDARD1_6
                 dbugSendingTheadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
 #endif
                 sendingState = SendIOState.Sending;
