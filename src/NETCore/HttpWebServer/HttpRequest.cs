@@ -140,8 +140,9 @@ namespace SharpConnect.WebServers
         public string Url
         {
             get;
-            internal set;
+            set;
         }
+
         public HttpMethod HttpMethod
         {
             get;
@@ -177,7 +178,8 @@ namespace SharpConnect.WebServers
                     {
                         this.context.KeepAlive = (value.ToLower().Trim() == "keep-alive");
 
-                    } break;
+                    }
+                    break;
             }
         }
         /// <summary>
