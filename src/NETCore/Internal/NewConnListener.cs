@@ -1,12 +1,8 @@
 ﻿//2010, CPOL, Stan Kirk
 //2015-2016, MIT, EngineKit 
 using System;
-using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading;
-using System.Net;
-using System.Text;
-using System.Diagnostics;
 
 namespace SharpConnect.Internal
 {
@@ -89,13 +85,13 @@ namespace SharpConnect.Internal
             //max # for backlog can be limited by the operating system.
             listenSocket.Listen(this.setting.Backlog);
 
-//#if DEBUG
-//            if (dbugLOG.watchProgramFlow)   //for testing
-//            {
-//                dbugLOG.WriteLine("StartListen method Listen operation was just started.");
-//            }
-//            Console.WriteLine("\r\n\r\n*************************\r\n** Server is listening **\r\n*************************\r\n\r\nAfter you are finished, type 'Z' and press\r\nEnter key to terminate the server process.\r\nIf you terminate it by clicking X on the Console,\r\nthen the log will NOT write correctly.\r\n");
-//#endif
+            //#if DEBUG
+            //            if (dbugLOG.watchProgramFlow)   //for testing
+            //            {
+            //                dbugLOG.WriteLine("StartListen method Listen operation was just started.");
+            //            }
+            //            Console.WriteLine("\r\n\r\n*************************\r\n** Server is listening **\r\n*************************\r\n\r\nAfter you are finished, type 'Z' and press\r\nEnter key to terminate the server process.\r\nIf you terminate it by clicking X on the Console,\r\nthen the log will NOT write correctly.\r\n");
+            //#endif
             // Calls the method which will post accepts on the listening socket.            
             // This call just occurs one time from this StartListen method. 
             // After that the StartAccept method will be called in a loop.

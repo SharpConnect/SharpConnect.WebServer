@@ -2,10 +2,7 @@
 //2015, MIT, EngineKit
 
 using System;
-using System.Collections.Generic;
 using System.Net;
-using System.Text;
-using System.Net.Sockets;
 
 namespace SharpConnect.Internal
 {
