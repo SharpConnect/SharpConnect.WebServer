@@ -114,15 +114,7 @@ namespace SharpConnect.Internal
                 destBuffer,
                 0, count);
         }
-#if DEBUG
-        internal int StartRecvPos
-        {
-            get
-            {
-                return recvStartOffset;
-            }
-        }
-#endif
+ 
         public void CopyTo(int srcIndex, MemoryStream ms, int count)
         {
 
@@ -133,6 +125,13 @@ namespace SharpConnect.Internal
 
 
 #if DEBUG
+        internal int dbugStartRecvPos
+        {
+            get
+            {
+                return recvStartOffset;
+            }
+        }
         public byte[] dbugReadToBytes()
         {
             int bytesTransfer = recvArgs.BytesTransferred;
