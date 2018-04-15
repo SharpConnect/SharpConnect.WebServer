@@ -1,5 +1,6 @@
 ﻿//2010, CPOL, Stan Kirk
 //MIT, 2015-2016, EngineKit and contributors
+//https://docs.microsoft.com/en-us/dotnet/framework/network-programming/socket-performance-enhancements-in-version-3-5
 
 using System;
 using System.Collections.Generic;
