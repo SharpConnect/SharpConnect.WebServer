@@ -281,7 +281,7 @@ namespace SharpConnect.WebServers
                                     writeContentState = WriteContentState.HttpBody;
                                     //-----------------------------------------------------------------
                                     //switch transfer encoding method of the body***
-                                    var headBuffer = Encoding.UTF8.GetBytes(headerStBuilder.ToString().ToCharArray());
+                                    byte[] headBuffer = Encoding.UTF8.GetBytes(headerStBuilder.ToString().ToCharArray());
                                     byte[] dataToSend = new byte[headBuffer.Length + contentByteCount];
                                     Buffer.BlockCopy(headBuffer, 0, dataToSend, 0, headBuffer.Length);
                                     var pos = bodyMs.Position;
@@ -302,7 +302,7 @@ namespace SharpConnect.WebServers
                                     writeContentState = WriteContentState.HttpBody;
 
                                     //chunked transfer
-                                    var headBuffer = Encoding.UTF8.GetBytes(headerStBuilder.ToString().ToCharArray());
+                                    byte[] headBuffer = Encoding.UTF8.GetBytes(headerStBuilder.ToString().ToCharArray());
                                     sendIO.EnqueueOutputData(headBuffer, headBuffer.Length);
                                     WriteContentBodyInChunkMode();
                                     ResetAll();
