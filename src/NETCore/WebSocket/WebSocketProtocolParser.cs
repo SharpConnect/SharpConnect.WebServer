@@ -55,10 +55,12 @@ namespace SharpConnect.WebServers
         Opcode currentOpCode = Opcode.Cont;//use default 
         //-----------------------
         WebSocketContext _ownerContext;
+        bool _asClientContext;
         internal WebSocketProtocolParser(WebSocketContext context, RecvIO recvIO)
         {
             this.recvIO = recvIO;
             this._ownerContext = context;
+            _asClientContext = context.AsClientContext;
             myBufferStream = new RecvIOBufferStream(recvIO);
         }
         public int ReqCount
@@ -110,15 +112,16 @@ namespace SharpConnect.WebServers
             Mask currentMask = (b2 & (1 << 7)) == (1 << 7) ? Mask.On : Mask.Off;
             //we should check receive frame here ... 
             this.useMask = currentMask == Mask.On;
-            if (currentMask == Mask.Off)
+            if (_asClientContext)
             {
-                //if this act as WebSocketServer 
-                //erro packet ? 
-                throw new NotSupportedException();
+                //***
+                if (currentMask != Mask.Off) throw new NotSupportedException();
+                this.useMask = false;
             }
             else
-            {
-
+            {   //as server
+                if (currentMask != Mask.Off) throw new NotSupportedException();
+                this.useMask = true;
             }
             //----------------------------------------------------------
             // Payload Length
@@ -258,7 +261,7 @@ namespace SharpConnect.WebServers
         {
             myBufferStream.AppendNewRecvData();
 
-            for (;;)
+            for (; ; )
             {
 
                 switch (parseState)
