@@ -24,11 +24,9 @@ namespace TestWsClient
             //------------------------------------------------
             _client = new WebSocketClient();
             _client.SetHandler((req, resp) =>
-            {
-
+            {   
                 string serverMsg = req.ReadAsString();
-                //Console.WriteLine(serverMsg);                
-
+                //Console.WriteLine(serverMsg);       
                 this.Invoke(new MethodInvoker(() =>
                 {
                     listBox1.Items.Add(serverMsg);

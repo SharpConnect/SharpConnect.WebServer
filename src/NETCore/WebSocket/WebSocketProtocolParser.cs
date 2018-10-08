@@ -111,16 +111,18 @@ namespace SharpConnect.WebServers
             // MASK
             Mask currentMask = (b2 & (1 << 7)) == (1 << 7) ? Mask.On : Mask.Off;
             //we should check receive frame here ... 
-            this.useMask = currentMask == Mask.On;
+          
             if (_asClientContext)
             {
-                //***
+                //as client context (we are in client context)
                 if (currentMask != Mask.Off) throw new NotSupportedException();
                 this.useMask = false;
             }
             else
-            {   //as server
-                if (currentMask != Mask.Off) throw new NotSupportedException();
+            {
+                //as server context (we are in server context)
+                //data from client must useMask
+                if (currentMask != Mask.On) throw new NotSupportedException();
                 this.useMask = true;
             }
             //----------------------------------------------------------
@@ -369,8 +371,7 @@ namespace SharpConnect.WebServers
         }
 
         static void MaskAgain(byte[] data, byte[] key)
-        {
-
+        {   
             for (int i = data.Length - 1; i >= 0; --i)
             {
                 data[i] ^= key[i % 4];
