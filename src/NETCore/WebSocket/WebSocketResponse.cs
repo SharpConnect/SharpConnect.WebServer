@@ -43,6 +43,13 @@ namespace SharpConnect.WebServers
                 _rdForMask = new Random();
             }
         }
+        public int ConnectionId
+        {
+            get
+            {
+                return conn.ConnectionId;
+            }
+        }
         public WebSocketContext OwnerContext
         {
             get { return this.conn; }
