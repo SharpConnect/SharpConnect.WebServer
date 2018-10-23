@@ -1,5 +1,6 @@
 ﻿//2015, MIT, EngineKit
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Text;
 
@@ -14,6 +15,9 @@ namespace SharpConnect
         {
             Main2();
         }
+
+
+        static List<WebSocketContext> s_contextList = new List<WebSocketContext>();
         static void Main2()
         {
             Console.WriteLine("Hello!, from SharpConnect");
@@ -28,6 +32,7 @@ namespace SharpConnect
                 var webSocketServer = new WebSocketServer();
                 webSocketServer.SetOnNewConnectionContext(ctx =>
                 {
+                    s_contextList.Add(ctx);
                     ctx.SetMessageHandler(testApp.HandleWebSocket);
                 });
                 webServer.WebSocketServer = webSocketServer;
@@ -37,6 +42,19 @@ namespace SharpConnect
                 while (cmd != "X")
                 {
                     cmd = Console.ReadLine();
+                    switch (cmd)
+                    {
+                        case "B":
+                            {
+                                //test broadcast
+                                int j = s_contextList.Count;
+                                for (int i = 0; i < j; ++i)
+                                {
+                                    s_contextList[i].Send("hello!");
+                                }
+                            }
+                            break;
+                    }
                 }
             }
             catch (Exception ex)
