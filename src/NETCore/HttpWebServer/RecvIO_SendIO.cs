@@ -115,7 +115,7 @@ namespace SharpConnect.Internal
                 destBuffer,
                 0, count);
         }
- 
+
         public void CopyTo(int srcIndex, MemoryStream ms, int count)
         {
 
@@ -173,7 +173,10 @@ namespace SharpConnect.Internal
         public void StartReceive()
         {
             recvArgs.SetBuffer(this.recvStartOffset, this.recvBufferSize);
-            recvArgs.AcceptSocket.ReceiveAsync(recvArgs);
+            if (!recvArgs.AcceptSocket.ReceiveAsync(recvArgs))
+            {
+                ProcessReceivedData();
+            }
         }
         /// <summary>
         /// start new receive
@@ -183,7 +186,10 @@ namespace SharpConnect.Internal
         public void StartReceive(byte[] buffer, int len)
         {
             recvArgs.SetBuffer(buffer, 0, len);
-            recvArgs.AcceptSocket.ReceiveAsync(recvArgs);
+            if (!recvArgs.AcceptSocket.ReceiveAsync(recvArgs))
+            {
+                ProcessReceivedData();
+            }
         }
         public int BytesTransferred
         {
@@ -393,7 +399,7 @@ namespace SharpConnect.Internal
                     sendingState = SendIOState.ReadyNextSend;
                     return;
                 }
-               
+
             }
             else if (remaining < 0)
             {
@@ -455,7 +461,8 @@ namespace SharpConnect.Internal
                         sendingState = SendIOState.Error;
                         notify(SendIOEventCode.SocketError);
                         //manage socket errors here
-                    }break;
+                    }
+                    break;
                 case SocketError.Success:
                     {
                         this.sendingTransferredBytes += sendArgs.BytesTransferred;
@@ -534,7 +541,7 @@ namespace SharpConnect.Internal
                     }
                     break;
             }
-           
+
         }
     }
 
