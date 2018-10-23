@@ -133,7 +133,15 @@ namespace SharpConnect
         int count = 0;
         public void HandleWebSocket(WebSocketRequest req, WebSocketResponse resp)
         {
-            resp.Write("server:" + (count++));
+            string clientMsg = req.ReadAsString();
+            if (clientMsg.StartsWith("LOOPBACK"))
+            {
+                resp.Write("from SERVER " + clientMsg);
+            }
+            else
+            {
+                resp.Write("server:" + (count++));
+            }
         }
     }
 }

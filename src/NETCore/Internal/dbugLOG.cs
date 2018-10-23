@@ -71,16 +71,16 @@ namespace SharpConnect.Internal
         static bool isInit = false;
         internal static void StartLog()
         {
-            lock (lockStart)
-            {
-                if (!isInit)
-                {
-                    //init once 
-                    BuildStringsForServerConsole();
-                    testWriter = new dbugTestFileWriter();
-                    isInit = true;
-                }
-            }
+            //lock (lockStart)
+            //{
+            //    if (!isInit)
+            //    {
+            //        //init once 
+            //        BuildStringsForServerConsole();
+            //        testWriter = new dbugTestFileWriter();
+            //        isInit = true;
+            //    }
+            //}
         }
 
 
@@ -102,43 +102,43 @@ namespace SharpConnect.Internal
         public static void dbugLog(string msg)
         {
 
-            if (dbugLOG.enableDebugLog && dbugLOG.watchProgramFlow)   //for testing
-            {
-                dbugLOG.WriteLine(msg);
-            }
+            //if (dbugLOG.enableDebugLog && dbugLOG.watchProgramFlow)   //for testing
+            //{
+            //    dbugLOG.WriteLine(msg);
+            //}
         }
         internal static void WriteLine(string str)
         {
-            testWriter.WriteLine(str);
+            //testWriter.WriteLine(str);
         }
         static void BuildStringsForServerConsole()
         {
-            if (dbugLOG.enableDebugLog)
-            {
-                StringBuilder sb = new StringBuilder();
+            //if (dbugLOG.enableDebugLog)
+            //{
+            //    StringBuilder sb = new StringBuilder();
 
-                // Make the string to write.
-                sb.Append("\r\n");
-                sb.Append("\r\n");
-                sb.Append("To take any of the following actions type the \r\ncorresponding letter below and press Enter.\r\n");
-                sb.Append(closeString);
-                sb.Append(")  to close the program\r\n");
-                sb.Append(checkString);
-                sb.Append(")  to check current status\r\n");
-                string tempString = sb.ToString();
-                sb.Length = 0;
+            //    // Make the string to write.
+            //    sb.Append("\r\n");
+            //    sb.Append("\r\n");
+            //    sb.Append("To take any of the following actions type the \r\ncorresponding letter below and press Enter.\r\n");
+            //    sb.Append(closeString);
+            //    sb.Append(")  to close the program\r\n");
+            //    sb.Append(checkString);
+            //    sb.Append(")  to check current status\r\n");
+            //    string tempString = sb.ToString();
+            //    sb.Length = 0;
 
-                // string when watchProgramFlow == true 
-                sb.Append(wpfNo);
-                sb.Append(")  to quit writing program flow. (ProgramFlow is being logged now.)\r\n");
-                wpfTrueString = tempString + sb.ToString();
-                sb.Length = 0;
+            //    // string when watchProgramFlow == true 
+            //    sb.Append(wpfNo);
+            //    sb.Append(")  to quit writing program flow. (ProgramFlow is being logged now.)\r\n");
+            //    wpfTrueString = tempString + sb.ToString();
+            //    sb.Length = 0;
 
-                // string when watchProgramFlow == false
-                sb.Append(wpf);
-                sb.Append(")  to start writing program flow. (ProgramFlow is NOT being logged.)\r\n");
-                wpfFalseString = tempString + sb.ToString();
-            }
+            //    // string when watchProgramFlow == false
+            //    sb.Append(wpf);
+            //    sb.Append(")  to start writing program flow. (ProgramFlow is NOT being logged.)\r\n");
+            //    wpfFalseString = tempString + sb.ToString();
+            //}
         }
 
 
@@ -152,18 +152,18 @@ namespace SharpConnect.Internal
             //Console.WriteLine("watchConnectAndDisconnect = " + watchConnectAndDisconnect);
             //Console.WriteLine("watchThreads = " + dbugWatchThreads);
             //Console.WriteLine("msDelayAfterGettingMessage = " + dbugMsDelayAfterGettingMessage);
-            if (dbugLOG.enableDebugLog)
-            {
-                Console.WriteLine();
-                Console.WriteLine();
-                Console.WriteLine("local endpoint = " + IPAddress.Parse(((IPEndPoint)localEndPoint).Address.ToString()) + ": " + ((IPEndPoint)localEndPoint).Port.ToString());
-                Console.WriteLine("server machine name = " + Environment.MachineName);
+            //if (dbugLOG.enableDebugLog)
+            //{
+            //    Console.WriteLine();
+            //    Console.WriteLine();
+            //    Console.WriteLine("local endpoint = " + IPAddress.Parse(((IPEndPoint)localEndPoint).Address.ToString()) + ": " + ((IPEndPoint)localEndPoint).Port.ToString());
+            //    Console.WriteLine("server machine name = " + Environment.MachineName);
 
-                Console.WriteLine();
-                Console.WriteLine("Client and server should be on separate machines for best results.");
-                Console.WriteLine("And your firewalls on both client and server will need to allow the connection.");
-                Console.WriteLine();
-            }
+            //    Console.WriteLine();
+            //    Console.WriteLine("Client and server should be on separate machines for best results.");
+            //    Console.WriteLine("And your firewalls on both client and server will need to allow the connection.");
+            //    Console.WriteLine();
+            //}
         }
 
 

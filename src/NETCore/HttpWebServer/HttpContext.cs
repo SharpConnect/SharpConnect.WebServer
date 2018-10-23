@@ -26,12 +26,11 @@
  */
 
 using System;
-using System.IO;
-using System.Security.Cryptography;
-using System.Net.Sockets;
-using System.Text;
-using SharpConnect.Internal;
 using System.Collections.Generic;
+using System.Net.Sockets; 
+
+using SharpConnect.Internal;
+
 
 namespace SharpConnect.WebServers
 {

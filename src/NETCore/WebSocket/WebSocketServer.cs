@@ -37,19 +37,19 @@ namespace SharpConnect.WebServers
     public class WebSocketServer
     {
 
-        
+
         Action<WebSocketContext> newContextConnected;
         Dictionary<int, WebSocketContext> workingWebSocketConns = new Dictionary<int, WebSocketContext>();
         public WebSocketServer()
         {
-            
+
         }
         internal WebSocketContext RegisterNewWebSocket(
             Socket clientSocket,
             string initUrl,
             string sec_websocket_key)
         {
-            WebSocketContext wbcontext = new WebSocketContext(this );
+            WebSocketContext wbcontext = new WebSocketContext(false);
             workingWebSocketConns.Add(wbcontext.ConnectionId, wbcontext);//add to working socket 
             wbcontext.Bind(clientSocket); //move client socket to webSocketConn    
             wbcontext.SendExternalRaw(MakeWebSocketUpgradeResponse(MakeResponseMagicCode(sec_websocket_key)));
