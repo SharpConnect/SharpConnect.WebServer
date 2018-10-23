@@ -1,5 +1,6 @@
 ﻿//2010, CPOL, Stan Kirk
 //MIT, 2015-2016, EngineKit and contributors
+//https://docs.microsoft.com/en-us/dotnet/framework/network-programming/socket-performance-enhancements-in-version-3-5
 
 using System;
 using System.Collections.Generic;
@@ -114,15 +115,7 @@ namespace SharpConnect.Internal
                 destBuffer,
                 0, count);
         }
-#if DEBUG
-        internal int StartRecvPos
-        {
-            get
-            {
-                return recvStartOffset;
-            }
-        }
-#endif
+ 
         public void CopyTo(int srcIndex, MemoryStream ms, int count)
         {
 
@@ -133,6 +126,13 @@ namespace SharpConnect.Internal
 
 
 #if DEBUG
+        internal int dbugStartRecvPos
+        {
+            get
+            {
+                return recvStartOffset;
+            }
+        }
         public byte[] dbugReadToBytes()
         {
             int bytesTransfer = recvArgs.BytesTransferred;
@@ -393,17 +393,7 @@ namespace SharpConnect.Internal
                     sendingState = SendIOState.ReadyNextSend;
                     return;
                 }
-                //if (this.sendingQueue.Count > 0)
-                //{
-                //    this.currentSendingData = sendingQueue.Dequeue();
-                //    remaining = this.sendingTargetBytes = currentSendingData.Length;
-                //    this.sendingTransferredBytes = 0;
-                //}
-                //else
-                //{   //no data to send ?
-                //    sendingState = SendIOState.ReadyNextSend;
-                //    return;
-                //}
+               
             }
             else if (remaining < 0)
             {

@@ -5,7 +5,6 @@ using System.IO;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Text; //for testing
 using SharpConnect.Internal;
 
 namespace SharpConnect.WebServers
