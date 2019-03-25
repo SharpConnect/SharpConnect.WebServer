@@ -27,8 +27,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Net.Sockets; 
-
+using System.Net.Sockets;
 using SharpConnect.Internal;
 
 
@@ -39,8 +38,8 @@ namespace SharpConnect.WebServers
     /// </summary>
     class HttpContext
     {
-
-        readonly SocketAsyncEventArgs recvSendArgs;
+        readonly SocketAsyncEventArgs _send_a;
+        readonly SocketAsyncEventArgs _recv_a;
         readonly RecvIO recvIO;
         readonly SendIO sendIO;
 
@@ -49,8 +48,10 @@ namespace SharpConnect.WebServers
         ReqRespHandler<HttpRequest, HttpResponse> reqHandler;
         WebServer ownerServer;
 
+        const int RECV_BUFF_SIZE = 1024;
+
         public HttpContext(
-             WebServer ownerServer,
+            WebServer ownerServer,
             int recvBufferSize,
             int sendBufferSize)
         {
@@ -58,23 +59,43 @@ namespace SharpConnect.WebServers
             this.ownerServer = ownerServer;
             //each recvSendArgs is created for this connection session only ***
             //---------------------------------------------------------------------------------------------------------- 
-            
+
             KeepAlive = false;
             //set buffer for newly created saArgs
-            ownerServer.SetBufferFor(this.recvSendArgs = new SocketAsyncEventArgs());
-            recvIO = new RecvIO(recvSendArgs, recvSendArgs.Offset, recvBufferSize, HandleReceive);
-            sendIO = new SendIO(recvSendArgs, recvSendArgs.Offset + recvBufferSize, sendBufferSize, HandleSend);
+            _recv_a = new SocketAsyncEventArgs();
+            _send_a = new SocketAsyncEventArgs();
+            _recv_a.SetBuffer(new byte[RECV_BUFF_SIZE], 0, RECV_BUFF_SIZE);
+            _send_a.SetBuffer(new byte[RECV_BUFF_SIZE], 0, RECV_BUFF_SIZE);
+            //ownerServer.SetBufferFor();
+            //ownerServer.SetBufferFor();
+
+            recvIO = new RecvIO(_recv_a, _recv_a.Offset, recvBufferSize, HandleReceive);
+            sendIO = new SendIO(_send_a, _send_a.Offset, sendBufferSize, HandleSend);
             //----------------------------------------------------------------------------------------------------------  
             httpReq = new HttpRequest(this);
             httpResp = new HttpResponse(this, sendIO);
 
             //common(shared) event listener***
-            recvSendArgs.Completed += (object sender, SocketAsyncEventArgs e) =>
+            _recv_a.Completed += (object sender, SocketAsyncEventArgs e) =>
             {
                 switch (e.LastOperation)
                 {
                     case SocketAsyncOperation.Receive:
                         recvIO.ProcessReceivedData();
+                        break;
+                    case SocketAsyncOperation.Send:
+                        //sendIO.ProcessWaitingData();
+                        break;
+                    default:
+                        throw new ArgumentException("The last operation completed on the socket was not a receive or send");
+                }
+            };
+            _send_a.Completed += (object sender, SocketAsyncEventArgs e) =>
+            {
+                switch (e.LastOperation)
+                {
+                    case SocketAsyncOperation.Receive:
+                        //recvIO.ProcessReceivedData();
                         break;
                     case SocketAsyncOperation.Send:
                         sendIO.ProcessWaitingData();
@@ -91,13 +112,15 @@ namespace SharpConnect.WebServers
                 case RecvEventCode.SocketError:
                     {
                         UnBindSocket(true);
-                    } break;
+                    }
+                    break;
                 case RecvEventCode.NoMoreReceiveData:
                     {
                         //no data to receive
                         httpResp.End();
                         //reqHandler(this.httpReq, httpResp);
-                    } break;
+                    }
+                    break;
                 case RecvEventCode.HasSomeData:
                     {
                         //process some data
@@ -113,18 +136,21 @@ namespace SharpConnect.WebServers
                                         this.ownerServer.CheckWebSocketUpgradeRequest(this))
                                     {
                                         return;
-                                    } 
+                                    }
                                     reqHandler(this.httpReq, httpResp);
-                                } break;
+                                }
+                                break;
                             case ProcessReceiveBufferResult.NeedMore:
                                 {
                                     recvIO.StartReceive();
-                                } break;
+                                }
+                                break;
                             case ProcessReceiveBufferResult.Error:
                             default:
                                 throw new NotSupportedException();
                         }
-                    } break;
+                    }
+                    break;
             }
         }
         void HandleSend(SendIOEventCode sendEventCode)
@@ -174,7 +200,7 @@ namespace SharpConnect.WebServers
         }
         internal Socket RemoteSocket
         {
-            get { return recvSendArgs.AcceptSocket; }
+            get { return _recv_a.AcceptSocket; }
         }
         /// <summary>
         /// bind to client socket
@@ -182,7 +208,8 @@ namespace SharpConnect.WebServers
         /// <param name="clientSocket"></param>
         internal void BindSocket(Socket clientSocket)
         {
-            this.recvSendArgs.AcceptSocket = clientSocket;
+            _recv_a.AcceptSocket = clientSocket;
+            _send_a.AcceptSocket = clientSocket;
         }
         internal void BindReqHandler(ReqRespHandler<HttpRequest, HttpResponse> reqHandler)
         {
@@ -191,7 +218,7 @@ namespace SharpConnect.WebServers
         internal void UnBindSocket(bool closeClientSocket)
         {
             //cut connection from current socket
-            Socket clientSocket = recvSendArgs.AcceptSocket;
+            Socket clientSocket = _recv_a.AcceptSocket;
             if (closeClientSocket)
             {
                 try
@@ -205,7 +232,9 @@ namespace SharpConnect.WebServers
                 }
                 clientSocket.Close();
             }
-            this.recvSendArgs.AcceptSocket = null;
+            _recv_a.AcceptSocket = null;
+            _send_a.AcceptSocket = null;
+
             Reset();//reset 
             ownerServer.ReleaseChildConn(this);
         }
@@ -232,7 +261,7 @@ namespace SharpConnect.WebServers
         }
         public void Dispose()
         {
-            this.recvSendArgs.Dispose();
+            this._recv_a.Dispose();
         }
 
 

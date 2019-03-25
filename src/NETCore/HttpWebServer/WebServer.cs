@@ -23,7 +23,7 @@ namespace SharpConnect.WebServers
         {
             this.reqHandler = reqHandler;
 
-            int maxNumberOfConnections = 1000;
+            int maxNumberOfConnections = 500;
             int excessSaeaObjectsInPool = 200;
             int backlog = 100;
             int maxSimultaneousAcceptOps = 100;
