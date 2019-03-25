@@ -178,19 +178,7 @@ namespace SharpConnect.Internal
                 ProcessReceivedData();
             }
         }
-        /// <summary>
-        /// start new receive
-        /// </summary>
-        /// <param name="buffer"></param>
-        /// <param name="len"></param>
-        public void StartReceive(byte[] buffer, int len)
-        {
-            recvArgs.SetBuffer(buffer, 0, len);
-            if (!recvArgs.AcceptSocket.ReceiveAsync(recvArgs))
-            {
-                ProcessReceivedData();
-            }
-        }
+        
         public int BytesTransferred
         {
             get { return recvArgs.BytesTransferred; }
