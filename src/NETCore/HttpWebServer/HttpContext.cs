@@ -282,9 +282,7 @@ namespace SharpConnect.WebServers
                         else
                         {
                             HandleReceive(RecvEventCode.HasSomeData);
-                        }
-
-                        //HandleReceive(RecvEventCode.HasSomeData);
+                        } 
                     });
                     _sockStream.SetSendCompleteEventHandler((s, e) =>
                     {
