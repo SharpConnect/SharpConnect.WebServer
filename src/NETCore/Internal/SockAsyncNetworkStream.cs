@@ -102,14 +102,13 @@ namespace SharpConnect.Internal
         bool _recvComplete = false;
 
         object _recvWaitLock2 = new object();
-        bool _recvAsyncStarting = false;
         object _sendWaitLock = new object();
         bool _sendComplete = false;
 
         int _sendingByteTransfered = 0;
 
-        readonly RecvIO recvIO;
-        readonly SendIO sendIO;
+        readonly RecvIO _recvIO;
+        readonly SendIO _sendIO;
 
         public SockNetworkStream(IOBuffer recvBuffer, IOBuffer sendBuffer)
         {
@@ -126,100 +125,28 @@ namespace SharpConnect.Internal
             _recvAsyncEventArgs.SetBuffer(_recvBuffer._largeBuffer, _recvBuffer.BufferStartAtIndex, _recvBuffer.BufferLength);//TODO: swap  buffer for the args
             _recvAsyncEventArgs.Completed += RecvAsyncEventArgs_Completed;
 
-            recvIO = new RecvIO();
-            recvIO.Bind(this);
-            sendIO = new SendIO();
-            sendIO.Bind(this);
-        } 
+            _recvIO = new RecvIO();
+            _recvIO.Bind(this);
+            _sendIO = new SendIO();
+            _sendIO.Bind(this);
+        }
         public override void Reset()
-        { 
-            sendIO.Reset(); 
+        {
+            _sendIO.Reset();
         }
         internal override void RecvCopyTo(int readpos, byte[] dstBuffer, int copyLen)
         {
-            recvIO.CopyTo(readpos, dstBuffer, copyLen);
+            _recvIO.CopyTo(readpos, dstBuffer, copyLen);
         }
         internal override byte RecvReadByte(int pos)
         {
-            return recvIO.ReadByte(pos);
+            return _recvIO.ReadByte(pos);
         }
         internal override void EnqueueSendData(byte[] buffer, int len)
         {
-            sendIO.EnqueueOutputData(buffer, len);
+            _sendIO.EnqueueOutputData(buffer, len);
         }
-        //void HandleReceive(RecvEventCode recvEventCode)
-        //{
-        //    //switch (recvEventCode)
-        //    //{
-        //    //    case RecvEventCode.SocketError:
-        //    //        {
-        //    //            UnBindSocket(true);
-        //    //        }
-        //    //        break;
-        //    //    case RecvEventCode.NoMoreReceiveData:
-        //    //        {
-        //    //            //no data to receive
-        //    //            httpResp.End();
-        //    //            //reqHandler(this.httpReq, httpResp);
-        //    //        }
-        //    //        break;
-        //    //    case RecvEventCode.HasSomeData:
-        //    //        {
-        //    //            //process some data
-        //    //            //there some data to process  
-        //    //            switch (httpReq.LoadData(recvIO))
-        //    //            {
-        //    //                case ProcessReceiveBufferResult.Complete:
-        //    //                    {
-        //    //                        //recv and parse complete  
-        //    //                        //goto user action 
-        //    //                        if (this.EnableWebSocket &&
-        //    //                            this.ownerServer.CheckWebSocketUpgradeRequest(this))
-        //    //                        {
-        //    //                            return;
-        //    //                        }
-        //    //                        reqHandler(this.httpReq, httpResp);
-        //    //                    }
-        //    //                    break;
-        //    //                case ProcessReceiveBufferResult.NeedMore:
-        //    //                    {
-        //    //                        recvIO.StartReceive();
-        //    //                    }
-        //    //                    break;
-        //    //                case ProcessReceiveBufferResult.Error:
-        //    //                default:
-        //    //                    throw new NotSupportedException();
-        //    //            }
-        //    //        }
-        //    //        break;
-        //    //}
-        //}
-        //void HandleSend(SendIOEventCode sendEventCode)
-        //{
-        //    //switch (sendEventCode)
-        //    //{
-        //    //    case SendIOEventCode.SocketError:
-        //    //        {
-        //    //            UnBindSocket(true);
-        //    //            KeepAlive = false;
-        //    //        }
-        //    //        break;
-        //    //    case SendIOEventCode.SendComplete:
-        //    //        {
-        //    //            Reset();
-        //    //            if (KeepAlive)
-        //    //            {
-        //    //                //next recv on the same client
-        //    //                StartReceive();
-        //    //            }
-        //    //            else
-        //    //            {
-        //    //                UnBindSocket(true);
-        //    //            }
-        //    //        }
-        //    //        break;
-        //    //}
-        //}
+
         public bool UsedBySslStream { get; set; }
         public void Bind(Socket socket)
         {
@@ -268,24 +195,24 @@ namespace SharpConnect.Internal
         }
         public override bool WriteBuffer(byte[] srcBuffer, int srcIndex, int count)
         {
-            if (this.UsedBySslStream)
-            {
+            //if (this.UsedBySslStream)
+            //{
 
-            }
+            //}
             //write data to _sendAsyncEventArgs
             _sendBuffer.WriteBuffer(srcBuffer, srcIndex, count);
             //then send***
-            if (!_socket.SendAsync(_sendAsyncEventArgs))
-            {
-                //sync 
-                return false;
-            }
-            else
-            {
-                return true;
-            }
+            return _socket.SendAsync(_sendAsyncEventArgs);
 
-            //throw new NotImplementedException();
+            //if (!_socket.SendAsync(_sendAsyncEventArgs))
+            //{
+            //    //sync 
+            //    return false;
+            //}
+            //else
+            //{
+            //    return true;
+            //}
         }
 
         void RecvAsyncEventArgs_Completed(object sender, SocketAsyncEventArgs e)
@@ -577,7 +504,7 @@ namespace SharpConnect.Internal
         public override void StartSend()
         {
             System.Diagnostics.Debug.WriteLine("start send");
-            sendIO.StartSendAsync();///***
+            _sendIO.StartSendAsync();///***
         }
 
         int dbugStartRecvCount = 0;
@@ -654,8 +581,8 @@ namespace SharpConnect.Internal
     }
 
     delegate void AuthenCallbackDelegate();
-     
- 
+
+
     class SecureSockNetworkStream : AbstractAsyncNetworkStream
     {
         IOBuffer _recvBuffer;
@@ -810,10 +737,9 @@ namespace SharpConnect.Internal
         /// <returns></returns>
         public override bool WriteBuffer(byte[] srcBuffer, int srcIndex, int count)
         {
-            //write data down to the ssl stream
-
+            //write data down to the ssl stream 
             _sslStream.Write(srcBuffer, srcIndex, count);
-            return false; //TODO: review here? 
+            return false;
             //return false => all data are sent
             //return true => data is in pending queue
         }

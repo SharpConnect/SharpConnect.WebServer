@@ -82,7 +82,7 @@ namespace SharpConnect.Internal
 
     class RecvIO
     {
-        AbstractAsyncNetworkStream _networkStream; 
+        AbstractAsyncNetworkStream _networkStream;
         public RecvIO()
         {
 
@@ -301,12 +301,12 @@ namespace SharpConnect.Internal
     {
         //send,
         //resp 
- 
+
         int sendingTargetBytes; //target to send
         int sendingTransferredBytes; //has transfered bytes
         byte[] currentSendingData = null;
         Queue<byte[]> sendingQueue = new Queue<byte[]>();
-     
+
         object stateLock = new object();
         object queueLock = new object();
         SendIOState _sendingState = SendIOState.ReadyNextSend;
@@ -318,7 +318,7 @@ namespace SharpConnect.Internal
 #endif
 
         public SendIO()
-        { 
+        {
         }
         public void Bind(AbstractAsyncNetworkStream networkStream)
         {
@@ -374,12 +374,7 @@ namespace SharpConnect.Internal
                 _sendingState = value;
             }
         }
-        void ResetBuffer()
-        {
-            currentSendingData = null;
-            sendingTransferredBytes = 0;
-            sendingTargetBytes = 0;
-        }
+
         public void Reset()
         {
             lock (stateLock)
@@ -388,21 +383,9 @@ namespace SharpConnect.Internal
                 {
                 }
             }
-            //#if DEBUG
 
-            //            int currentTheadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
-            //            if (currentTheadId != this.dbugThradId)
-            //            { 
-            //            }
-            //#endif
-            //TODO: review reset
             sendingTargetBytes = sendingTransferredBytes = 0;
             currentSendingData = null;
-            //#if DEBUG
-            //            if (sendingQueue.Count > 0)
-            //            { 
-            //            }
-            //#endif
             lock (queueLock)
             {
                 if (sendingQueue.Count > 0)
@@ -440,24 +423,6 @@ namespace SharpConnect.Internal
 #if DEBUG
         int dbugSendingTheadId;
 #endif
-
-        //static byte[] CreateTestHtmlRespMsg(string testMsg)
-        //{
-        //    StringBuilder stbuilder = new StringBuilder();
-        //    stbuilder.Append("HTTP/1.1 200 OK");
-        //    stbuilder.AppendLine("Content-Type: text/html");
-        //    byte[] utf8Data = Encoding.UTF8.GetBytes(testMsg);
-        //    stbuilder.Append("Content-Length: " + utf8Data.Length + "\r\n");
-        //    stbuilder.Append("\r\n");//end header part   
-        //                             // 
-        //    using (System.IO.MemoryStream ms = new System.IO.MemoryStream())
-        //    {
-        //        byte[] headerPart = Encoding.UTF8.GetBytes(stbuilder.ToString());
-        //        ms.Write(headerPart, 0, headerPart.Length);
-        //        ms.Write(utf8Data, 0, utf8Data.Length);
-        //        return ms.ToArray();
-        //    }
-        //}
 
         public void StartSendAsync()
         {
@@ -525,9 +490,8 @@ namespace SharpConnect.Internal
 
             if (!_networkStream.WriteBuffer(sendingData, 0, sendingData.Length))
             {
-                //false data pending
-                //true=> data is pending...
                 remaining = 0;
+                sendingTargetBytes = sendingTransferredBytes;
             }
             else
             {
@@ -574,7 +538,7 @@ namespace SharpConnect.Internal
             //    ProcessWaitingData();
             //}
         }
-         
+
     }
 
 
