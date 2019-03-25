@@ -94,32 +94,31 @@ namespace SharpConnect.Internal
         public void Bind(AbstractAsyncNetworkStream networkStream)
         {
             _networkStream = networkStream;
-        } 
+        }
         public byte ReadByte(int index)
         {
 
             //read one byte from specific index from stream
-            return _networkStream.GetByteFromBuffer(index); 
-        } 
+            return _networkStream.GetByteFromBuffer(index);
+        }
         public void CopyTo(int srcIndex, byte[] destBuffer, int count)
         {
             _networkStream.ReadBuffer(srcIndex, count, destBuffer, 0);
         }
-       
+
         /// <summary>
         /// start new receive
         /// </summary>
         public void StartReceive()
         {
             _networkStream.ClearReceiveBuffer();
-            _networkStream.StartReceive(); 
-        }  
+            _networkStream.StartReceive();
+        }
         public int BytesTransferred => _networkStream.ByteReadTransfered;
         internal byte[] UnsafeGetInternalBuffer()
         {
             return null;
         }
-
     }
 
     enum SendIOEventCode
@@ -128,8 +127,6 @@ namespace SharpConnect.Internal
         SocketError,
     }
 
-
-
     enum SendIOState : byte
     {
         ReadyNextSend,
@@ -137,9 +134,6 @@ namespace SharpConnect.Internal
         ProcessSending,
         Error,
     }
-
-
-
 
     struct IOBuffer
     {
