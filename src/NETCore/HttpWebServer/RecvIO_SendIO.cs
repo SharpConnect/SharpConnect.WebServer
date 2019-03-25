@@ -416,16 +416,7 @@ namespace SharpConnect.Internal
 #if DEBUG && !NETSTANDARD1_6
         readonly int dbugThradId = System.Threading.Thread.CurrentThread.ManagedThreadId;
 #endif
-        //public SendIO(SocketAsyncEventArgs sendArgs,
-        //    int sendStartOffset,
-        //    int sendBufferSize,
-        //    Action<SendIOEventCode> notify)
-        //{
-        //    _sendArgs = sendArgs;
-        //    _sendStartOffset = sendStartOffset;
-        //    _sendBufferSize = sendBufferSize;
-        //    _notify = notify;
-        //}
+        
         public SendIO(Action<SendIOEventCode> notify)
         {
             _notify = notify;

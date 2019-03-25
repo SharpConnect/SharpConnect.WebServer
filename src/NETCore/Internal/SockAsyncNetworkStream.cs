@@ -663,7 +663,8 @@ namespace SharpConnect.Internal
     }
 
     delegate void AuthenCallbackDelegate();
-
+     
+ 
     class SecureSockNetworkStream : AbstractAsyncNetworkStream
     {
         IOBuffer _recvBuffer;
@@ -735,7 +736,7 @@ namespace SharpConnect.Internal
                 _sslStream.Write(buffer);
             }
 
-           
+
 
         }
         public override void Reset()

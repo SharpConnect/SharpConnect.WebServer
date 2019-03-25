@@ -263,6 +263,7 @@ namespace SharpConnect.WebServers
             if (cert == null)
             {
                 //if no cert then just start recv                
+                //JustBypassSocketNetworkStream bypass = new JustBypassSocketNetworkStream(_baseSockStream, cert);
                 _sockStream = _baseSockStream;
 
                 ////-----------------------------
@@ -274,7 +275,16 @@ namespace SharpConnect.WebServers
                     _isFirstTime = false;
                     _sockStream.SetRecvCompleteEventHandler((s, e) =>
                     {
-                        HandleReceive(RecvEventCode.HasSomeData);
+                        if (e.ByteTransferedCount == 0)
+                        {
+                            HandleReceive(RecvEventCode.NoMoreReceiveData);
+                        }
+                        else
+                        {
+                            HandleReceive(RecvEventCode.HasSomeData);
+                        }
+
+                        //HandleReceive(RecvEventCode.HasSomeData);
                     });
                     _sockStream.SetSendCompleteEventHandler((s, e) =>
                     {
@@ -289,11 +299,7 @@ namespace SharpConnect.WebServers
                 //with cert , we need ssl stream
 
                 SecureSockNetworkStream secureStream = new SecureSockNetworkStream(_baseSockStream, cert);
-                _sockStream = secureStream; //** 
-                ////-----------------------------
-                //recvIO.Bind(_sockStream);
-                //sendIO.Bind(_sockStream);
-                ////-----------------------------
+                _sockStream = secureStream; //**  
                 if (_isFirstTime)
                 {
                     _isFirstTime = false;
