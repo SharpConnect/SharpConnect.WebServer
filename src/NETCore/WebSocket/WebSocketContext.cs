@@ -27,14 +27,14 @@ using SharpConnect.Internal;
 
 namespace SharpConnect.WebServers
 {
-    public class WebSocketContext : IDisposable
+    public class WebSocketContext : IDisposable, INewRecvIO, INewSendIO
     {
         readonly WebSocketServer webSocketServer;
         readonly SocketAsyncEventArgs sockAsyncSender;
         readonly SocketAsyncEventArgs sockAsyncListener;
 
         ReqRespHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler;
-        Socket clientSocket;
+        //Socket clientSocket;
 
         const int RECV_BUFF_SIZE = 1024;
 
@@ -45,12 +45,16 @@ namespace SharpConnect.WebServers
         SendIO sendIO;
         int connectionId;
         static int connectionIdTotal;
-        bool _asClientContext;
-        public WebSocketContext(bool asClient)
+
+        public WebSocketContext(WebSocketServer webSocketServer)
         {
-            _asClientContext = asClient;
+
+            this.webSocketServer = webSocketServer;
             connectionId = System.Threading.Interlocked.Increment(ref connectionIdTotal);
             //-------------------
+
+
+
             //send,resp 
             sockAsyncSender = new SocketAsyncEventArgs();
             sockAsyncSender.SetBuffer(new byte[RECV_BUFF_SIZE], 0, RECV_BUFF_SIZE);
@@ -74,7 +78,7 @@ namespace SharpConnect.WebServers
                         break;
                 }
             });
-            webSocketResp = new WebSocketResponse(this, sendIO);
+            webSocketResp = new WebSocketResponse(this);
 
             //------------------------------------------------------------------------------------
             //recv,req ,new socket
@@ -101,22 +105,28 @@ namespace SharpConnect.WebServers
                 }
             });
             //------------------------------------------------------------------------------------             
-            this.webSocketReqParser = new WebSocketProtocolParser(this, recvIO);
+            this.webSocketReqParser = new WebSocketProtocolParser(this);
 
         }
-        public bool AsClientContext => _asClientContext;
-        public void Bind(Socket clientSocket)
+
+        //public void Bind(Socket clientSocket)
+        AbstractAsyncNetworkStream _clientStream;
+
+        public void Bind(AbstractAsyncNetworkStream clientStream)
         {
-            this.clientSocket = clientSocket;
+            _clientStream = clientStream;
+
+
+            //this.clientSocket = clientStream.ClientSocket;
             //sender
-            sockAsyncSender.AcceptSocket = clientSocket;
+            sockAsyncSender.AcceptSocket = clientStream.ClientSocket;
             //------------------------------------------------------
             //listener   
-            sockAsyncListener.AcceptSocket = clientSocket;
-            //sockAsyncListener.SetBuffer(new byte[RECV_BUFF_SIZE], 0, RECV_BUFF_SIZE);
+            sockAsyncListener.AcceptSocket = clientStream.ClientSocket;
+            //sockAsyncListener.SetBuffer(new clientStream.ClientSocket[RECV_BUFF_SIZE], 0, RECV_BUFF_SIZE);
             //------------------------------------------------------
             //when bind we start listening 
-            clientSocket.ReceiveAsync(sockAsyncListener);
+            clientStream.ClientSocket.ReceiveAsync(sockAsyncListener);
             //------------------------------------------------------  
         }
         void HandleReceivedData(RecvEventCode recvCode)
@@ -180,6 +190,8 @@ namespace SharpConnect.WebServers
 
         }
 
+
+
         public int ConnectionId
         {
             get { return this.connectionId; }
@@ -192,7 +204,8 @@ namespace SharpConnect.WebServers
 
         public void Close()
         {
-            clientSocket.Close();
+            //close client socket
+            //clientSocket.Close();
         }
         public void Send(string dataToSend)
         {
@@ -209,12 +222,32 @@ namespace SharpConnect.WebServers
             sendIO.EnqueueOutputData(data, data.Length);
             sendIO.StartSendAsync();
         }
+
+        public byte[] UnsafeGetInternalBuffer()
+        {
+            return ((INewRecvIO)recvIO).UnsafeGetInternalBuffer();
+        }
+
+        public void EnqueueOutputData(byte[] dataToSend, int count)
+        {
+            ((INewSendIO)sendIO).EnqueueOutputData(dataToSend, count);
+        }
+
+        public void StartSendAsync()
+        {
+            ((INewSendIO)sendIO).StartSendAsync();
+        }
+
         //---------------------------------------------
         public string InitClientRequestUrl
         {
             get;
             set;
         }
+
+        public int BytesTransferred => ((INewRecvIO)recvIO).BytesTransferred;
+
+        public int QueueCount => ((INewSendIO)sendIO).QueueCount;
     }
 
 }

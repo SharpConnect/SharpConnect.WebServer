@@ -39,16 +39,60 @@ namespace SharpConnect.WebServers
                 clientSocket =>
                 {
                     //when accept new client
-                    HttpContext context = this.contextPool.Pop();
-                    context.BindSocket(clientSocket); //*** bind to client socket 
-                    context.StartReceive(); //start receive data
+
+                    int recvBufferSize = 1024 * 2;
+                    int sendBufferSize = 1024 * 2;
+
+                    if (UseSsl)
+                    {
+
+                        HttpContext context = new HttpContext(this, recvBufferSize, sendBufferSize);
+                        context.BindReqHandler(this.reqHandler); //client handler
+#if DEBUG
+                        context.dbugForHttps = true;
+#endif
+
+                        byte[] recvBuff = new byte[recvBufferSize];
+                        byte[] sendBuffer = new byte[sendBufferSize];
+                        IOBuffer recvIOBuffer = new IOBuffer(recvBuff, 0, recvBuff.Length);
+                        IOBuffer sendIOBuffer = new IOBuffer(sendBuffer, 0, sendBuffer.Length);
+                        var baseSockStream = new SockNetworkStream(recvIOBuffer, sendIOBuffer);
+                        baseSockStream.Bind(clientSocket);
+                        context.BindClient(baseSockStream); //*** bind to client socket                      
+                        context.StartReceive(UseSsl ? _serverCert : null);
+                    }
+                    else
+                    {
+
+                        byte[] recvBuff = new byte[recvBufferSize];
+                        byte[] sendBuffer = new byte[sendBufferSize];
+
+                        IOBuffer recvIOBuffer = new IOBuffer(recvBuff, 0, recvBuff.Length);
+                        IOBuffer sendIOBuffer = new IOBuffer(sendBuffer, 0, sendBuffer.Length);
+                        var baseSockStream = new SockNetworkStream(recvIOBuffer, sendIOBuffer);
+                        baseSockStream.Bind(clientSocket);
+
+                        HttpContext context = this.contextPool.Pop();
+                        context.BindClient(baseSockStream); //*** bind to client socket                      
+                        context.StartReceive(UseSsl ? _serverCert : null);
+                    }
+
+
+
                 });
+        }
+
+        public bool UseSsl { get; set; }
+        System.Security.Cryptography.X509Certificates.X509Certificate2 _serverCert;
+        public void LoadCertificate(string certFile, string psw)
+        {
+            _serverCert = new System.Security.Cryptography.X509Certificates.X509Certificate2(certFile, psw);
         }
 
         void CreateContextPool(int maxNumberOfConnnections)
         {
-            int recvSize = 1024;
-            int sendSize = 1024;
+            int recvSize = 1024 * 2;
+            int sendSize = 1024 * 2;
             bufferMan = new BufferManager((recvSize + sendSize) * maxNumberOfConnnections, (recvSize + sendSize));
             //Allocate memory for buffers. We are using a separate buffer space for
             //receive and send, instead of sharing the buffer space, like the Microsoft
@@ -64,8 +108,8 @@ namespace SharpConnect.WebServers
             {
                 var context = new HttpContext(this,
                     recvSize,
-                   sendSize);
-
+                    sendSize);
+                context.CreatedFromPool = true;
                 context.BindReqHandler(this.reqHandler); //client handler
 
                 this.contextPool.Push(context);
@@ -76,12 +120,16 @@ namespace SharpConnect.WebServers
         {
             this.bufferMan.SetBufferFor(e);
         }
-        internal void ReleaseChildConn(HttpContext httpConn)
+        internal void ReleaseChildConn(HttpContext httpContext)
         {
-            if (httpConn != null)
+            if (httpContext != null)
             {
-                httpConn.Reset();
-                this.contextPool.Push(httpConn);
+
+                httpContext.Reset();
+                if (httpContext.CreatedFromPool)
+                {
+                    this.contextPool.Push(httpContext);
+                }
                 newConnListener.NotifyFreeAcceptQuota();
             }
         }
@@ -138,13 +186,17 @@ namespace SharpConnect.WebServers
                 //2. web server can design what web socket server will handle this request, based on httpCon url
 
                 string sec_websocket_key = httpReq.GetHeaderKey("Sec-WebSocket-Key");
-                Socket clientSocket = httpConn.RemoteSocket;
+                //Socket clientSocket = httpConn.RemoteSocket;
+                var clientStream = httpConn.AbstractClientNetworkStream;
                 //backup data before unbind socket
                 string webSocketInitUrl = httpReq.Url;
                 //--------------------  
                 httpConn.UnBindSocket(false);//unbind  but not close client socket  
                                              //--------------------
-                webSocketServer.RegisterNewWebSocket(clientSocket, webSocketInitUrl, sec_websocket_key);//the bind client to websocket server                 
+                webSocketServer.RegisterNewWebSocket(
+                    clientStream,
+                    webSocketInitUrl,
+                    sec_websocket_key);//the bind client to websocket server                 
                 return true;
             }
             return false;

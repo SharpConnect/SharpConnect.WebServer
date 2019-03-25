@@ -32,11 +32,9 @@ namespace SharpConnect.WebServers
     public class WebSocketRequest
     {
 
-        byte[] data;
-        WebSocketContext context;
-        internal WebSocketRequest(WebSocketContext context)
+        byte[] data; 
+        internal WebSocketRequest()
         {
-            this.context = context;
         }
         public Opcode OpCode
         {
@@ -75,9 +73,5 @@ namespace SharpConnect.WebServers
         }
 
 
-        public WebSocketContext Context
-        {
-            get { return this.context; }
-        }
     }
 }

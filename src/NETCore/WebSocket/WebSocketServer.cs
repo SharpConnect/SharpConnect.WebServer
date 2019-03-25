@@ -44,14 +44,35 @@ namespace SharpConnect.WebServers
         {
 
         }
+        //internal WebSocketContext RegisterNewWebSocket(
+        //    Socket clientSocket,
+        //    string initUrl,
+        //    string sec_websocket_key)
+        //{
+        //    WebSocketContext wbcontext = new WebSocketContext(this);
+        //    workingWebSocketConns.Add(wbcontext.ConnectionId, wbcontext);//add to working socket 
+        //    wbcontext.Bind(clientSocket); //move client socket to webSocketConn    
+        //    wbcontext.SendExternalRaw(MakeWebSocketUpgradeResponse(MakeResponseMagicCode(sec_websocket_key)));
+        //    wbcontext.InitClientRequestUrl = initUrl;
+        //    if (newContextConnected != null)
+        //    {
+        //        newContextConnected(wbcontext);
+        //    }
+
+        //    return wbcontext;
+        //}
         internal WebSocketContext RegisterNewWebSocket(
-            Socket clientSocket,
-            string initUrl,
-            string sec_websocket_key)
+          AbstractAsyncNetworkStream clientStream,
+          string initUrl,
+          string sec_websocket_key)
         {
-            WebSocketContext wbcontext = new WebSocketContext(false);
+            clientStream.UsedByWebsocket = true;
+            clientStream.Reset2();
+
+
+            WebSocketContext wbcontext = new WebSocketContext(this);
             workingWebSocketConns.Add(wbcontext.ConnectionId, wbcontext);//add to working socket 
-            wbcontext.Bind(clientSocket); //move client socket to webSocketConn    
+            wbcontext.Bind(clientStream); //move client socket to webSocketConn    
             wbcontext.SendExternalRaw(MakeWebSocketUpgradeResponse(MakeResponseMagicCode(sec_websocket_key)));
             wbcontext.InitClientRequestUrl = initUrl;
             if (newContextConnected != null)

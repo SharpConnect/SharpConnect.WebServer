@@ -81,11 +81,11 @@
     <Compile Include="..\..\NETCore\Internal\SharedResoucePool.cs">
       <Link>Internal\SharedResoucePool.cs</Link>
     </Compile>
+    <Compile Include="..\..\NETCore\Internal\SockAsyncNetworkStream.cs">
+      <Link>Internal\SockAsyncNetworkStream.cs</Link>
+    </Compile>
     <Compile Include="..\..\NETCore\WebSocket\Flags.cs">
       <Link>WebSocket\Flags.cs</Link>
-    </Compile>
-    <Compile Include="..\..\NETCore\WebSocket\WebSocketClient.cs">
-      <Link>WebSocket\WebSocketClient.cs</Link>
     </Compile>
     <Compile Include="..\..\NETCore\WebSocket\WebSocketContext.cs">
       <Link>WebSocket\WebSocketContext.cs</Link>
