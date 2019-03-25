@@ -31,17 +31,29 @@ namespace SharpConnect.WebServers
     public class WebSocketResponse : IDisposable
     {
         MemoryStream bodyMs = new MemoryStream();
+        readonly WebSocketContext conn;
         SendIO sendIO;
-        internal WebSocketResponse(SendIO sendIO)
+        Random _rdForMask;
+        internal WebSocketResponse(WebSocketContext conn, SendIO sendIO)
         {
+            this.conn = conn;
             this.sendIO = sendIO;
+            if (conn.AsClientContext)
+            {
+                _rdForMask = new Random();
+            }
         }
         public int ConnectionId
         {
-            get { return 0; } //tmp
+            get
+            {
+                return conn.ConnectionId;
+            }
         }
-        internal bool AsClient { get; set; }
-
+        public WebSocketContext OwnerContext
+        {
+            get { return this.conn; }
+        }
         public void Dispose()
         {
             if (bodyMs != null)
@@ -50,9 +62,11 @@ namespace SharpConnect.WebServers
                 bodyMs = null;
             }
         }
+
         public void Write(string content)
         {
-            byte[] dataToSend = CreateSendBuffer(content);
+            int maskKey = conn.AsClientContext ? _rdForMask.Next() : 0;
+            byte[] dataToSend = CreateSendBuffer(content, maskKey);
             sendIO.EnqueueOutputData(dataToSend, dataToSend.Length);
             sendIO.StartSendAsync();
         }
@@ -63,14 +77,21 @@ namespace SharpConnect.WebServers
                 return sendIO.QueueCount;
             }
         }
-
-        static byte[] CreateSendBuffer(string msg)
+        static void MaskAgain(byte[] data, byte[] key)
+        {
+            for (int i = data.Length - 1; i >= 0; --i)
+            {
+                data[i] ^= key[i % 4];
+            }
+        }
+        static byte[] CreateSendBuffer(string msg, int maskKey)
         {
             byte[] data = null;
             using (MemoryStream ms = new MemoryStream())
             {
                 //create data   
                 byte b1 = ((byte)Fin.Final) << 7; //final
+
                 //// FIN
                 //Fin fin = (b1 & (1 << 7)) == (1 << 7) ? Fin.Final : Fin.More; 
                 //// RSV1
@@ -86,9 +107,9 @@ namespace SharpConnect.WebServers
                 //-------------
 
 
-                byte[] dataToClient = Encoding.UTF8.GetBytes(msg);
+                byte[] sendingData = Encoding.UTF8.GetBytes(msg);
                 //if len <126  then               
-                int dataLen = dataToClient.Length;
+                int dataLen = sendingData.Length;
 
                 //The length of the "Payload data", in bytes: if 0-125, that is the
                 //payload length.  If 126, the following 2 bytes interpreted as a
@@ -105,20 +126,36 @@ namespace SharpConnect.WebServers
                 //"Application data". 
 
                 ms.WriteByte(b1);
+                bool sendToServer = maskKey != 0;
+                byte[] maskKeyBuffer = null;
+                if (sendToServer)
+                {
+                    maskKeyBuffer = new byte[]
+                    {
+                        (byte)((maskKey>>24)&0xff),
+                        (byte)((maskKey>>16)&0xff),
+                        (byte)((maskKey>>8)&0xff),
+                        (byte)((maskKey)&0xff)
+                    };
+                    MaskAgain(sendingData, maskKeyBuffer);
+                }
 
                 if (dataLen < 126)
                 {
-                    byte b2 = (byte)dataToClient.Length; // < 126
                     //-----------------------------
                     //no extened payload length
-                    //no mask key                    
+                    //no mask key when sending data to client
+                    //BUT when we send from client to server => must use mask
+                    byte b2 = (byte)(sendToServer ?
+                                (dataLen | (1 << 7)) : //to server
+                                 dataLen); // < 126 //to client 
                     ms.WriteByte(b2);
                 }
                 else if (dataLen < ushort.MaxValue)
                 {
                     //If 126, the following 2 bytes interpreted as a
                     //16-bit unsigned integer are the payload length 
-                    ms.WriteByte(126);
+                    ms.WriteByte((byte)(sendToServer ? (126 | 1 << 7) : 126));
                     //use 2 bytes for dataLen  
                     ms.WriteByte((byte)(dataLen >> 8));
                     ms.WriteByte((byte)(dataLen & 0xff));
@@ -134,7 +171,8 @@ namespace SharpConnect.WebServers
                         throw new NotSupportedException();
                     }
                     //-----------------------------------------
-                    ms.WriteByte(127);
+
+                    ms.WriteByte((byte)(sendToServer ? (127 | 1 << 7) : 127));
                     //use 8 bytes for dataLen  
                     //so... first 4 bytes= 0
 
@@ -147,8 +185,11 @@ namespace SharpConnect.WebServers
                     ms.WriteByte((byte)((dataLen >> 8) & 0xff));
                     ms.WriteByte((byte)(dataLen & 0xff));
                 }
-
-                ms.Write(dataToClient, 0, dataToClient.Length);
+                if (sendToServer)
+                {
+                    ms.Write(maskKeyBuffer, 0, 4);
+                }
+                ms.Write(sendingData, 0, sendingData.Length);
                 ms.Flush();
                 //-----------------------------
                 //mask : send to client no mask

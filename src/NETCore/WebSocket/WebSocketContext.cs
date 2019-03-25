@@ -45,11 +45,10 @@ namespace SharpConnect.WebServers
         SendIO sendIO;
         int connectionId;
         static int connectionIdTotal;
-
-        public WebSocketContext(WebSocketServer webSocketServer)
+        bool _asClientContext;
+        public WebSocketContext(bool asClient)
         {
-
-            this.webSocketServer = webSocketServer;
+            _asClientContext = asClient;
             connectionId = System.Threading.Interlocked.Increment(ref connectionIdTotal);
             //-------------------
             //send,resp 
@@ -75,7 +74,7 @@ namespace SharpConnect.WebServers
                         break;
                 }
             });
-            webSocketResp = new WebSocketResponse(sendIO);
+            webSocketResp = new WebSocketResponse(this, sendIO);
 
             //------------------------------------------------------------------------------------
             //recv,req ,new socket
@@ -105,7 +104,7 @@ namespace SharpConnect.WebServers
             this.webSocketReqParser = new WebSocketProtocolParser(this, recvIO);
 
         }
-
+        public bool AsClientContext => _asClientContext;
         public void Bind(Socket clientSocket)
         {
             this.clientSocket = clientSocket;

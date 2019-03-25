@@ -41,7 +41,7 @@ namespace SharpConnect.WebServers
         }
 
         Queue<WebSocketRequest> incommingReqs = new Queue<WebSocketRequest>();
-        RecvIOBuffer myBufferStream;
+        RecvIOBufferStream myBufferStream;
         WebSocketRequest currentReq;
         RecvIO recvIO;
         ParseState parseState;
@@ -55,11 +55,13 @@ namespace SharpConnect.WebServers
         Opcode currentOpCode = Opcode.Cont;//use default 
         //-----------------------
         WebSocketContext _ownerContext;
+        bool _asClientContext;
         internal WebSocketProtocolParser(WebSocketContext context, RecvIO recvIO)
         {
             this.recvIO = recvIO;
-            _ownerContext = context;
-            myBufferStream = new RecvIOBuffer(recvIO);
+            this._ownerContext = context;
+            _asClientContext = context.AsClientContext;
+            myBufferStream = new RecvIOBufferStream(recvIO);
         }
         public int ReqCount
         {
@@ -82,7 +84,7 @@ namespace SharpConnect.WebServers
             }
             //----------------------------------------------------------
             //when we read header we start a new websocket request
-            currentReq = new WebSocketRequest();
+            currentReq = new WebSocketRequest(this._ownerContext);
             incommingReqs.Enqueue(currentReq);
 
 
@@ -109,16 +111,19 @@ namespace SharpConnect.WebServers
             // MASK
             Mask currentMask = (b2 & (1 << 7)) == (1 << 7) ? Mask.On : Mask.Off;
             //we should check receive frame here ... 
-            this.useMask = currentMask == Mask.On;
-            if (currentMask == Mask.Off)
+          
+            if (_asClientContext)
             {
-                //if this act as WebSocketServer 
-                //erro packet ? 
-                throw new NotSupportedException();
+                //as client context (we are in client context)
+                if (currentMask != Mask.Off) throw new NotSupportedException();
+                this.useMask = false;
             }
             else
             {
-
+                //as server context (we are in server context)
+                //data from client must useMask
+                if (currentMask != Mask.On) throw new NotSupportedException();
+                this.useMask = true;
             }
             //----------------------------------------------------------
             // Payload Length
@@ -200,9 +205,9 @@ namespace SharpConnect.WebServers
                 throw new NotSupportedException();
             }
             //----------------------------------------------------------  
-            _currentPacketLen = payloadLen;
+            this._currentPacketLen = payloadLen;
             currentReq.OpCode = currentOpCode;
-            _currentMaskLen = (currentMask == Mask.On) ? 4 : 0;
+            this._currentMaskLen = (currentMask == Mask.On) ? 4 : 0;
             //----------------------------------------------------------
             if (payloadLen >= 126)
             {
@@ -210,14 +215,14 @@ namespace SharpConnect.WebServers
                 return true;
             }
             //----------------------------------------------------------
-            this.parseState = _currentMaskLen > 0 ?
+            this.parseState = this._currentMaskLen > 0 ?
                 ParseState.ReadMask :
                 ParseState.ExpectBody;
             return true;
         }
         bool ReadPayloadLen()
         {
-            int extendedPayloadByteCount = (_currentPacketLen == 126 ? 2 : 8);
+            int extendedPayloadByteCount = (this._currentPacketLen == 126 ? 2 : 8);
             if (!myBufferStream.Ensure(extendedPayloadByteCount))
             {
                 myBufferStream.BackupRecvIO();
@@ -233,7 +238,7 @@ namespace SharpConnect.WebServers
                 //in this version ***
                 throw new NotSupportedException();
             }
-            _currentPacketLen = (int)org_packetLen1;
+            this._currentPacketLen = (int)org_packetLen1;
             this.parseState = _currentMaskLen > 0 ?
                      ParseState.ReadMask :
                      ParseState.ExpectBody;
@@ -258,7 +263,7 @@ namespace SharpConnect.WebServers
         {
             myBufferStream.AppendNewRecvData();
 
-            for (;;)
+            for (; ; )
             {
 
                 switch (parseState)
@@ -366,8 +371,7 @@ namespace SharpConnect.WebServers
         }
 
         static void MaskAgain(byte[] data, byte[] key)
-        {
-
+        {   
             for (int i = data.Length - 1; i >= 0; --i)
             {
                 data[i] ^= key[i % 4];

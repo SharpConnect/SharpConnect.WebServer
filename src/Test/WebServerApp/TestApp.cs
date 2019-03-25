@@ -116,13 +116,13 @@ namespace SharpConnect
                     {
                         resp.End("1.0");
                     }
-                    break;
+                    break; 
                 case "/cross":
                     {
                         resp.AllowCrossOriginPolicy = crossOriginPolicy;
                         resp.End("ok");
                     }
-                    break;
+                    break; 
                 default:
                     {
                         resp.End("");
@@ -133,7 +133,6 @@ namespace SharpConnect
         int count = 0;
         public void HandleWebSocket(WebSocketRequest req, WebSocketResponse resp)
         {
-            //server-side handle websocket request***
             string clientMsg = req.ReadAsString();
             if (clientMsg.StartsWith("LOOPBACK"))
             {

@@ -119,15 +119,15 @@ namespace SharpConnect.WebServers
         int contentByteCount;
         Dictionary<string, string> headers = new Dictionary<string, string>();
         StringBuilder headerStBuilder = new StringBuilder();
-        //SendIO sendIO;
+        SendIO sendIO;
 
 
-        internal HttpResponse(HttpContext context)
+        internal HttpResponse(HttpContext context, SendIO sendIO)
         {
             this.context = context;
             bodyMs = new MemoryStream();
             StatusCode = 200; //init
-
+            this.sendIO = sendIO;
             this.ContentTypeCharSet = WebServers.TextCharSet.Utf8;
         }
         public CrossOriginPolicy AllowCrossOriginPolicy
@@ -209,7 +209,7 @@ namespace SharpConnect.WebServers
         /// </summary>
         /// <param name="str"></param>
         public void Write(byte[] rawBuffer)
-        {
+        {   
             bodyMs.Write(rawBuffer, 0, rawBuffer.Length);
             contentByteCount += rawBuffer.Length;
         }
@@ -289,8 +289,8 @@ namespace SharpConnect.WebServers
                                     bodyMs.Read(dataToSend, headBuffer.Length, contentByteCount);
                                     //----------------------------------------------------
                                     //copy data to send buffer
+                                    sendIO.EnqueueOutputData(dataToSend, dataToSend.Length);
 
-                                    context.EnqueueSendingData(dataToSend, dataToSend.Length);
                                     //---------------------------------------------------- 
                                     ResetAll();
                                 }
@@ -303,8 +303,7 @@ namespace SharpConnect.WebServers
 
                                     //chunked transfer
                                     byte[] headBuffer = Encoding.UTF8.GetBytes(headerStBuilder.ToString().ToCharArray());
-
-                                    context.EnqueueSendingData(headBuffer, headBuffer.Length);
+                                    sendIO.EnqueueOutputData(headBuffer, headBuffer.Length);
                                     WriteContentBodyInChunkMode();
                                     ResetAll();
                                 }
@@ -339,8 +338,7 @@ namespace SharpConnect.WebServers
                 return;
             }
             isSend = true;
-
-            context.SendIOStartSend();
+            sendIO.StartSendAsync();
         }
         void WriteContentBodyInChunkMode()
         {
@@ -363,13 +361,12 @@ namespace SharpConnect.WebServers
             w++;
             bodyBuffer[w] = (byte)'\n';
             w++;
-
-            context.EnqueueSendingData(bodyBuffer, bodyBuffer.Length);
+            sendIO.EnqueueOutputData(bodyBuffer, bodyBuffer.Length);
             //---------------------------------------------------- 
 
             //end body
             byte[] endChuckedBlock = new byte[] { (byte)'0', (byte)'\r', (byte)'\n', (byte)'\r', (byte)'\n' };
-            context.EnqueueSendingData(endChuckedBlock, endChuckedBlock.Length);
+            sendIO.EnqueueOutputData(endChuckedBlock, endChuckedBlock.Length);
             //---------------------------------------------------- 
             ResetWritingBuffer();
         }
@@ -432,16 +429,10 @@ namespace SharpConnect.WebServers
 
         static void HeaderAppendConnectionType(StringBuilder headerStBuilder, bool keepAlive)
         {
-            //always close connection
-            //headerStBuilder.Append("Connection: close\r\n");
             if (keepAlive)
-            {
                 headerStBuilder.Append("Connection: keep-alive\r\n");
-            }
             else
-            {
                 headerStBuilder.Append("Connection: close\r\n");
-            }
         }
 
         static void HeaderAppendStatusCode(StringBuilder stBuilder, int statusCode)

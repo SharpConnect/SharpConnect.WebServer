@@ -186,23 +186,23 @@ namespace SharpConnect.WebServers
         /// add and parse data
         /// </summary>
         /// <param name="buffer"></param>
-        internal ProcessReceiveBufferResult LoadData()
+        internal ProcessReceiveBufferResult LoadData(Internal.RecvIO recvIO)
         {
             switch (parseState)
             {
                 case HttpParsingState.Head:
                     {
                         //find html header 
-                        int readpos = ParseHttpRequestHeader();
+                        int readpos = ParseHttpRequestHeader(recvIO);
                         //check if complete or not
                         if (parseState == HttpParsingState.Body)
                         {
-                            ProcessHtmlPostBody(readpos);
+                            ProcessHtmlPostBody(readpos, recvIO);
                         }
                     }
                     break;
                 case HttpParsingState.Body:
-                    ProcessHtmlPostBody(0);
+                    ProcessHtmlPostBody(0, recvIO);
                     break;
                 case HttpParsingState.Complete:
                     break;
@@ -295,26 +295,24 @@ namespace SharpConnect.WebServers
             }
         }
 
-        int ParseHttpRequestHeader()
+        int ParseHttpRequestHeader(Internal.RecvIO recvIO)
         {
             //start from pos0
             int readpos = 0;
-            //int lim = recvIO.BytesTransferred - 1;
-            int lim = context.RecvByteTransfer - 1;
+            int lim = recvIO.BytesTransferred - 1;
             int i = 0;
             for (; i <= lim; ++i)
             {
                 //just read 
-                if (context.ReadByte(i) == '\r' &&
-                    context.ReadByte(i + 1) == '\n')
+                if (recvIO.ReadByte(i) == '\r' &&
+                    recvIO.ReadByte(i + 1) == '\n')
                 {
                     //each line
                     //translate
                     if (i - readpos < 512)
                     {
                         //copy     
-
-                        context.RecvCopyTo(readpos, tmpReadBuffer, i - readpos);
+                        recvIO.CopyTo(readpos, tmpReadBuffer, i - readpos);
                         //translate
                         string line = Encoding.UTF8.GetString(tmpReadBuffer, 0, i - readpos);
                         readpos = i + 2;
@@ -343,10 +341,10 @@ namespace SharpConnect.WebServers
             }
             return readpos;
         }
-        void ProcessHtmlPostBody(int readpos)
+        void ProcessHtmlPostBody(int readpos, Internal.RecvIO recvIO)
         {
             //parse body
-            int transferedBytes = context.RecvByteTransfer;
+            int transferedBytes = recvIO.BytesTransferred;
             int remaining = transferedBytes - readpos;
             if (!IsMsgBodyComplete)
             {
@@ -355,7 +353,7 @@ namespace SharpConnect.WebServers
                 {
                     //complete here 
                     byte[] buff = new byte[wantBytes];
-                    context.RecvCopyTo(readpos, buff, wantBytes);
+                    recvIO.CopyTo(readpos, buff, wantBytes);
                     //add to req  
                     AddMsgBody(buff, 0, wantBytes);
                     //complete 
@@ -368,7 +366,7 @@ namespace SharpConnect.WebServers
                     if (remaining > 0)
                     {
                         byte[] buff = new byte[remaining];
-                        context.RecvCopyTo(readpos, buff, remaining);
+                        recvIO.CopyTo(readpos, buff, remaining);
                         //add to req  
                         AddMsgBody(buff, 0, remaining);
                     }

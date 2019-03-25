@@ -1,9 +1,6 @@
 ﻿//2015, MIT, EngineKit
 using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Net.Security;
-using System.Text;
+using System.Collections.Generic; 
 using SharpConnect.WebServers;
 
 namespace SharpConnect
@@ -15,7 +12,9 @@ namespace SharpConnect
         {
             Main2();
         }
-        static List<WebSocketContext> s_connectionList = new List<WebSocketContext>();
+
+
+        static List<WebSocketContext> s_contextList = new List<WebSocketContext>();
         static void Main2()
         {
             Console.WriteLine("Hello!, from SharpConnect");
@@ -25,46 +24,35 @@ namespace SharpConnect
             {
                 //1. create  
                 WebServer webServer = new WebServer(8080, true, testApp.HandleRequest);
-                //webServer.LoadCertificate(@"C:\Users\User\cert.p12", "12345");
-                //webServer.LoadCertificate(@"D:\WImageTest\mycert.p12", "12345");
-                //webServer.UseSsl = true;
-
-                //----------------------------------------------------------------------
 
                 //test websocket 
                 var webSocketServer = new WebSocketServer();
                 webSocketServer.SetOnNewConnectionContext(ctx =>
                 {
-                    s_connectionList.Add(ctx);
+                    s_contextList.Add(ctx);
                     ctx.SetMessageHandler(testApp.HandleWebSocket);
                 });
                 webServer.WebSocketServer = webSocketServer;
-
                 webServer.Start();
-                //
-                //for handle cert error on WebClient
-                ServicePointManager.ServerCertificateValidationCallback = new RemoteCertificateValidationCallback(delegate { return true; });
 
-                //test connect to the server
-                //try
-                //{
-                //    WebClient wb = new WebClient();
-                //    wb.Proxy = null;
-                //    //Console.WriteLine(wb.UploadString("https://localhost:8080", "ABCDEFGHI"));
-                //    // Console.WriteLine(wb.DownloadString("https://localhost:8080"));
-                //    //Console.WriteLine(wb.DownloadString("http://localhost:8080"));
-                //}
-                //catch (Exception ex)
-                //{
-
-                //}
-
-                string userInput = Console.ReadLine();
-                while (userInput != "X")
+                string cmd = "";
+                while (cmd != "X")
                 {
-                    userInput = Console.ReadLine();
+                    cmd = Console.ReadLine();
+                    switch (cmd)
+                    {
+                        case "B":
+                            {
+                                //test broadcast
+                                int j = s_contextList.Count;
+                                for (int i = 0; i < j; ++i)
+                                {
+                                    s_contextList[i].Send("hello!");
+                                }
+                            }
+                            break;
+                    }
                 }
-
             }
             catch (Exception ex)
             {
@@ -84,9 +72,6 @@ namespace SharpConnect
                     Console.WriteLine("Could not close log properly.");
                 }
             }
-        }
-
-
-
+        } 
     }
 }
