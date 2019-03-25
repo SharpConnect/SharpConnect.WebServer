@@ -26,8 +26,8 @@ namespace SharpConnect
                 //1. create  
                 WebServer webServer = new WebServer(8080, true, testApp.HandleRequest);
                 //webServer.LoadCertificate(@"C:\Users\User\cert.p12", "12345");
-                //webServer.LoadCertificate(@"D:\WImageTest\mycert.p12", "12345");
-                //webServer.UseSsl = true;
+                webServer.LoadCertificate(@"D:\WImageTest\mycert.p12", "12345");
+                webServer.UseSsl = true;
 
                 //----------------------------------------------------------------------
 
