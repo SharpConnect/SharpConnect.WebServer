@@ -86,121 +86,34 @@ namespace SharpConnect.Internal
     class RecvIO
     {
         AbstractAsyncNetworkStream _networkStream;
-        //int recvStartOffset;
-        //int recvBufferSize;
-        //SocketAsyncEventArgs recvArgs;
         Action<RecvEventCode> recvNotify;
-
-
-        //public RecvIO(SocketAsyncEventArgs recvArgs, int recvStartOffset, int recvBufferSize, Action<RecvEventCode> recvNotify)
-        //{
-        //    this.recvArgs = recvArgs;
-        //    this.recvStartOffset = recvStartOffset;
-        //    this.recvBufferSize = recvBufferSize;
-        //    this.recvNotify = recvNotify;
-        //}
         public RecvIO(Action<RecvEventCode> recvNotify)
         {
-            //this.recvArgs = recvArgs;
-            //this.recvStartOffset = recvStartOffset;
-            //this.recvBufferSize = recvBufferSize;
             this.recvNotify = recvNotify;
         }
         public void Bind(AbstractAsyncNetworkStream networkStream)
         {
             _networkStream = networkStream;
-        }
-
-
-
+        } 
         public byte ReadByte(int index)
         {
 
             //read one byte from specific index from stream
-            return _networkStream.GetByteFromBuffer(index);
-
-            //return recvArgs.Buffer[this.recvStartOffset + index];
-        }
-        public void CopyTo(int srcIndex, byte[] destBuffer, int destIndex, int count)
-        {
-
-            //Buffer.BlockCopy(recvArgs.Buffer,
-            //recvStartOffset + srcIndex,
-            //destBuffer,
-            //destIndex, count);
-        }
+            return _networkStream.GetByteFromBuffer(index); 
+        } 
         public void CopyTo(int srcIndex, byte[] destBuffer, int count)
         {
             _networkStream.ReadBuffer(srcIndex, count, destBuffer, 0);
         }
-        public void CopyTo(int srcIndex, MemoryStream ms, int count)
-        {
-
-        }
-#if DEBUG
-
-        //public byte[] dbugReadToBytes()
-        //{
-        //    int bytesTransfer = recvArgs.BytesTransferred;
-        //    byte[] destBuffer = new byte[bytesTransfer];
-
-        //    Buffer.BlockCopy(recvArgs.Buffer,
-        //        recvStartOffset,
-        //        destBuffer,
-        //        0, bytesTransfer);
-
-        //    return destBuffer;
-        //}
-
-        //#if DEBUG 
-        //        static int s_dbugTotalId;
-        //        public readonly int dbugId = s_dbugTotalId++;
-        //#endif
-#endif
-
-        ///// <summary>
-        ///// process just received data, called when IO complete
-        ///// </summary>
-        //public void ProcessReceivedData()
-        //{
-        //    //1. socket error
-        //    if (recvArgs.SocketError != SocketError.Success)
-        //    {
-        //        recvNotify(RecvEventCode.SocketError);
-        //        return;
-        //    }
-        //    //2. no more receive 
-        //    if (recvArgs.BytesTransferred == 0)
-        //    {
-        //        recvNotify(RecvEventCode.NoMoreReceiveData);
-        //        return;
-        //    }
-        //    recvNotify(RecvEventCode.HasSomeData);
-        //}
-
+       
         /// <summary>
         /// start new receive
         /// </summary>
         public void StartReceive()
         {
             _networkStream.ClearReceiveBuffer();
-            _networkStream.StartReceive();
-
-            ////when we start recv again ***=> set r
-            //recvArgs.SetBuffer(this.recvStartOffset, this.recvBufferSize);
-            //recvArgs.AcceptSocket.ReceiveAsync(recvArgs);
-        }
-        ///// <summary>
-        ///// start new receive
-        ///// </summary>
-        ///// <param name="buffer"></param>
-        ///// <param name="len"></param>
-        //public void StartReceive(byte[] buffer, int len)
-        //{
-        //    recvArgs.SetBuffer(buffer, 0, len);
-        //    recvArgs.AcceptSocket.ReceiveAsync(recvArgs);
-        //}
-
+            _networkStream.StartReceive(); 
+        }  
         public int BytesTransferred => _networkStream.ByteReadTransfered;
         internal byte[] UnsafeGetInternalBuffer()
         {
@@ -416,7 +329,7 @@ namespace SharpConnect.Internal
 #if DEBUG && !NETSTANDARD1_6
         readonly int dbugThradId = System.Threading.Thread.CurrentThread.ManagedThreadId;
 #endif
-        
+
         public SendIO(Action<SendIOEventCode> notify)
         {
             _notify = notify;
