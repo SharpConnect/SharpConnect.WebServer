@@ -27,7 +27,9 @@
 
 using System;
 using System.Collections.Generic;
-using System.Net.Sockets; 
+using System.Net.Security;
+using System.Net.Sockets;
+using System.Text;
 
 using SharpConnect.Internal;
 
@@ -40,93 +42,309 @@ namespace SharpConnect.WebServers
     class HttpContext
     {
 
-        readonly SocketAsyncEventArgs recvSendArgs;
-        readonly RecvIO recvIO;
-        readonly SendIO sendIO;
 
         HttpRequest httpReq;
         HttpResponse httpResp;
         ReqRespHandler<HttpRequest, HttpResponse> reqHandler;
         WebServer ownerServer;
 
+        SockNetworkStream _baseSockStream;
+        AbstractAsyncNetworkStream _sockStream;
+
+        Socket _clientSocket;
+
+#if DEBUG
+        static int dbugTotalId;
+        public readonly int dbugId = dbugTotalId++;
+
+        bool _dbugForHttps;
+        public bool dbugForHttps
+        {
+            get => _dbugForHttps;
+            set
+            {
+                _dbugForHttps = value;
+            }
+        }
+
+#endif
+
         public HttpContext(
-             WebServer ownerServer,
+            WebServer ownerServer,
             int recvBufferSize,
             int sendBufferSize)
         {
+            //we create http context with default IO buffer
+
+
             this.EnableWebSocket = true;
             this.ownerServer = ownerServer;
-            //each recvSendArgs is created for this connection session only ***
-            //---------------------------------------------------------------------------------------------------------- 
-            
-            KeepAlive = false;
+
+            byte[] recvBuff = new byte[recvBufferSize];
+            byte[] sendBuffer = new byte[sendBufferSize];
+
+            IOBuffer recvIOBuffer = new IOBuffer(recvBuff, 0, recvBuff.Length);
+            IOBuffer sendIOBuffer = new IOBuffer(sendBuffer, 0, sendBuffer.Length);
+            _baseSockStream = new SockNetworkStream(recvIOBuffer, sendIOBuffer);
+            //
+            //
+            //each recvSendArgs is created for this connection session only *** 
+            //KeepAlive = false;
+
             //set buffer for newly created saArgs
-            ownerServer.SetBufferFor(this.recvSendArgs = new SocketAsyncEventArgs());
-            recvIO = new RecvIO(recvSendArgs, recvSendArgs.Offset, recvBufferSize, HandleReceive);
-            sendIO = new SendIO(recvSendArgs, recvSendArgs.Offset + recvBufferSize, sendBufferSize, HandleSend);
+            //ownerServer.SetBufferFor(this.recvSendArgs = new SocketAsyncEventArgs()); 
             //----------------------------------------------------------------------------------------------------------  
             httpReq = new HttpRequest(this);
-            httpResp = new HttpResponse(this, sendIO);
-
-            //common(shared) event listener***
-            recvSendArgs.Completed += (object sender, SocketAsyncEventArgs e) =>
-            {
-                switch (e.LastOperation)
-                {
-                    case SocketAsyncOperation.Receive:
-                        recvIO.ProcessReceivedData();
-                        break;
-                    case SocketAsyncOperation.Send:
-                        sendIO.ProcessWaitingData();
-                        break;
-                    default:
-                        throw new ArgumentException("The last operation completed on the socket was not a receive or send");
-                }
-            };
+            httpResp = new HttpResponse(this);
         }
-        void HandleReceive(RecvEventCode recvEventCode)
+
+        internal bool CreatedFromPool { get; set; }
+        internal void EnqueueSendingData(byte[] buffer, int len) => _sockStream.EnqueueSendData(buffer, len);
+        internal int RecvByteTransfer => _sockStream.ByteReadTransfered;
+        internal byte ReadByte(int pos) => _sockStream.RecvReadByte(pos);
+        internal void RecvCopyTo(int readpos, byte[] dstBuffer, int copyLen) => _sockStream.RecvCopyTo(readpos, dstBuffer, copyLen);
+
+        internal void SendIOStartSend() => _sockStream.StartSend();
+
+        //void HandleReceive(RecvEventCode recvEventCode)
+        //{
+        //    switch (recvEventCode)
+        //    {
+        //        case RecvEventCode.SocketError:
+        //            {
+        //                UnBindSocket(true);
+        //            }
+        //            break;
+        //        case RecvEventCode.NoMoreReceiveData:
+        //            {
+        //                //no data to receive
+        //                httpResp.End();
+        //                //reqHandler(this.httpReq, httpResp);
+        //            }
+        //            break;
+        //        case RecvEventCode.HasSomeData:
+        //            {
+        //                //process some data
+        //                //there some data to process  
+        //                switch (httpReq.LoadData(recvIO))
+        //                {
+        //                    case ProcessReceiveBufferResult.Complete:
+        //                        {
+        //                            //recv and parse complete  
+        //                            //goto user action 
+        //                            if (this.EnableWebSocket &&
+        //                                this.ownerServer.CheckWebSocketUpgradeRequest(this))
+        //                            {
+        //                                return;
+        //                            }
+        //                            reqHandler(this.httpReq, httpResp);
+        //                        }
+        //                        break;
+        //                    case ProcessReceiveBufferResult.NeedMore:
+        //                        {
+        //                            recvIO.StartReceive();
+        //                        }
+        //                        break;
+        //                    case ProcessReceiveBufferResult.Error:
+        //                    default:
+        //                        throw new NotSupportedException();
+        //                }
+        //            }
+        //            break;
+        //    }
+        //}
+        //void HandleSend(SendIOEventCode sendEventCode)
+        //{
+        //    switch (sendEventCode)
+        //    {
+        //        case SendIOEventCode.SocketError:
+        //            {
+        //                UnBindSocket(true);
+        //                KeepAlive = false;
+        //            }
+        //            break;
+        //        case SendIOEventCode.SendComplete:
+        //            {
+        //                Reset();
+        //                if (KeepAlive)
+        //                {
+        //                    //next recv on the same client
+        //                    StartReceive();
+        //                }
+        //                else
+        //                {
+        //                    UnBindSocket(true);
+        //                }
+        //            }
+        //            break;
+        //    }
+        //}
+
+        //----------------------------------------------------------------------------------------------------------  
+        public bool EnableWebSocket
         {
-            switch (recvEventCode)
-            {
-                case RecvEventCode.SocketError:
-                    {
-                        UnBindSocket(true);
-                    } break;
-                case RecvEventCode.NoMoreReceiveData:
-                    {
-                        //no data to receive
-                        httpResp.End();
-                        //reqHandler(this.httpReq, httpResp);
-                    } break;
-                case RecvEventCode.HasSomeData:
-                    {
-                        //process some data
-                        //there some data to process  
-                        switch (httpReq.LoadData(recvIO))
-                        {
-                            case ProcessReceiveBufferResult.Complete:
-                                {
-                                    //recv and parse complete  
-                                    //goto user action
-
-                                    if (this.EnableWebSocket &&
-                                        this.ownerServer.CheckWebSocketUpgradeRequest(this))
-                                    {
-                                        return;
-                                    } 
-                                    reqHandler(this.httpReq, httpResp);
-                                } break;
-                            case ProcessReceiveBufferResult.NeedMore:
-                                {
-                                    recvIO.StartReceive();
-                                } break;
-                            case ProcessReceiveBufferResult.Error:
-                            default:
-                                throw new NotSupportedException();
-                        }
-                    } break;
-            }
+            get;
+            set;
         }
+
+        //object _k_log = new object();
+        //bool _k = true;
+
+        public bool KeepAlive { get; set; }
+
+        internal HttpRequest HttpReq
+        {
+            get { return this.httpReq; }
+        }
+        internal HttpResponse HttpResp
+        {
+            get { return this.httpResp; }
+        }
+        internal Socket RemoteSocket
+        {
+            get { return _clientSocket; }
+        }
+        /// <summary>
+        /// bind to client socket
+        /// </summary>
+        /// <param name="clientSocket"></param>
+        internal void BindSocket(Socket clientSocket)
+        {
+            _clientSocket = clientSocket;
+            //bind socket to the base stream
+            _baseSockStream.Bind(clientSocket);
+        }
+        internal void BindReqHandler(ReqRespHandler<HttpRequest, HttpResponse> reqHandler)
+        {
+            this.reqHandler = reqHandler;
+        }
+        internal void UnBindSocket(bool closeClientSocket)
+        {
+            //cut connection from current socket
+            _baseSockStream.UnbindSocket();
+            _baseSockStream.ClearRecvEvent();
+            //
+            if (closeClientSocket)
+            {
+                try
+                {
+                    _clientSocket.Shutdown(SocketShutdown.Both);
+                }
+                // throws if socket was already closed
+                catch (Exception)
+                {
+                    // dbugSendLog(connSession, "CloseClientSocket, Shutdown catch");
+                }
+                _clientSocket.Close();
+            }
+
+            //TODO: 
+            //this.recvSendArgs.AcceptSocket = null;
+            Reset();//reset 
+            ownerServer.ReleaseChildConn(this);
+            _isFirstTime = true;
+        }
+        void StartReceive()
+        {
+            //_asyncStream.StartReceive();
+            //recvIO.StartReceive();
+            int debugId = this.dbugId;
+
+            _sockStream.StartReceive();
+        }
+
+        bool _isFirstTime = true;
+        /// <summary>
+        /// start authen and receive
+        /// </summary>
+        /// <param name="cert"></param>
+        internal void StartReceive(System.Security.Cryptography.X509Certificates.X509Certificate2 cert)
+        {
+            if (cert == null)
+            {
+                //if no cert then just start recv                
+                _sockStream = _baseSockStream;
+
+                ////-----------------------------
+                //recvIO.Bind(_sockStream);
+                //sendIO.Bind(_sockStream);
+                ////-----------------------------
+                if (_isFirstTime)
+                {
+                    _isFirstTime = false;
+                    _sockStream.SetRecvCompleteEventHandler((s, e) =>
+                    {
+                        HandleReceive(RecvEventCode.HasSomeData);
+                    });
+                    _sockStream.SetSendCompleteEventHandler((s, e) =>
+                    {
+                        HandleSend(SendIOEventCode.SendComplete);
+                    });
+                }
+                _sockStream.StartReceive();
+
+            }
+            else
+            {
+                //with cert , we need ssl stream
+
+                SecureSockNetworkStream secureStream = new SecureSockNetworkStream(_baseSockStream, cert);
+                _sockStream = secureStream; //** 
+                ////-----------------------------
+                //recvIO.Bind(_sockStream);
+                //sendIO.Bind(_sockStream);
+                ////-----------------------------
+                if (_isFirstTime)
+                {
+                    _isFirstTime = false;
+                    _sockStream.SetRecvCompleteEventHandler((s, e) =>
+                    {
+                        if (e.ByteTransferedCount == 0)
+                        {
+                            HandleReceive(RecvEventCode.NoMoreReceiveData);
+                        }
+                        else
+                        {
+                            HandleReceive(RecvEventCode.HasSomeData);
+                        }
+
+                    });
+                    _sockStream.SetSendCompleteEventHandler((s, e) =>
+                    {
+                        HandleSend(SendIOEventCode.SendComplete);
+                    });
+                }
+                try
+                {
+                    //we encapsulate ssl inside the secure socket stream 
+                    secureStream.AuthenAsServer(
+                        () =>
+                        {
+                            _sockStream.StartReceive();
+                        });
+
+                }
+                catch (System.IO.IOException ex)
+                {
+                    //eg. unexpected format
+                    //can't start receive
+                    //the we must exit this context ***
+                    return;
+                }
+
+            }
+
+        }
+        internal void Reset()
+        {
+            //reset recv and send
+            //for next use
+            httpReq.Reset();
+            httpResp.ResetAll();
+            _sockStream.Reset();
+        }
+
+        int _sendCompleted = 0;
         void HandleSend(SendIOEventCode sendEventCode)
         {
             switch (sendEventCode)
@@ -139,89 +357,80 @@ namespace SharpConnect.WebServers
                     break;
                 case SendIOEventCode.SendComplete:
                     {
+                        //KeepAlive = false;
+                        //Reset();
+                        //UnBindSocket(true);
                         Reset();
-                        if (KeepAlive)
-                        {
-                            //next recv on the same client
-                            StartReceive();
-                        }
-                        else
-                        {
-                            UnBindSocket(true);
-                        }
+                        //next recv on the same client
+                        _sendCompleted++;
+
+                        StartReceive();
+
+
+                        //if (KeepAlive)
+                        //{
+                        //    Reset();
+                        //    //next recv on the same client
+                        //    StartReceive();
+                        //}
+                        //else
+                        //{
+                        //    UnBindSocket(true);
+                        //}
                     }
                     break;
             }
         }
 
-        public bool EnableWebSocket
-        {
-            get;
-            set;
-        }
-        public bool KeepAlive
-        {
-            get;
-            set;
-        }
-        internal HttpRequest HttpReq
-        {
-            get { return this.httpReq; }
-        }
-        internal HttpResponse HttpResp
-        {
-            get { return this.httpResp; }
-        }
-        internal Socket RemoteSocket
-        {
-            get { return recvSendArgs.AcceptSocket; }
-        }
-        /// <summary>
-        /// bind to client socket
-        /// </summary>
-        /// <param name="clientSocket"></param>
-        internal void BindSocket(Socket clientSocket)
-        {
-            this.recvSendArgs.AcceptSocket = clientSocket;
-        }
-        internal void BindReqHandler(ReqRespHandler<HttpRequest, HttpResponse> reqHandler)
-        {
-            this.reqHandler = reqHandler;
-        }
-        internal void UnBindSocket(bool closeClientSocket)
-        {
-            //cut connection from current socket
-            Socket clientSocket = recvSendArgs.AcceptSocket;
-            if (closeClientSocket)
-            {
-                try
-                {
-                    clientSocket.Shutdown(SocketShutdown.Both);
-                }
-                // throws if socket was already closed
-                catch (Exception)
-                {
-                    // dbugSendLog(connSession, "CloseClientSocket, Shutdown catch");
-                }
-                clientSocket.Close();
-            }
-            this.recvSendArgs.AcceptSocket = null;
-            Reset();//reset 
-            ownerServer.ReleaseChildConn(this);
-        }
-        internal void StartReceive()
-        {
-            recvIO.StartReceive();
-        }
-        internal void Reset()
-        {
-            //reset recv and send
-            //for next use
-            httpReq.Reset();
-            httpResp.ResetAll();
-            sendIO.Reset();
-        }
 
+        void HandleReceive(RecvEventCode recvEventCode)
+        {
+            switch (recvEventCode)
+            {
+                case RecvEventCode.SocketError:
+                    {
+                        UnBindSocket(true);
+                    }
+                    break;
+                case RecvEventCode.NoMoreReceiveData:
+                    {
+                        //no data to receive
+                        httpResp.End();
+                        //reqHandler(this.httpReq, httpResp);
+                    }
+                    break;
+                case RecvEventCode.HasSomeData:
+                    {
+                        //process some data
+                        //there some data to process  
+                        switch (httpReq.LoadData())
+                        {
+                            case ProcessReceiveBufferResult.Complete:
+                                {
+                                    //recv and parse complete  
+                                    //goto user action 
+                                    if (this.EnableWebSocket &&
+                                        this.ownerServer.CheckWebSocketUpgradeRequest(this))
+                                    {
+                                        return;
+                                    }
+                                    reqHandler(this.httpReq, httpResp);
+                                }
+                                break;
+                            case ProcessReceiveBufferResult.NeedMore:
+                                {
+                                    _sockStream.StartReceive();
+                                    //recvIO.StartReceive();
+                                }
+                                break;
+                            case ProcessReceiveBufferResult.Error:
+                            default:
+                                throw new NotSupportedException();
+                        }
+                    }
+                    break;
+            }
+        }
         protected virtual void OnSocketError()
         {
 
@@ -232,14 +441,13 @@ namespace SharpConnect.WebServers
         }
         public void Dispose()
         {
-            this.recvSendArgs.Dispose();
+            //   this.recvSendArgs.Dispose();
         }
-
-
         internal WebServer OwnerWebServer
         {
             get { return this.ownerServer; }
         }
+
 
 #if DEBUG
 
@@ -256,13 +464,13 @@ namespace SharpConnect.WebServers
         {
             get
             {
-                return this._dbugSessionId;
+                return _dbugSessionId;
             }
         }
         int _dbugSessionId;
         public void dbugSetInfo(int tokenId)
         {
-            this._dbugTokenId = tokenId;
+            _dbugTokenId = tokenId;
         }
         public Int32 dbugTokenId
         {
@@ -271,7 +479,7 @@ namespace SharpConnect.WebServers
 
             get
             {
-                return this._dbugTokenId;
+                return _dbugTokenId;
             }
         }
         int _dbugTokenId; //for testing only    

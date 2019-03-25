@@ -12,12 +12,4 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Compile Remove="WebSocket\WebSocketClient.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="WebSocket\WebSocketClient.cs" />
-  </ItemGroup>
-
 </Project>
