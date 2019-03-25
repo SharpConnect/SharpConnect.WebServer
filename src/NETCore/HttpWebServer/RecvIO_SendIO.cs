@@ -5,9 +5,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net.Sockets;
-using System.Text;
-
 
 namespace SharpConnect.Internal
 {
@@ -85,11 +82,10 @@ namespace SharpConnect.Internal
 
     class RecvIO
     {
-        AbstractAsyncNetworkStream _networkStream;
-        Action<RecvEventCode> recvNotify;
-        public RecvIO(Action<RecvEventCode> recvNotify)
+        AbstractAsyncNetworkStream _networkStream; 
+        public RecvIO()
         {
-            this.recvNotify = recvNotify;
+
         }
         public void Bind(AbstractAsyncNetworkStream networkStream)
         {
@@ -97,7 +93,6 @@ namespace SharpConnect.Internal
         }
         public byte ReadByte(int index)
         {
-
             //read one byte from specific index from stream
             return _networkStream.GetByteFromBuffer(index);
         }
@@ -306,14 +301,12 @@ namespace SharpConnect.Internal
     {
         //send,
         //resp 
-        //readonly int _sendStartOffset;
-        //readonly int _sendBufferSize;
-        //readonly SocketAsyncEventArgs _sendArgs;
+ 
         int sendingTargetBytes; //target to send
         int sendingTransferredBytes; //has transfered bytes
         byte[] currentSendingData = null;
         Queue<byte[]> sendingQueue = new Queue<byte[]>();
-        Action<SendIOEventCode> _notify;
+     
         object stateLock = new object();
         object queueLock = new object();
         SendIOState _sendingState = SendIOState.ReadyNextSend;
@@ -324,9 +317,8 @@ namespace SharpConnect.Internal
         readonly int dbugThradId = System.Threading.Thread.CurrentThread.ManagedThreadId;
 #endif
 
-        public SendIO(Action<SendIOEventCode> notify)
-        {
-            _notify = notify;
+        public SendIO()
+        { 
         }
         public void Bind(AbstractAsyncNetworkStream networkStream)
         {
@@ -582,122 +574,7 @@ namespace SharpConnect.Internal
             //    ProcessWaitingData();
             //}
         }
-        /// <summary>
-        /// send next data, after prev IO complete
-        /// </summary>
-        public void ProcessWaitingData()
-        {
-            // This method is called by I/O Completed() when an asynchronous send completes.   
-            //after IO completed, what to do next.... 
-            sendingState = SendIOState.ProcessSending;
-
-            //temp
-
-
-            //no data
-            ResetBuffer();
-            //notify no more data
-            //****
-            sendingState = SendIOState.ReadyNextSend;
-            _notify(SendIOEventCode.SendComplete);
-
-            return;
-
-
-
-            ////------------------------------------------------------------------
-            //switch (_sendArgs.SocketError)
-            //{
-            //    default:
-            //        {
-            //            //error, socket error
-
-            //            ResetBuffer();
-            //            sendingState = SendIOState.Error;
-            //            _notify(SendIOEventCode.SocketError);
-            //            //manage socket errors here
-            //        }
-            //        break;
-            //    case SocketError.Success:
-            //        {
-            //            this.sendingTransferredBytes += _sendArgs.BytesTransferred;
-            //            int remainingBytes = this.sendingTargetBytes - sendingTransferredBytes;
-            //            if (remainingBytes > 0)
-            //            {
-            //                //no complete!, 
-            //                //start next send ...
-            //                //****
-            //                sendingState = SendIOState.ReadyNextSend;
-            //                StartSendAsync();
-            //                //****
-            //            }
-            //            else if (remainingBytes == 0)
-            //            {
-            //                //complete sending  
-            //                //check the queue again ...
-
-            //                bool hasSomeData = false;
-            //                lock (queueLock)
-            //                {
-            //                    if (sendingQueue.Count > 0)
-            //                    {
-            //                        //move new chunck to current Sending data
-            //                        this.currentSendingData = sendingQueue.Dequeue();
-            //                        hasSomeData = true;
-            //                    }
-            //                }
-
-            //                if (hasSomeData)
-            //                {
-            //                    this.sendingTargetBytes = currentSendingData.Length;
-            //                    this.sendingTransferredBytes = 0;
-            //                    //****
-            //                    sendingState = SendIOState.ReadyNextSend;
-            //                    StartSendAsync();
-            //                    //****
-            //                }
-            //                else
-            //                {
-            //                    //no data
-            //                    ResetBuffer();
-            //                    //notify no more data
-            //                    //****
-            //                    sendingState = SendIOState.ReadyNextSend;
-            //                    _notify(SendIOEventCode.SendComplete);
-            //                    //****   
-            //                }
-            //                //if (sendingQueue.Count > 0)
-            //                //{
-            //                //    //move new chunck to current Sending data
-            //                //    this.currentSendingData = sendingQueue.Dequeue()
-            //                //    this.sendingTargetBytes = currentSendingData.Length;
-            //                //    this.sendingTransferredBytes = 0;
-
-            //                //    //****
-            //                //    sendingState = SendIOState.ReadyNextSend;
-            //                //    StartSendAsync();
-            //                //    //****
-            //                //}
-            //                //else
-            //                //{
-            //                //    //no data
-            //                //    ResetBuffer();
-            //                //    //notify no more data
-            //                //    //****
-            //                //    sendingState = SendIOState.ReadyNextSend;
-            //                //    notify(SendIOEventCode.SendComplete);
-            //                //    //****   
-            //                //}
-            //            }
-            //            else
-            //            {   //< 0 ????
-            //                throw new NotSupportedException();
-            //            }
-            //        }
-            //        break;
-            //}
-
-        }
+         
     }
 
 
