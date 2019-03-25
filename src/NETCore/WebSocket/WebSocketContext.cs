@@ -45,66 +45,67 @@ namespace SharpConnect.WebServers
         SendIO sendIO;
         int connectionId;
         static int connectionIdTotal;
-        bool _asClientContext;
-        public WebSocketContext(bool asClient)
-        {
-            _asClientContext = asClient;
-            connectionId = System.Threading.Interlocked.Increment(ref connectionIdTotal);
-            //-------------------
-            //send,resp 
-            sockAsyncSender = new SocketAsyncEventArgs();
-            sockAsyncSender.SetBuffer(new byte[RECV_BUFF_SIZE], 0, RECV_BUFF_SIZE);
-            sendIO = new SendIO(sockAsyncSender, 0, RECV_BUFF_SIZE, sendIO_SendCompleted);
-            sockAsyncSender.Completed += new EventHandler<SocketAsyncEventArgs>((s, e) =>
-            {
-                switch (e.LastOperation)
-                {
-                    default:
-                        {
-                        }
-                        break;
-                    case SocketAsyncOperation.Send:
-                        {
-                            sendIO.ProcessWaitingData();
-                        }
-                        break;
-                    case SocketAsyncOperation.Receive:
-                        {
-                        }
-                        break;
-                }
-            });
-            webSocketResp = new WebSocketResponse(this, sendIO);
 
-            //------------------------------------------------------------------------------------
-            //recv,req ,new socket
-            sockAsyncListener = new SocketAsyncEventArgs();
-            sockAsyncListener.SetBuffer(new byte[RECV_BUFF_SIZE], 0, RECV_BUFF_SIZE);
-            recvIO = new RecvIO(sockAsyncListener, 0, RECV_BUFF_SIZE, HandleReceivedData);
-            sockAsyncListener.Completed += new EventHandler<SocketAsyncEventArgs>((s, e) =>
-            {
-                switch (e.LastOperation)
-                {
-                    default:
-                        {
-                        }
-                        break;
-                    case SocketAsyncOperation.Send:
-                        {
-                        }
-                        break;
-                    case SocketAsyncOperation.Receive:
-                        {
-                            recvIO.ProcessReceivedData();
-                        }
-                        break;
-                }
-            });
-            //------------------------------------------------------------------------------------             
-            this.webSocketReqParser = new WebSocketProtocolParser(this, recvIO);
+        public WebSocketContext(WebSocketServer webSocketServer)
+        {
+
+            //this.webSocketServer = webSocketServer;
+            //connectionId = System.Threading.Interlocked.Increment(ref connectionIdTotal);
+            ////-------------------
+            ////send,resp 
+            //sockAsyncSender = new SocketAsyncEventArgs();
+            //sockAsyncSender.SetBuffer(new byte[RECV_BUFF_SIZE], 0, RECV_BUFF_SIZE);
+            //sendIO = new SendIO(sockAsyncSender, 0, RECV_BUFF_SIZE, sendIO_SendCompleted);
+            //sockAsyncSender.Completed += new EventHandler<SocketAsyncEventArgs>((s, e) =>
+            //{
+            //    switch (e.LastOperation)
+            //    {
+            //        default:
+            //            {
+            //            }
+            //            break;
+            //        case SocketAsyncOperation.Send:
+            //            {
+            //                sendIO.ProcessWaitingData();
+            //            }
+            //            break;
+            //        case SocketAsyncOperation.Receive:
+            //            {
+            //            }
+            //            break;
+            //    }
+            //});
+            //webSocketResp = new WebSocketResponse(sendIO);
+
+            ////------------------------------------------------------------------------------------
+            ////recv,req ,new socket
+            //sockAsyncListener = new SocketAsyncEventArgs();
+            //sockAsyncListener.SetBuffer(new byte[RECV_BUFF_SIZE], 0, RECV_BUFF_SIZE);
+            //recvIO = new RecvIO(sockAsyncListener, 0, RECV_BUFF_SIZE, HandleReceivedData);
+            //sockAsyncListener.Completed += new EventHandler<SocketAsyncEventArgs>((s, e) =>
+            //{
+            //    switch (e.LastOperation)
+            //    {
+            //        default:
+            //            {
+            //            }
+            //            break;
+            //        case SocketAsyncOperation.Send:
+            //            {
+            //            }
+            //            break;
+            //        case SocketAsyncOperation.Receive:
+            //            {
+            //                recvIO.ProcessReceivedData();
+            //            }
+            //            break;
+            //    }
+            //});
+            ////------------------------------------------------------------------------------------             
+            //this.webSocketReqParser = new WebSocketProtocolParser(this, recvIO);
 
         }
-        public bool AsClientContext => _asClientContext;
+
         public void Bind(Socket clientSocket)
         {
             this.clientSocket = clientSocket;

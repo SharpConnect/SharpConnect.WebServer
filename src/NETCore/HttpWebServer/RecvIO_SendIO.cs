@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
+using System.Text;
+
 
 namespace SharpConnect.Internal
 {
@@ -79,125 +81,130 @@ namespace SharpConnect.Internal
         NoMoreReceiveData,
 
     }
+
+
     class RecvIO
     {
-
-        readonly int recvStartOffset;
-        readonly int recvBufferSize;
-        readonly SocketAsyncEventArgs recvArgs;
+        AbstractAsyncNetworkStream _networkStream;
+        //int recvStartOffset;
+        //int recvBufferSize;
+        //SocketAsyncEventArgs recvArgs;
         Action<RecvEventCode> recvNotify;
 
-        public RecvIO(SocketAsyncEventArgs recvArgs, int recvStartOffset, int recvBufferSize, Action<RecvEventCode> recvNotify)
-        {
-            this.recvArgs = recvArgs;
-            this.recvStartOffset = recvStartOffset;
-            this.recvBufferSize = recvBufferSize;
-            this.recvNotify = recvNotify;
 
+        //public RecvIO(SocketAsyncEventArgs recvArgs, int recvStartOffset, int recvBufferSize, Action<RecvEventCode> recvNotify)
+        //{
+        //    this.recvArgs = recvArgs;
+        //    this.recvStartOffset = recvStartOffset;
+        //    this.recvBufferSize = recvBufferSize;
+        //    this.recvNotify = recvNotify;
+        //}
+        public RecvIO(Action<RecvEventCode> recvNotify)
+        {
+            //this.recvArgs = recvArgs;
+            //this.recvStartOffset = recvStartOffset;
+            //this.recvBufferSize = recvBufferSize;
+            this.recvNotify = recvNotify;
         }
+        public void Bind(AbstractAsyncNetworkStream networkStream)
+        {
+            _networkStream = networkStream;
+        }
+
+
 
         public byte ReadByte(int index)
         {
-            return recvArgs.Buffer[this.recvStartOffset + index];
+
+            //read one byte from specific index from stream
+            return _networkStream.GetByteFromBuffer(index);
+
+            //return recvArgs.Buffer[this.recvStartOffset + index];
         }
         public void CopyTo(int srcIndex, byte[] destBuffer, int destIndex, int count)
         {
-            Buffer.BlockCopy(recvArgs.Buffer,
-                recvStartOffset + srcIndex,
-                destBuffer,
-                destIndex, count);
+
+            //Buffer.BlockCopy(recvArgs.Buffer,
+            //recvStartOffset + srcIndex,
+            //destBuffer,
+            //destIndex, count);
         }
         public void CopyTo(int srcIndex, byte[] destBuffer, int count)
         {
-
-            Buffer.BlockCopy(recvArgs.Buffer,
-                recvStartOffset + srcIndex,
-                destBuffer,
-                0, count);
+            _networkStream.ReadBuffer(srcIndex, count, destBuffer, 0);
         }
-
         public void CopyTo(int srcIndex, MemoryStream ms, int count)
         {
 
-            ms.Write(recvArgs.Buffer,
-                recvStartOffset + srcIndex,
-                count);
         }
-
-
 #if DEBUG
-        internal int dbugStartRecvPos
-        {
-            get
-            {
-                return recvStartOffset;
-            }
-        }
-        public byte[] dbugReadToBytes()
-        {
-            int bytesTransfer = recvArgs.BytesTransferred;
-            byte[] destBuffer = new byte[bytesTransfer];
 
-            Buffer.BlockCopy(recvArgs.Buffer,
-                recvStartOffset,
-                destBuffer,
-                0, bytesTransfer);
+        //public byte[] dbugReadToBytes()
+        //{
+        //    int bytesTransfer = recvArgs.BytesTransferred;
+        //    byte[] destBuffer = new byte[bytesTransfer];
 
-            return destBuffer;
-        }
+        //    Buffer.BlockCopy(recvArgs.Buffer,
+        //        recvStartOffset,
+        //        destBuffer,
+        //        0, bytesTransfer);
+
+        //    return destBuffer;
+        //}
+
+        //#if DEBUG 
+        //        static int s_dbugTotalId;
+        //        public readonly int dbugId = s_dbugTotalId++;
+        //#endif
 #endif
 
-        /// <summary>
-        /// process just received data, called when IO complete
-        /// </summary>
-        public void ProcessReceivedData()
-        {
-            //1. socket error
-            if (recvArgs.SocketError != SocketError.Success)
-            {
-                recvNotify(RecvEventCode.SocketError);
-                return;
-            }
-            //2. no more receive 
-            if (recvArgs.BytesTransferred == 0)
-            {
-                recvNotify(RecvEventCode.NoMoreReceiveData);
-                return;
-            }
-            recvNotify(RecvEventCode.HasSomeData);
-        }
+        ///// <summary>
+        ///// process just received data, called when IO complete
+        ///// </summary>
+        //public void ProcessReceivedData()
+        //{
+        //    //1. socket error
+        //    if (recvArgs.SocketError != SocketError.Success)
+        //    {
+        //        recvNotify(RecvEventCode.SocketError);
+        //        return;
+        //    }
+        //    //2. no more receive 
+        //    if (recvArgs.BytesTransferred == 0)
+        //    {
+        //        recvNotify(RecvEventCode.NoMoreReceiveData);
+        //        return;
+        //    }
+        //    recvNotify(RecvEventCode.HasSomeData);
+        //}
 
         /// <summary>
         /// start new receive
         /// </summary>
         public void StartReceive()
         {
-            recvArgs.SetBuffer(this.recvStartOffset, this.recvBufferSize);
-            if (!recvArgs.AcceptSocket.ReceiveAsync(recvArgs))
-            {
-                ProcessReceivedData();
-            }
+            _networkStream.ClearReceiveBuffer();
+            _networkStream.StartReceive();
+
+            ////when we start recv again ***=> set r
+            //recvArgs.SetBuffer(this.recvStartOffset, this.recvBufferSize);
+            //recvArgs.AcceptSocket.ReceiveAsync(recvArgs);
         }
-        /// <summary>
-        /// start new receive
-        /// </summary>
-        /// <param name="buffer"></param>
-        /// <param name="len"></param>
-        public void StartReceive(byte[] buffer, int len)
-        {
-            recvArgs.SetBuffer(buffer, 0, len);
-            if (!recvArgs.AcceptSocket.ReceiveAsync(recvArgs))
-            {
-                ProcessReceivedData();
-            }
-        }
-        public int BytesTransferred
-        {
-            get { return recvArgs.BytesTransferred; }
-        }
+        ///// <summary>
+        ///// start new receive
+        ///// </summary>
+        ///// <param name="buffer"></param>
+        ///// <param name="len"></param>
+        //public void StartReceive(byte[] buffer, int len)
+        //{
+        //    recvArgs.SetBuffer(buffer, 0, len);
+        //    recvArgs.AcceptSocket.ReceiveAsync(recvArgs);
+        //}
+
+        public int BytesTransferred => _networkStream.ByteReadTransfered;
         internal byte[] UnsafeGetInternalBuffer()
         {
-            return recvArgs.Buffer;
+            return null;
         }
 
     }
@@ -219,40 +226,211 @@ namespace SharpConnect.Internal
     }
 
 
+
+
+    struct IOBuffer
+    {
+
+        internal readonly byte[] _largeBuffer;
+        readonly int _startAt;
+        readonly int _len;
+        int _readIndex;
+        int x_writeIndex;
+
+        //write then read
+
+#if DEBUG
+        bool _isSendIO;
+        static int dbugTotalId;
+        int debugId;
+#endif
+
+        public IOBuffer(byte[] largeBuffer, int beginAt, int len)
+        {
+#if DEBUG
+            _isSendIO = false;
+            debugId = dbugTotalId++;
+            if (debugId == 2000)
+            {
+
+            }
+#endif
+            _largeBuffer = largeBuffer;
+            _startAt = beginAt;
+            _len = len;
+            _readIndex = x_writeIndex = 0;
+        }
+#if DEBUG
+        public bool IsSendIO => _isSendIO;
+#endif
+        public int BufferStartAtIndex => _startAt;
+        public int BufferLength => _len;
+        int _writeIndex
+        {
+            get => x_writeIndex;
+            set
+            {
+                x_writeIndex = value;
+            }
+        }
+        public void Reset()
+        {
+            _readIndex = _writeIndex = 0;
+        }
+        public void Reset2()
+        {
+            if (_readIndex == _writeIndex)
+            {
+                _readIndex = _writeIndex = 0;
+            }
+        }
+        public void WriteBuffer(byte[] srcBuffer, int srcIndex, int count)
+        {
+            //copy data from srcBuffer and place to _largeBuffer
+            //make sure that we don't run out-of-length
+
+            if (_writeIndex + count < _len)
+            {
+                Buffer.BlockCopy(srcBuffer, srcIndex, _largeBuffer, _startAt + _writeIndex, count);
+                _writeIndex += count;
+#if DEBUG
+                if (_writeIndex == 2048)
+                {
+
+                }
+#endif
+            }
+            else
+            {
+                //out-of-range!
+                throw new NotSupportedException();
+            }
+        }
+
+        /// <summary>
+        /// append new write byte count (when we share a large buffer with external object)
+        /// </summary>
+        /// <param name="newWriteBytes"></param>
+        public void AppendWriteByteCount(int newWriteBytes)
+        {
+            if (newWriteBytes + _writeIndex > _len)
+            {
+                //throw new out-of-range
+                throw new IndexOutOfRangeException();
+            }
+            _writeIndex += newWriteBytes;
+#if DEBUG
+
+            if (_writeIndex == 2048)
+            {
+                int dbugID = this.debugId;
+            }
+#endif
+        }
+
+
+        public void CopyBuffer(int readIndex, byte[] dstBuffer, int dstIndex, int count)
+        {
+            if (readIndex + count <= _writeIndex) //***
+            {
+                Buffer.BlockCopy(_largeBuffer, _startAt + readIndex, dstBuffer, _startAt + dstIndex, count);
+                //not move readIndex in this case?
+            }
+            else
+            {
+                //out-of-range!
+                throw new NotSupportedException();
+            }
+        }
+        public byte CopyByte(int index)
+        {
+            return _largeBuffer[_startAt + _readIndex + index];
+        }
+        public void ReadBuffer(byte[] dstBuffer, int dstIndex, int count)
+        {
+            //read data from the latest pos
+            if (_readIndex + count <= _writeIndex) //***
+            {
+                Buffer.BlockCopy(_largeBuffer, _startAt + _readIndex, dstBuffer, _startAt + dstIndex, count);
+                _readIndex += count;
+            }
+            else
+            {
+                //out-of-range!
+                throw new NotSupportedException();
+            }
+        }
+
+
+        /// <summary>
+        /// read data from inputStream and write to our buffer
+        /// </summary>
+        /// <param name="inputStream"></param>
+        public void WriteBufferFromStream(Stream inputStream)
+        {
+            if (_writeIndex >= _len)
+            {
+
+            }
+            //try read max data from the stream
+            _writeIndex += inputStream.Read(_largeBuffer, _writeIndex, _len - _writeIndex);
+#if DEBUG
+            if (_writeIndex == 2048)
+            {
+
+            }
+#endif
+        }
+
+        //
+        public int WriteIndex => _writeIndex;
+        public int ReadIndex => _readIndex;
+        public bool HasDataToRead => _readIndex < _writeIndex;
+        public int DataToReadLength => _writeIndex - _readIndex;
+        public byte GetByteFromBuffer(int index)
+        {
+            return _largeBuffer[_startAt + _readIndex + index];
+        }
+        public int RemainingWriteSpace => _len - _writeIndex;
+    }
+
+
     class SendIO
     {
         //send,
         //resp 
-        readonly int sendStartOffset;
-        readonly int sendBufferSize;
-        readonly SocketAsyncEventArgs sendArgs;
+        //readonly int _sendStartOffset;
+        //readonly int _sendBufferSize;
+        //readonly SocketAsyncEventArgs _sendArgs;
         int sendingTargetBytes; //target to send
         int sendingTransferredBytes; //has transfered bytes
         byte[] currentSendingData = null;
         Queue<byte[]> sendingQueue = new Queue<byte[]>();
-        Action<SendIOEventCode> notify;
+        Action<SendIOEventCode> _notify;
         object stateLock = new object();
         object queueLock = new object();
         SendIOState _sendingState = SendIOState.ReadyNextSend;
+        AbstractAsyncNetworkStream _networkStream;
+
 
 #if DEBUG && !NETSTANDARD1_6
         readonly int dbugThradId = System.Threading.Thread.CurrentThread.ManagedThreadId;
 #endif
-        public SendIO(SocketAsyncEventArgs sendArgs,
-            int sendStartOffset,
-            int sendBufferSize,
-            Action<SendIOEventCode> notify)
+        
+        public SendIO(Action<SendIOEventCode> notify)
         {
-            this.sendArgs = sendArgs;
-            this.sendStartOffset = sendStartOffset;
-            this.sendBufferSize = sendBufferSize;
-            this.notify = notify;
+            _notify = notify;
+        }
+        public void Bind(AbstractAsyncNetworkStream networkStream)
+        {
+            _networkStream = networkStream;
         }
         SendIOState sendingState
         {
             get { return _sendingState; }
             set
             {
+#if DEBUG
                 switch (_sendingState)
                 {
                     case SendIOState.Error:
@@ -293,6 +471,7 @@ namespace SharpConnect.Internal
                         break;
 
                 }
+#endif
                 _sendingState = value;
             }
         }
@@ -362,6 +541,25 @@ namespace SharpConnect.Internal
 #if DEBUG
         int dbugSendingTheadId;
 #endif
+
+        //static byte[] CreateTestHtmlRespMsg(string testMsg)
+        //{
+        //    StringBuilder stbuilder = new StringBuilder();
+        //    stbuilder.Append("HTTP/1.1 200 OK");
+        //    stbuilder.AppendLine("Content-Type: text/html");
+        //    byte[] utf8Data = Encoding.UTF8.GetBytes(testMsg);
+        //    stbuilder.Append("Content-Length: " + utf8Data.Length + "\r\n");
+        //    stbuilder.Append("\r\n");//end header part   
+        //                             // 
+        //    using (System.IO.MemoryStream ms = new System.IO.MemoryStream())
+        //    {
+        //        byte[] headerPart = Encoding.UTF8.GetBytes(stbuilder.ToString());
+        //        ms.Write(headerPart, 0, headerPart.Length);
+        //        ms.Write(utf8Data, 0, utf8Data.Length);
+        //        return ms.ToArray();
+        //    }
+        //}
+
         public void StartSendAsync()
         {
             lock (stateLock)
@@ -371,6 +569,8 @@ namespace SharpConnect.Internal
                     //if in other state then return
                     return;
                 }
+
+
 #if DEBUG && !NETSTANDARD1_6
                 dbugSendingTheadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
 #endif
@@ -399,7 +599,6 @@ namespace SharpConnect.Internal
                     sendingState = SendIOState.ReadyNextSend;
                     return;
                 }
-
             }
             else if (remaining < 0)
             {
@@ -408,40 +607,73 @@ namespace SharpConnect.Internal
             }
 
 
-            if (remaining <= this.sendBufferSize)
+            //-----------------------------------------------------------
+
+            //send to network stream
+            //....
+
+            byte[] sendingData = null;// CreateTestHtmlRespMsg("hello!");
+            using (MemoryStream ms1 = new MemoryStream())
             {
-                sendArgs.SetBuffer(this.sendStartOffset, remaining);
-                //*** copy from src to dest
-                if (currentSendingData != null)
+                ms1.Write(currentSendingData, 0, currentSendingData.Length);
+                while (sendingQueue.Count > 0)
                 {
-                    Buffer.BlockCopy(this.currentSendingData, //src
-                        this.sendingTransferredBytes,
-                        sendArgs.Buffer, //dest
-                        this.sendStartOffset,
-                        remaining);
+                    byte[] anotherBuffer = sendingQueue.Dequeue();
+                    ms1.Write(anotherBuffer, 0, anotherBuffer.Length);
                 }
+                sendingData = ms1.ToArray();
+            }
+
+            if (!_networkStream.WriteBuffer(sendingData, 0, sendingData.Length))
+            {
+                //false data pending
+                //true=> data is pending...
+                remaining = 0;
             }
             else
             {
-                //We cannot try to set the buffer any larger than its size.
-                //So since receiveSendToken.sendBytesRemainingCount > BufferSize, we just
-                //set it to the maximum size, to send the most data possible.
-                sendArgs.SetBuffer(this.sendStartOffset, this.sendBufferSize);
-                //Copy the bytes to the buffer associated with this SAEA object.
-                Buffer.BlockCopy(this.currentSendingData,
-                    this.sendingTransferredBytes,
-                    sendArgs.Buffer,
-                    this.sendStartOffset,
-                    this.sendBufferSize);
+                //some data pending ...
+
             }
 
+            //
+            //_networkStream.WriteBuffer(currentSendingData, 0, remaining);
+            //ProcessWaitingData();
 
-            if (!sendArgs.AcceptSocket.SendAsync(sendArgs))
-            {
-                //when SendAsync return false 
-                //this means the socket can't do async send     
-                ProcessWaitingData();
-            }
+            ////-----------------------------------------------------------
+            //if (remaining <= _sendBufferSize)
+            //{
+            //    _sendArgs.SetBuffer(_sendStartOffset, remaining); //set position to send data
+            //    //*** copy from src to dest
+            //    if (currentSendingData != null)
+            //    {
+            //        Buffer.BlockCopy(this.currentSendingData, //src
+            //            this.sendingTransferredBytes,
+            //            _sendArgs.Buffer, //dest
+            //            _sendStartOffset,
+            //            remaining);
+            //    }
+            //}
+            //else
+            //{
+            //    //We cannot try to set the buffer any larger than its size.
+            //    //So since receiveSendToken.sendBytesRemainingCount > BufferSize, we just
+            //    //set it to the maximum size, to send the most data possible.
+            //    _sendArgs.SetBuffer(_sendStartOffset, _sendBufferSize);
+            //    //Copy the bytes to the buffer associated with this SAEA object.
+            //    Buffer.BlockCopy(this.currentSendingData,
+            //        this.sendingTransferredBytes,
+            //        _sendArgs.Buffer,
+            //        _sendStartOffset,
+            //        _sendBufferSize);
+            //}
+
+            //if (!_sendArgs.AcceptSocket.SendAsync(_sendArgs))
+            //{
+            //    //when SendAsync return false 
+            //    //Returns false if the I/O operation completed synchronously.                 
+            //    ProcessWaitingData();
+            //}
         }
         /// <summary>
         /// send next data, after prev IO complete
@@ -451,103 +683,119 @@ namespace SharpConnect.Internal
             // This method is called by I/O Completed() when an asynchronous send completes.   
             //after IO completed, what to do next.... 
             sendingState = SendIOState.ProcessSending;
-            switch (sendArgs.SocketError)
-            {
-                default:
-                    {
-                        //error, socket error
 
-                        ResetBuffer();
-                        sendingState = SendIOState.Error;
-                        notify(SendIOEventCode.SocketError);
-                        //manage socket errors here
-                    }
-                    break;
-                case SocketError.Success:
-                    {
-                        this.sendingTransferredBytes += sendArgs.BytesTransferred;
-                        int remainingBytes = this.sendingTargetBytes - sendingTransferredBytes;
-                        if (remainingBytes > 0)
-                        {
-                            //no complete!, 
-                            //start next send ...
-                            //****
-                            sendingState = SendIOState.ReadyNextSend;
-                            StartSendAsync();
-                            //****
-                        }
-                        else if (remainingBytes == 0)
-                        {
-                            //complete sending  
-                            //check the queue again ...
+            //temp
 
-                            bool hasSomeData = false;
-                            lock (queueLock)
-                            {
-                                if (sendingQueue.Count > 0)
-                                {
-                                    //move new chunck to current Sending data
-                                    this.currentSendingData = sendingQueue.Dequeue();
-                                    hasSomeData = true;
-                                }
-                            }
 
-                            if (hasSomeData)
-                            {
-                                this.sendingTargetBytes = currentSendingData.Length;
-                                this.sendingTransferredBytes = 0;
-                                //****
-                                sendingState = SendIOState.ReadyNextSend;
-                                StartSendAsync();
-                                //****
-                            }
-                            else
-                            {
-                                //no data
-                                ResetBuffer();
-                                //notify no more data
-                                //****
-                                sendingState = SendIOState.ReadyNextSend;
-                                notify(SendIOEventCode.SendComplete);
-                                //****   
-                            }
-                            //if (sendingQueue.Count > 0)
-                            //{
-                            //    //move new chunck to current Sending data
-                            //    this.currentSendingData = sendingQueue.Dequeue()
-                            //    this.sendingTargetBytes = currentSendingData.Length;
-                            //    this.sendingTransferredBytes = 0;
+            //no data
+            ResetBuffer();
+            //notify no more data
+            //****
+            sendingState = SendIOState.ReadyNextSend;
+            _notify(SendIOEventCode.SendComplete);
 
-                            //    //****
-                            //    sendingState = SendIOState.ReadyNextSend;
-                            //    StartSendAsync();
-                            //    //****
-                            //}
-                            //else
-                            //{
-                            //    //no data
-                            //    ResetBuffer();
-                            //    //notify no more data
-                            //    //****
-                            //    sendingState = SendIOState.ReadyNextSend;
-                            //    notify(SendIOEventCode.SendComplete);
-                            //    //****   
-                            //}
-                        }
-                        else
-                        {   //< 0 ????
-                            throw new NotSupportedException();
-                        }
-                    }
-                    break;
-            }
+            return;
+
+
+
+            ////------------------------------------------------------------------
+            //switch (_sendArgs.SocketError)
+            //{
+            //    default:
+            //        {
+            //            //error, socket error
+
+            //            ResetBuffer();
+            //            sendingState = SendIOState.Error;
+            //            _notify(SendIOEventCode.SocketError);
+            //            //manage socket errors here
+            //        }
+            //        break;
+            //    case SocketError.Success:
+            //        {
+            //            this.sendingTransferredBytes += _sendArgs.BytesTransferred;
+            //            int remainingBytes = this.sendingTargetBytes - sendingTransferredBytes;
+            //            if (remainingBytes > 0)
+            //            {
+            //                //no complete!, 
+            //                //start next send ...
+            //                //****
+            //                sendingState = SendIOState.ReadyNextSend;
+            //                StartSendAsync();
+            //                //****
+            //            }
+            //            else if (remainingBytes == 0)
+            //            {
+            //                //complete sending  
+            //                //check the queue again ...
+
+            //                bool hasSomeData = false;
+            //                lock (queueLock)
+            //                {
+            //                    if (sendingQueue.Count > 0)
+            //                    {
+            //                        //move new chunck to current Sending data
+            //                        this.currentSendingData = sendingQueue.Dequeue();
+            //                        hasSomeData = true;
+            //                    }
+            //                }
+
+            //                if (hasSomeData)
+            //                {
+            //                    this.sendingTargetBytes = currentSendingData.Length;
+            //                    this.sendingTransferredBytes = 0;
+            //                    //****
+            //                    sendingState = SendIOState.ReadyNextSend;
+            //                    StartSendAsync();
+            //                    //****
+            //                }
+            //                else
+            //                {
+            //                    //no data
+            //                    ResetBuffer();
+            //                    //notify no more data
+            //                    //****
+            //                    sendingState = SendIOState.ReadyNextSend;
+            //                    _notify(SendIOEventCode.SendComplete);
+            //                    //****   
+            //                }
+            //                //if (sendingQueue.Count > 0)
+            //                //{
+            //                //    //move new chunck to current Sending data
+            //                //    this.currentSendingData = sendingQueue.Dequeue()
+            //                //    this.sendingTargetBytes = currentSendingData.Length;
+            //                //    this.sendingTransferredBytes = 0;
+
+            //                //    //****
+            //                //    sendingState = SendIOState.ReadyNextSend;
+            //                //    StartSendAsync();
+            //                //    //****
+            //                //}
+            //                //else
+            //                //{
+            //                //    //no data
+            //                //    ResetBuffer();
+            //                //    //notify no more data
+            //                //    //****
+            //                //    sendingState = SendIOState.ReadyNextSend;
+            //                //    notify(SendIOEventCode.SendComplete);
+            //                //    //****   
+            //                //}
+            //            }
+            //            else
+            //            {   //< 0 ????
+            //                throw new NotSupportedException();
+            //            }
+            //        }
+            //        break;
+            //}
 
         }
     }
 
 
 
-    class RecvIOBufferStream : IDisposable
+    class RecvIOBuffer : IDisposable
     {
         SimpleBufferReader simpleBufferReader = new SimpleBufferReader();
         List<byte[]> otherBuffers = new List<byte[]>();
@@ -558,9 +806,9 @@ namespace SharpConnect.Internal
         int totalLen = 0;
         int bufferCount = 0;
         RecvIO _latestRecvIO;
-        public RecvIOBufferStream(RecvIO recvIO)
+        public RecvIOBuffer(RecvIO recvIO)
         {
-            this._latestRecvIO = recvIO;
+            _latestRecvIO = recvIO;
             AutoClearPrevBufferBlock = true;
         }
         public bool AutoClearPrevBufferBlock
