@@ -35,23 +35,23 @@ namespace SharpConnect.Internal
     static class dbugConsole
     {
 
-        static LogWriter logWriter;
+        static LogWriter _logWriter;
         static dbugConsole()
         {
             //set
-            logWriter = new LogWriter(null);//not write anything to disk
+            _logWriter = new LogWriter(null);//not write anything to disk
             //logWriter = new LogWriter("d:\\WImageTest\\log1.txt");
         }
         [System.Diagnostics.Conditional("DEBUG")]
         public static void WriteLine(string str)
         {
-            logWriter.Write(str);
-            logWriter.Write("\r\n");
+            _logWriter.Write(str);
+            _logWriter.Write("\r\n");
         }
         [System.Diagnostics.Conditional("DEBUG")]
         public static void Write(string str)
         {
-            logWriter.Write(str);
+            _logWriter.Write(str);
         }
         class LogWriter : IDisposable
         {
@@ -98,36 +98,33 @@ namespace SharpConnect.Internal
     class RecvIO
     {
 
-        readonly int recvStartOffset;
-        readonly int recvBufferSize;
-        readonly SocketAsyncEventArgs recvArgs;
-        Action<RecvEventCode> recvNotify;
+        readonly int _recvStartOffset;
+        readonly int _recvBufferSize;
+        readonly SocketAsyncEventArgs _recvArgs;
+        Action<RecvEventCode> _recvNotify;
 
         public RecvIO(SocketAsyncEventArgs recvArgs, int recvStartOffset, int recvBufferSize, Action<RecvEventCode> recvNotify)
         {
-            this.recvArgs = recvArgs;
-            this.recvStartOffset = recvStartOffset;
-            this.recvBufferSize = recvBufferSize;
-            this.recvNotify = recvNotify;
-
+            _recvArgs = recvArgs;
+            _recvStartOffset = recvStartOffset;
+            _recvBufferSize = recvBufferSize;
+            _recvNotify = recvNotify;
         }
 
-        public byte ReadByte(int index)
-        {
-            return recvArgs.Buffer[this.recvStartOffset + index];
-        }
+        public byte ReadByte(int index) => _recvArgs.Buffer[_recvStartOffset + index];
+
         public void CopyTo(int srcIndex, byte[] destBuffer, int destIndex, int count)
         {
-            Buffer.BlockCopy(recvArgs.Buffer,
-                recvStartOffset + srcIndex,
+            Buffer.BlockCopy(_recvArgs.Buffer,
+                _recvStartOffset + srcIndex,
                 destBuffer,
                 destIndex, count);
         }
         public void CopyTo(int srcIndex, byte[] destBuffer, int count)
         {
 
-            Buffer.BlockCopy(recvArgs.Buffer,
-                recvStartOffset + srcIndex,
+            Buffer.BlockCopy(_recvArgs.Buffer,
+                _recvStartOffset + srcIndex,
                 destBuffer,
                 0, count);
         }
@@ -135,27 +132,22 @@ namespace SharpConnect.Internal
         public void CopyTo(int srcIndex, MemoryStream ms, int count)
         {
 
-            ms.Write(recvArgs.Buffer,
-                recvStartOffset + srcIndex,
+            ms.Write(_recvArgs.Buffer,
+                _recvStartOffset + srcIndex,
                 count);
         }
 
 
 #if DEBUG
-        internal int dbugStartRecvPos
-        {
-            get
-            {
-                return recvStartOffset;
-            }
-        }
+        internal int dbugStartRecvPos => _recvStartOffset;
+
         public byte[] dbugReadToBytes()
         {
-            int bytesTransfer = recvArgs.BytesTransferred;
+            int bytesTransfer = _recvArgs.BytesTransferred;
             byte[] destBuffer = new byte[bytesTransfer];
 
-            Buffer.BlockCopy(recvArgs.Buffer,
-                recvStartOffset,
+            Buffer.BlockCopy(_recvArgs.Buffer,
+                _recvStartOffset,
                 destBuffer,
                 0, bytesTransfer);
 
@@ -169,18 +161,18 @@ namespace SharpConnect.Internal
         public void ProcessReceivedData()
         {
             //1. socket error
-            if (recvArgs.SocketError != SocketError.Success)
+            if (_recvArgs.SocketError != SocketError.Success)
             {
-                recvNotify(RecvEventCode.SocketError);
+                _recvNotify(RecvEventCode.SocketError);
                 return;
             }
             //2. no more receive 
-            if (recvArgs.BytesTransferred == 0)
+            if (_recvArgs.BytesTransferred == 0)
             {
-                recvNotify(RecvEventCode.NoMoreReceiveData);
+                _recvNotify(RecvEventCode.NoMoreReceiveData);
                 return;
             }
-            recvNotify(RecvEventCode.HasSomeData);
+            _recvNotify(RecvEventCode.HasSomeData);
         }
 
         /// <summary>
@@ -188,21 +180,16 @@ namespace SharpConnect.Internal
         /// </summary>
         public void StartReceive()
         {
-            recvArgs.SetBuffer(this.recvStartOffset, this.recvBufferSize);
-            if (!recvArgs.AcceptSocket.ReceiveAsync(recvArgs))
+            _recvArgs.SetBuffer(_recvStartOffset, _recvBufferSize);
+            if (!_recvArgs.AcceptSocket.ReceiveAsync(_recvArgs))
             {
                 ProcessReceivedData();
             }
         }
 
-        public int BytesTransferred
-        {
-            get { return recvArgs.BytesTransferred; }
-        }
-        internal byte[] UnsafeGetInternalBuffer()
-        {
-            return recvArgs.Buffer;
-        }
+        public int BytesTransferred => _recvArgs.BytesTransferred;
+
+        internal byte[] UnsafeGetInternalBuffer() => _recvArgs.Buffer;
 
     }
 
@@ -212,16 +199,16 @@ namespace SharpConnect.Internal
     {
         //send,
         //resp 
-        readonly int sendStartOffset;
-        readonly int sendBufferSize;
-        readonly SocketAsyncEventArgs sendArgs;
-        int sendingTargetBytes; //target to send
-        int sendingTransferredBytes; //has transfered bytes
-        byte[] currentSendingData = null;
-        Queue<byte[]> sendingQueue = new Queue<byte[]>();
-        Action<SendIOEventCode> notify;
-        object stateLock = new object();
-        object queueLock = new object();
+        readonly int _sendStartOffset;
+        readonly int _sendBufferSize;
+        readonly SocketAsyncEventArgs _sendArgs;
+        int _sendingTargetBytes; //target to send
+        int _sendingTransferredBytes; //has transfered bytes
+        byte[] _currentSendingData = null;
+        Queue<byte[]> _sendingQueue = new Queue<byte[]>();
+        Action<SendIOEventCode> _notify;
+        object _stateLock = new object();
+        object _queueLock = new object();
         SendIOState _sendingState = SendIOState.ReadyNextSend;
 
 #if DEBUG && !NETSTANDARD1_6
@@ -232,10 +219,10 @@ namespace SharpConnect.Internal
             int sendBufferSize,
             Action<SendIOEventCode> notify)
         {
-            this.sendArgs = sendArgs;
-            this.sendStartOffset = sendStartOffset;
-            this.sendBufferSize = sendBufferSize;
-            this.notify = notify;
+            _sendArgs = sendArgs;
+            _sendStartOffset = sendStartOffset;
+            _sendBufferSize = sendBufferSize;
+            _notify = notify;
         }
         SendIOState sendingState
         {
@@ -287,13 +274,13 @@ namespace SharpConnect.Internal
         }
         void ResetBuffer()
         {
-            currentSendingData = null;
-            sendingTransferredBytes = 0;
-            sendingTargetBytes = 0;
+            _currentSendingData = null;
+            _sendingTransferredBytes = 0;
+            _sendingTargetBytes = 0;
         }
         public void Reset()
         {
-            lock (stateLock)
+            lock (_stateLock)
             {
                 if (sendingState != SendIOState.ReadyNextSend)
                 {
@@ -307,25 +294,25 @@ namespace SharpConnect.Internal
             //            }
             //#endif
             //TODO: review reset
-            sendingTargetBytes = sendingTransferredBytes = 0;
-            currentSendingData = null;
+            _sendingTargetBytes = _sendingTransferredBytes = 0;
+            _currentSendingData = null;
             //#if DEBUG
             //            if (sendingQueue.Count > 0)
             //            { 
             //            }
             //#endif
-            lock (queueLock)
+            lock (_queueLock)
             {
-                if (sendingQueue.Count > 0)
+                if (_sendingQueue.Count > 0)
                 {
 
                 }
-                sendingQueue.Clear();
+                _sendingQueue.Clear();
             }
         }
         public void EnqueueOutputData(byte[] dataToSend, int count)
         {
-            lock (stateLock)
+            lock (_stateLock)
             {
                 SendIOState snap1 = this.sendingState;
 #if DEBUG && !NETSTANDARD1_6
@@ -336,24 +323,20 @@ namespace SharpConnect.Internal
                 }
 #endif
             }
-            lock (queueLock)
+            lock (_queueLock)
             {
-                sendingQueue.Enqueue(dataToSend);
+                _sendingQueue.Enqueue(dataToSend);
             }
         }
-        public int QueueCount
-        {
-            get
-            {
-                return sendingQueue.Count;
-            }
-        }
+
+        public int QueueCount => _sendingQueue.Count;
+
 #if DEBUG
         int dbugSendingTheadId;
 #endif
         public void StartSendAsync()
         {
-            lock (stateLock)
+            lock (_stateLock)
             {
                 if (sendingState != SendIOState.ReadyNextSend)
                 {
@@ -368,17 +351,17 @@ namespace SharpConnect.Internal
 
             //------------------------------------------------------------------------
             //send this data first 
-            int remaining = this.sendingTargetBytes - this.sendingTransferredBytes;
+            int remaining = _sendingTargetBytes - _sendingTransferredBytes;
             if (remaining == 0)
             {
                 bool hasSomeData = false;
-                lock (queueLock)
+                lock (_queueLock)
                 {
-                    if (this.sendingQueue.Count > 0)
+                    if (_sendingQueue.Count > 0)
                     {
-                        this.currentSendingData = sendingQueue.Dequeue();
-                        remaining = this.sendingTargetBytes = currentSendingData.Length;
-                        this.sendingTransferredBytes = 0;
+                        _currentSendingData = _sendingQueue.Dequeue();
+                        remaining = _sendingTargetBytes = _currentSendingData.Length;
+                        _sendingTransferredBytes = 0;
                         hasSomeData = true;
                     }
                 }
@@ -397,16 +380,16 @@ namespace SharpConnect.Internal
             }
 
 
-            if (remaining <= this.sendBufferSize)
+            if (remaining <= _sendBufferSize)
             {
-                sendArgs.SetBuffer(this.sendStartOffset, remaining);
+                _sendArgs.SetBuffer(_sendStartOffset, remaining);
                 //*** copy from src to dest
-                if (currentSendingData != null)
+                if (_currentSendingData != null)
                 {
-                    Buffer.BlockCopy(this.currentSendingData, //src
-                        this.sendingTransferredBytes,
-                        sendArgs.Buffer, //dest
-                        this.sendStartOffset,
+                    Buffer.BlockCopy(_currentSendingData, //src
+                        _sendingTransferredBytes,
+                        _sendArgs.Buffer, //dest
+                        _sendStartOffset,
                         remaining);
                 }
             }
@@ -415,17 +398,17 @@ namespace SharpConnect.Internal
                 //We cannot try to set the buffer any larger than its size.
                 //So since receiveSendToken.sendBytesRemainingCount > BufferSize, we just
                 //set it to the maximum size, to send the most data possible.
-                sendArgs.SetBuffer(this.sendStartOffset, this.sendBufferSize);
+                _sendArgs.SetBuffer(_sendStartOffset, _sendBufferSize);
                 //Copy the bytes to the buffer associated with this SAEA object.
-                Buffer.BlockCopy(this.currentSendingData,
-                    this.sendingTransferredBytes,
-                    sendArgs.Buffer,
-                    this.sendStartOffset,
-                    this.sendBufferSize);
+                Buffer.BlockCopy(_currentSendingData,
+                    _sendingTransferredBytes,
+                    _sendArgs.Buffer,
+                    _sendStartOffset,
+                    _sendBufferSize);
             }
 
 
-            if (!sendArgs.AcceptSocket.SendAsync(sendArgs))
+            if (!_sendArgs.AcceptSocket.SendAsync(_sendArgs))
             {
                 //when SendAsync return false 
                 //this means the socket can't do async send     
@@ -440,7 +423,7 @@ namespace SharpConnect.Internal
             // This method is called by I/O Completed() when an asynchronous send completes.   
             //after IO completed, what to do next.... 
             sendingState = SendIOState.ProcessSending;
-            switch (sendArgs.SocketError)
+            switch (_sendArgs.SocketError)
             {
                 default:
                     {
@@ -448,14 +431,14 @@ namespace SharpConnect.Internal
 
                         ResetBuffer();
                         sendingState = SendIOState.Error;
-                        notify(SendIOEventCode.SocketError);
+                        _notify(SendIOEventCode.SocketError);
                         //manage socket errors here
                     }
                     break;
                 case SocketError.Success:
                     {
-                        this.sendingTransferredBytes += sendArgs.BytesTransferred;
-                        int remainingBytes = this.sendingTargetBytes - sendingTransferredBytes;
+                        _sendingTransferredBytes += _sendArgs.BytesTransferred;
+                        int remainingBytes = _sendingTargetBytes - _sendingTransferredBytes;
                         if (remainingBytes > 0)
                         {
                             //no complete!, 
@@ -471,20 +454,20 @@ namespace SharpConnect.Internal
                             //check the queue again ...
 
                             bool hasSomeData = false;
-                            lock (queueLock)
+                            lock (_queueLock)
                             {
-                                if (sendingQueue.Count > 0)
+                                if (_sendingQueue.Count > 0)
                                 {
                                     //move new chunck to current Sending data
-                                    this.currentSendingData = sendingQueue.Dequeue();
+                                    _currentSendingData = _sendingQueue.Dequeue();
                                     hasSomeData = true;
                                 }
                             }
 
                             if (hasSomeData)
                             {
-                                this.sendingTargetBytes = currentSendingData.Length;
-                                this.sendingTransferredBytes = 0;
+                                _sendingTargetBytes = _currentSendingData.Length;
+                                _sendingTransferredBytes = 0;
                                 //****
                                 sendingState = SendIOState.ReadyNextSend;
                                 StartSendAsync();
@@ -497,7 +480,7 @@ namespace SharpConnect.Internal
                                 //notify no more data
                                 //****
                                 sendingState = SendIOState.ReadyNextSend;
-                                notify(SendIOEventCode.SendComplete);
+                                _notify(SendIOEventCode.SendComplete);
                                 //****   
                             }
                             //if (sendingQueue.Count > 0)
@@ -539,11 +522,11 @@ namespace SharpConnect.Internal
     class SimpleBufferReader
     {
         //TODO: check endian  ***
-        byte[] originalBuffer;
-        int bufferStartIndex;
-        int readIndex;
-        int usedBuffersize;
-        byte[] buffer = new byte[16];
+        byte[] _originalBuffer;
+        int _bufferStartIndex;
+        int _readIndex;
+        int _usedBuffersize;
+        byte[] _buffer = new byte[16];
         public SimpleBufferReader()
         {
 
@@ -557,43 +540,26 @@ namespace SharpConnect.Internal
         }
         public void SetBuffer(byte[] originalBuffer, int bufferStartIndex, int bufferSize)
         {
-            this.originalBuffer = originalBuffer;
-            this.usedBuffersize = bufferSize;
-            this.bufferStartIndex = bufferStartIndex;
-            this.readIndex = bufferStartIndex; //auto
+            _originalBuffer = originalBuffer;
+            _usedBuffersize = bufferSize;
+            _bufferStartIndex = bufferStartIndex;
+            _readIndex = bufferStartIndex; //auto
         }
-        public bool Ensure(int len)
-        {
-            return readIndex + len <= usedBuffersize;
-        }
-        public int AvaialbleByteCount
-        {
-            get
-            {
-                return usedBuffersize - readIndex;
-            }
-        }
+        public bool Ensure(int len) => _readIndex + len <= _usedBuffersize;
+
+        public int AvaialbleByteCount => _usedBuffersize - _readIndex;
+
         public int Position
         {
-            get
-            {
-                return readIndex;
-            }
-            set
-            {
-                readIndex = value;
-            }
+            get => _readIndex;
+            set => _readIndex = value;
         }
         public void Close()
         {
         }
-        public bool EndOfStream
-        {
-            get
-            {
-                return readIndex == usedBuffersize;
-            }
-        }
+
+        public bool EndOfStream => _readIndex == _usedBuffersize;
+
         public byte ReadByte()
         {
 
@@ -606,17 +572,17 @@ namespace SharpConnect.Internal
             {
                 //read from current index 
                 //and advanced the readIndex to next***
-                dbugWriteInfo(Position - 1 + " (byte) " + originalBuffer[readIndex + 1]);
+                dbugWriteInfo(Position - 1 + " (byte) " + _originalBuffer[_readIndex + 1]);
             }
 #endif          
 
-            return originalBuffer[readIndex++];
+            return _originalBuffer[_readIndex++];
         }
         public uint ReadUInt32()
         {
-            byte[] mybuffer = originalBuffer;
-            int s = bufferStartIndex + readIndex;
-            readIndex += 4;
+            byte[] mybuffer = _originalBuffer;
+            int s = _bufferStartIndex + _readIndex;
+            _readIndex += 4;
             uint u = (uint)(mybuffer[s] | mybuffer[s + 1] << 8 |
                 mybuffer[s + 2] << 16 | mybuffer[s + 3] << 24);
 
@@ -635,9 +601,9 @@ namespace SharpConnect.Internal
         }
         public unsafe double ReadDouble()
         {
-            byte[] mybuffer = originalBuffer;
-            int s = bufferStartIndex + readIndex;
-            readIndex += 8;
+            byte[] mybuffer = _originalBuffer;
+            int s = _bufferStartIndex + _readIndex;
+            _readIndex += 8;
 
             uint num = (uint)(((mybuffer[s] | (mybuffer[s + 1] << 8)) | (mybuffer[s + 2] << 0x10)) | (mybuffer[s + 3] << 0x18));
             uint num2 = (uint)(((mybuffer[s + 4] | (mybuffer[s + 5] << 8)) | (mybuffer[s + 6] << 0x10)) | (mybuffer[s + 7] << 0x18));
@@ -659,9 +625,9 @@ namespace SharpConnect.Internal
         public unsafe float ReadFloat()
         {
 
-            byte[] mybuffer = originalBuffer;
-            int s = bufferStartIndex + readIndex;
-            readIndex += 4;
+            byte[] mybuffer = _originalBuffer;
+            int s = _bufferStartIndex + _readIndex;
+            _readIndex += 4;
 
             uint num = (uint)(((mybuffer[s] | (mybuffer[s + 1] << 8)) | (mybuffer[s + 2] << 0x10)) | (mybuffer[s + 3] << 0x18));
 #if DEBUG
@@ -681,9 +647,9 @@ namespace SharpConnect.Internal
         }
         public int ReadInt32()
         {
-            byte[] mybuffer = originalBuffer;
-            int s = bufferStartIndex + readIndex;
-            readIndex += 4;
+            byte[] mybuffer = _originalBuffer;
+            int s = _bufferStartIndex + _readIndex;
+            _readIndex += 4;
             int i32 = (mybuffer[s] | mybuffer[s + 1] << 8 |
                     mybuffer[s + 2] << 16 | mybuffer[s + 3] << 24);
 
@@ -703,9 +669,9 @@ namespace SharpConnect.Internal
         }
         public short ReadInt16()
         {
-            byte[] mybuffer = originalBuffer;
-            int s = bufferStartIndex + readIndex;
-            readIndex += 2;
+            byte[] mybuffer = _originalBuffer;
+            int s = _bufferStartIndex + _readIndex;
+            _readIndex += 2;
             short i16 = (Int16)(mybuffer[s] | mybuffer[s + 1] << 8);
 
 #if DEBUG
@@ -725,9 +691,9 @@ namespace SharpConnect.Internal
         }
         public ushort ReadUInt16()
         {
-            byte[] mybuffer = originalBuffer;
-            int s = bufferStartIndex + readIndex;
-            readIndex += 2;
+            byte[] mybuffer = _originalBuffer;
+            int s = _bufferStartIndex + _readIndex;
+            _readIndex += 2;
             ushort ui16 = (ushort)(mybuffer[s + 0] | mybuffer[s + 1] << 8);
 #if DEBUG
             if (dbug_enableBreak)
@@ -744,9 +710,9 @@ namespace SharpConnect.Internal
         }
         public long ReadInt64()
         {
-            byte[] mybuffer = originalBuffer;
-            int s = bufferStartIndex + readIndex;
-            readIndex += 8;
+            byte[] mybuffer = _originalBuffer;
+            int s = _bufferStartIndex + _readIndex;
+            _readIndex += 8;
             //
             uint num = (uint)(((mybuffer[s] | (mybuffer[s + 1] << 8)) | (mybuffer[s + 2] << 0x10)) | (mybuffer[s + 3] << 0x18));
             uint num2 = (uint)(((mybuffer[s + 4] | (mybuffer[s + 5] << 8)) | (mybuffer[s + 6] << 0x10)) | (mybuffer[s + 7] << 0x18));
@@ -767,9 +733,9 @@ namespace SharpConnect.Internal
         }
         public ulong ReadUInt64()
         {
-            byte[] mybuffer = originalBuffer;
-            int s = bufferStartIndex + readIndex;
-            readIndex += 8;
+            byte[] mybuffer = _originalBuffer;
+            int s = _bufferStartIndex + _readIndex;
+            _readIndex += 8;
             //
             uint num = (uint)(((mybuffer[s] | (mybuffer[s + 1] << 8)) | (mybuffer[s + 2] << 0x10)) | (mybuffer[s + 3] << 0x18));
             uint num2 = (uint)(((mybuffer[s + 4] | (mybuffer[s + 5] << 8)) | (mybuffer[s + 6] << 0x10)) | (mybuffer[s + 7] << 0x18));
@@ -790,9 +756,9 @@ namespace SharpConnect.Internal
         }
         public byte[] ReadBytes(int num)
         {
-            byte[] mybuffer = originalBuffer;
-            int s = bufferStartIndex + readIndex;
-            readIndex += num;
+            byte[] mybuffer = _originalBuffer;
+            int s = _bufferStartIndex + _readIndex;
+            _readIndex += num;
             byte[] buffer = new byte[num];
 
 #if DEBUG
@@ -805,14 +771,14 @@ namespace SharpConnect.Internal
                 dbugWriteInfo(Position - num + " (buffer:" + num + ")");
             }
 #endif
-            Buffer.BlockCopy(originalBuffer, s, buffer, 0, num);
+            Buffer.BlockCopy(_originalBuffer, s, buffer, 0, num);
             return buffer;
         }
         public void CopyBytes(byte[] buffer, int targetIndex, int num)
         {
-            byte[] mybuffer = originalBuffer;
-            int s = bufferStartIndex + readIndex;
-            readIndex += num;
+            byte[] mybuffer = _originalBuffer;
+            int s = _bufferStartIndex + _readIndex;
+            _readIndex += num;
 
 #if DEBUG
             if (dbug_enableBreak)
@@ -824,15 +790,15 @@ namespace SharpConnect.Internal
                 dbugWriteInfo(Position - num + " (buffer:" + num + ")");
             }
 #endif
-            Buffer.BlockCopy(originalBuffer, s, buffer, targetIndex, num);
+            Buffer.BlockCopy(_originalBuffer, s, buffer, targetIndex, num);
         }
         internal byte[] UnsafeGetInternalBuffer()
         {
-            return this.originalBuffer;
+            return _originalBuffer;
         }
         internal int UsedBufferDataLen
         {
-            get { return usedBuffersize; }
+            get { return _usedBuffersize; }
         }
 
 #if DEBUG
@@ -894,25 +860,21 @@ namespace SharpConnect.Internal
 
     class RecvIOBufferStream : IDisposable
     {
-        SharpConnect.Internal.SimpleBufferReader simpleBufferReader = new SharpConnect.Internal.SimpleBufferReader();
-        List<byte[]> otherBuffers = new List<byte[]>();
-        int currentBufferIndex;
+        SharpConnect.Internal.SimpleBufferReader _simpleBufferReader = new SharpConnect.Internal.SimpleBufferReader();
+        List<byte[]> _otherBuffers = new List<byte[]>();
+        int _currentBufferIndex;
 
-        bool multipartMode;
-        int readpos = 0;
-        int totalLen = 0;
-        int bufferCount = 0;
+        bool _multipartMode;
+        int _readpos = 0;
+        int _totalLen = 0;
+        int _bufferCount = 0;
         RecvIO _latestRecvIO;
         public RecvIOBufferStream(RecvIO recvIO)
         {
-            this._latestRecvIO = recvIO;
+            _latestRecvIO = recvIO;
             AutoClearPrevBufferBlock = true;
         }
-        public bool AutoClearPrevBufferBlock
-        {
-            get;
-            set;
-        }
+        public bool AutoClearPrevBufferBlock { get; set; }
         public void Dispose()
         {
 
@@ -920,95 +882,86 @@ namespace SharpConnect.Internal
         public void Clear()
         {
 
-            otherBuffers.Clear();
-            multipartMode = false;
-            bufferCount = 0;
-            currentBufferIndex = 0;
-            readpos = 0;
-            totalLen = 0;
-            simpleBufferReader.SetBuffer(null, 0, 0);
+            _otherBuffers.Clear();
+            _multipartMode = false;
+            _bufferCount = 0;
+            _currentBufferIndex = 0;
+            _readpos = 0;
+            _totalLen = 0;
+            _simpleBufferReader.SetBuffer(null, 0, 0);
         }
 
         public void AppendNewRecvData()
         {
-            if (bufferCount == 0)
+            if (_bufferCount == 0)
             {
                 //single part mode                             
-                totalLen = _latestRecvIO.BytesTransferred;
-                simpleBufferReader.SetBuffer(_latestRecvIO.UnsafeGetInternalBuffer(), 0, totalLen);
-                bufferCount++;
+                _totalLen = _latestRecvIO.BytesTransferred;
+                _simpleBufferReader.SetBuffer(_latestRecvIO.UnsafeGetInternalBuffer(), 0, _totalLen);
+                _bufferCount++;
             }
             else
             {
                 //more than 1 buffer
-                if (multipartMode)
+                if (_multipartMode)
                 {
                     int thisPartLen = _latestRecvIO.BytesTransferred;
                     byte[] o2copy = new byte[thisPartLen];
                     Buffer.BlockCopy(_latestRecvIO.UnsafeGetInternalBuffer(), 0, o2copy, 0, thisPartLen);
-                    otherBuffers.Add(o2copy);
-                    totalLen += thisPartLen;
+                    _otherBuffers.Add(o2copy);
+                    _totalLen += thisPartLen;
                 }
                 else
                 {
                     //should not be here
                     throw new NotSupportedException();
                 }
-                bufferCount++;
+                _bufferCount++;
             }
         }
 
-        public int Length
-        {
-            get
-            {
-                return this.totalLen;
-            }
-        }
-
+        public int Length => _totalLen;
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="len"></param>
         /// <returns></returns>
-        public bool Ensure(int len)
-        {
-            return readpos + len <= totalLen;
-        }
+        public bool Ensure(int len) => _readpos + len <= _totalLen;
+
         public void BackupRecvIO()
         {
-            if (bufferCount == 1 && !multipartMode)
+            if (_bufferCount == 1 && !_multipartMode)
             {
                 //only in single mode
                 int thisPartLen = _latestRecvIO.BytesTransferred;
                 byte[] o2copy = new byte[thisPartLen];
                 Buffer.BlockCopy(_latestRecvIO.UnsafeGetInternalBuffer(), 0, o2copy, 0, thisPartLen);
-                otherBuffers.Add(o2copy);
-                multipartMode = true;
-                int prevIndex = simpleBufferReader.Position;
-                simpleBufferReader.SetBuffer(o2copy, 0, thisPartLen);
-                simpleBufferReader.Position = prevIndex;
+                _otherBuffers.Add(o2copy);
+                _multipartMode = true;
+                int prevIndex = _simpleBufferReader.Position;
+                _simpleBufferReader.SetBuffer(o2copy, 0, thisPartLen);
+                _simpleBufferReader.Position = prevIndex;
             }
         }
         public byte ReadByte()
         {
-            if (simpleBufferReader.Ensure(1))
+            if (_simpleBufferReader.Ensure(1))
             {
-                readpos++;
-                return simpleBufferReader.ReadByte();
+                _readpos++;
+                return _simpleBufferReader.ReadByte();
             }
             else
             {
-                if (multipartMode)
+                if (_multipartMode)
                 {
                     //this end of current buffer
                     //so we switch to the new one
-                    if (currentBufferIndex < otherBuffers.Count)
+                    if (_currentBufferIndex < _otherBuffers.Count)
                     {
                         MoveToNextBufferBlock();
-                        readpos++;
-                        return simpleBufferReader.ReadByte();
+                        _readpos++;
+                        return _simpleBufferReader.ReadByte();
                     }
                 }
             }
@@ -1018,12 +971,12 @@ namespace SharpConnect.Internal
         {
             if (AutoClearPrevBufferBlock)
             {
-                otherBuffers[currentBufferIndex] = null;
+                _otherBuffers[_currentBufferIndex] = null;
             }
 
-            currentBufferIndex++;
-            byte[] buff = otherBuffers[currentBufferIndex];
-            simpleBufferReader.SetBuffer(buff, 0, buff.Length);
+            _currentBufferIndex++;
+            byte[] buff = _otherBuffers[_currentBufferIndex];
+            _simpleBufferReader.SetBuffer(buff, 0, buff.Length);
         }
         /// <summary>
         /// copy data from current pos to output
@@ -1032,43 +985,43 @@ namespace SharpConnect.Internal
         /// <param name="len"></param>
         public void CopyBuffer(byte[] output, int len)
         {
-            if (simpleBufferReader.Ensure(len))
+            if (_simpleBufferReader.Ensure(len))
             {
-                simpleBufferReader.CopyBytes(output, 0, len);
-                readpos += len;
+                _simpleBufferReader.CopyBytes(output, 0, len);
+                _readpos += len;
             }
             else
             {
                 //need more than 1
-                int toCopyLen = simpleBufferReader.AvaialbleByteCount;
+                int toCopyLen = _simpleBufferReader.AvaialbleByteCount;
                 int remain = len;
                 int targetIndex = 0;
                 do
                 {
-                    simpleBufferReader.CopyBytes(output, targetIndex, toCopyLen);
-                    readpos += toCopyLen;
+                    _simpleBufferReader.CopyBytes(output, targetIndex, toCopyLen);
+                    _readpos += toCopyLen;
                     targetIndex += toCopyLen;
                     remain -= toCopyLen;
                     //move to another
                     if (remain > 0)
                     {
-                        if (currentBufferIndex < otherBuffers.Count - 1)
+                        if (_currentBufferIndex < _otherBuffers.Count - 1)
                         {
                             MoveToNextBufferBlock();
                             //-------------------------- 
                             //evaluate after copy
-                            if (simpleBufferReader.Ensure(remain))
+                            if (_simpleBufferReader.Ensure(remain))
                             {
                                 //end
-                                simpleBufferReader.CopyBytes(output, targetIndex, remain);
-                                readpos += remain;
+                                _simpleBufferReader.CopyBytes(output, targetIndex, remain);
+                                _readpos += remain;
                                 remain = 0;
                                 return;
                             }
                             else
                             {
                                 //not complete on this round
-                                toCopyLen = simpleBufferReader.UsedBufferDataLen;
+                                toCopyLen = _simpleBufferReader.UsedBufferDataLen;
                                 //copy all
                             }
                         }
@@ -1081,10 +1034,6 @@ namespace SharpConnect.Internal
 
             }
         }
-        public bool IsEnd()
-        {
-            return readpos >= totalLen;
-        }
-
+        public bool IsEnd() => _readpos >= _totalLen;
     }
 }

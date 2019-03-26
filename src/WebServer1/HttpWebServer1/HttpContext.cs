@@ -39,17 +39,19 @@ namespace SharpConnect.WebServers
     /// </summary>
     class HttpContext : ISendIO
     {
+        const int RECV_BUFF_SIZE = 1024;
+
         readonly SocketAsyncEventArgs _send_a;
         readonly SocketAsyncEventArgs _recv_a;
-        readonly RecvIO recvIO;
-        readonly SendIO sendIO;
+        readonly RecvIO _recvIO;
+        readonly SendIO _sendIO;
 
-        HttpWebRequest httpReq;
-        HttpWebResponse httpResp;
-        ReqRespHandler<HttpRequest, HttpResponse> reqHandler;
-        HttpWebServer ownerServer;
+        HttpWebRequest _httpReq;
+        HttpWebResponse _httpResp;
+        ReqRespHandler<HttpRequest, HttpResponse> _reqHandler;
+        HttpWebServer _ownerServer;
 
-        const int RECV_BUFF_SIZE = 1024;
+
 
         public HttpContext(
             HttpWebServer ownerServer,
@@ -57,7 +59,7 @@ namespace SharpConnect.WebServers
             int sendBufferSize)
         {
             this.EnableWebSocket = true;
-            this.ownerServer = ownerServer;
+            _ownerServer = ownerServer;
             //each recvSendArgs is created for this connection session only ***
             //---------------------------------------------------------------------------------------------------------- 
 
@@ -70,11 +72,11 @@ namespace SharpConnect.WebServers
             //ownerServer.SetBufferFor();
             //ownerServer.SetBufferFor();
 
-            recvIO = new RecvIO(_recv_a, _recv_a.Offset, recvBufferSize, HandleReceive);
-            sendIO = new SendIO(_send_a, _send_a.Offset, sendBufferSize, HandleSend);
+            _recvIO = new RecvIO(_recv_a, _recv_a.Offset, recvBufferSize, HandleReceive);
+            _sendIO = new SendIO(_send_a, _send_a.Offset, sendBufferSize, HandleSend);
             //----------------------------------------------------------------------------------------------------------  
-            httpReq = new HttpWebRequest(this);
-            httpResp = new HttpWebResponse(this);
+            _httpReq = new HttpWebRequest(this);
+            _httpResp = new HttpWebResponse(this);
 
             //common(shared) event listener***
             _recv_a.Completed += (object sender, SocketAsyncEventArgs e) =>
@@ -82,7 +84,7 @@ namespace SharpConnect.WebServers
                 switch (e.LastOperation)
                 {
                     case SocketAsyncOperation.Receive:
-                        recvIO.ProcessReceivedData();
+                        _recvIO.ProcessReceivedData();
                         break;
                     case SocketAsyncOperation.Send:
                         //sendIO.ProcessWaitingData();
@@ -99,7 +101,7 @@ namespace SharpConnect.WebServers
                         //recvIO.ProcessReceivedData();
                         break;
                     case SocketAsyncOperation.Send:
-                        sendIO.ProcessWaitingData();
+                        _sendIO.ProcessWaitingData();
                         break;
                     default:
                         throw new ArgumentException("The last operation completed on the socket was not a receive or send");
@@ -107,7 +109,7 @@ namespace SharpConnect.WebServers
             };
         }
 
-        public int QueueCount => sendIO.QueueCount;
+        public int QueueCount => _sendIO.QueueCount;
 
         void HandleReceive(RecvEventCode recvEventCode)
         {
@@ -121,7 +123,7 @@ namespace SharpConnect.WebServers
                 case RecvEventCode.NoMoreReceiveData:
                     {
                         //no data to receive
-                        httpResp.End();
+                        _httpResp.End();
                         //reqHandler(this.httpReq, httpResp);
                     }
                     break;
@@ -129,7 +131,7 @@ namespace SharpConnect.WebServers
                     {
                         //process some data
                         //there some data to process  
-                        switch (httpReq.LoadData(recvIO))
+                        switch (_httpReq.LoadData(_recvIO))
                         {
                             case ProcessReceiveBufferResult.Complete:
                                 {
@@ -137,16 +139,16 @@ namespace SharpConnect.WebServers
                                     //goto user action
 
                                     if (this.EnableWebSocket &&
-                                        this.ownerServer.CheckWebSocketUpgradeRequest(this))
+                                        _ownerServer.CheckWebSocketUpgradeRequest(this))
                                     {
                                         return;
                                     }
-                                    reqHandler(this.httpReq, httpResp);
+                                    _reqHandler(_httpReq, _httpResp);
                                 }
                                 break;
                             case ProcessReceiveBufferResult.NeedMore:
                                 {
-                                    recvIO.StartReceive();
+                                    _recvIO.StartReceive();
                                 }
                                 break;
                             case ProcessReceiveBufferResult.Error:
@@ -184,28 +186,16 @@ namespace SharpConnect.WebServers
             }
         }
 
-        public bool EnableWebSocket
-        {
-            get;
-            set;
-        }
-        public bool KeepAlive
-        {
-            get;
-            set;
-        }
-        internal HttpRequest HttpReq
-        {
-            get { return this.httpReq; }
-        }
-        internal HttpResponse HttpResp
-        {
-            get { return this.httpResp; }
-        }
-        internal Socket RemoteSocket
-        {
-            get { return _recv_a.AcceptSocket; }
-        }
+        public bool EnableWebSocket { get; set; }
+
+        public bool KeepAlive { get; set; }
+
+        internal HttpRequest HttpReq => _httpReq;
+
+        internal HttpResponse HttpResp => _httpResp;
+
+        internal Socket RemoteSocket => _recv_a.AcceptSocket;
+
         /// <summary>
         /// bind to client socket
         /// </summary>
@@ -217,7 +207,7 @@ namespace SharpConnect.WebServers
         }
         internal void BindReqHandler(ReqRespHandler<HttpRequest, HttpResponse> reqHandler)
         {
-            this.reqHandler = reqHandler;
+            _reqHandler = reqHandler;
         }
         internal void UnBindSocket(bool closeClientSocket)
         {
@@ -240,19 +230,19 @@ namespace SharpConnect.WebServers
             _send_a.AcceptSocket = null;
 
             Reset();//reset 
-            ownerServer.ReleaseChildConn(this);
+            _ownerServer.ReleaseChildConn(this);
         }
         internal void StartReceive()
         {
-            recvIO.StartReceive();
+            _recvIO.StartReceive();
         }
         internal void Reset()
         {
             //reset recv and send
             //for next use
-            httpReq.Reset();
-            httpResp.ResetAll();
-            sendIO.Reset();
+            _httpReq.Reset();
+            _httpResp.ResetAll();
+            _sendIO.Reset();
         }
 
         protected virtual void OnSocketError()
@@ -263,16 +253,13 @@ namespace SharpConnect.WebServers
         {
 
         }
+
         public void Dispose()
         {
-            this._recv_a.Dispose();
+            _recv_a.Dispose();
         }
 
-
-        internal HttpWebServer OwnerWebServer
-        {
-            get { return this.ownerServer; }
-        }
+        internal HttpWebServer OwnerWebServer => _ownerServer;
 
 #if DEBUG
 
@@ -285,40 +272,31 @@ namespace SharpConnect.WebServers
             //new session id
             _dbugSessionId = System.Threading.Interlocked.Increment(ref dbug_s_mainSessionId);
         }
-        public Int32 dbugSessionId
-        {
-            get
-            {
-                return this._dbugSessionId;
-            }
-        }
+        public Int32 dbugSessionId => _dbugSessionId;
+
         int _dbugSessionId;
         public void dbugSetInfo(int tokenId)
         {
-            this._dbugTokenId = tokenId;
+            _dbugTokenId = tokenId;
         }
 
-        public void StartSendAsync()
-        {
-            this.sendIO.StartSendAsync();
-        }
+        public void StartSendAsync() => _sendIO.StartSendAsync();
 
         public void EnqueueOutputData(byte[] dataToSend, int count)
         {
-            sendIO.EnqueueOutputData(dataToSend, count);
+            _sendIO.EnqueueOutputData(dataToSend, count);
         }
 
-        void ISendIO.EnqueueSendingData(byte[] buffer, int len) => sendIO.EnqueueOutputData(buffer, len);
-        void ISendIO.SendIOStartSend() => sendIO.StartSendAsync();
+        void ISendIO.EnqueueSendingData(byte[] buffer, int len) => _sendIO.EnqueueOutputData(buffer, len);
+        void ISendIO.SendIOStartSend() => _sendIO.StartSendAsync();
 
         public Int32 dbugTokenId
         {
             //Let's use an ID for this object during testing, just so we can see what
             //is happening better if we want to.
-
             get
             {
-                return this._dbugTokenId;
+                return _dbugTokenId;
             }
         }
         int _dbugTokenId; //for testing only    

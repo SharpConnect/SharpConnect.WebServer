@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
 using System.Net.Security;
-using System.Text;
 using System.Threading;
 namespace SharpConnect.Internal2
 {
@@ -60,15 +59,14 @@ namespace SharpConnect.Internal2
         protected void RaiseSendComplete()
         {
             _sendCompleted?.Invoke(null, EventArgs.Empty);
-            //_sendCompleted2?.Invoke(null, EventArgs.Empty);
         }
         protected void RaiseRecvCompleted(int byteCount)
         {
             _recvCompleted?.Invoke(this, new DataArrEventArgs() { ByteTransferedCount = byteCount });
-            //_recvCompleted2?.Invoke(this, new DataArrEventArgs() { ByteTransferedCount = byteCount });
         }
         public void ClearRecvEvent()
         {
+            //TODO:
             //_recvCompleted = null;
         }
         internal abstract byte RecvReadByte(int pos);
@@ -81,25 +79,6 @@ namespace SharpConnect.Internal2
         internal abstract byte[] UnsafeGetRecvInternalBuffer();
 
         internal bool BeginWebsocketMode { get; set; }
-        ////--------
-        //EventHandler<DataArrEventArgs> _recvCompleted2;
-        //EventHandler _sendCompleted2;
-        ////protected void RaiseSendComplete2()
-        ////{
-        ////    _sendCompleted2?.Invoke(null, EventArgs.Empty);
-        ////}
-        ////protected void RaiseRecvCompleted2(int byteCount)
-        ////{
-        ////    _recvCompleted2?.Invoke(this, new DataArrEventArgs() { ByteTransferedCount = byteCount });
-        ////}
-        //public void SetRecvCompleteEventHandler2(EventHandler<DataArrEventArgs> recvCompleted)
-        //{
-        //    _recvCompleted2 = recvCompleted;
-        //}
-        //public void SetSendCompleteEventHandler2(EventHandler sendCompleted)
-        //{
-        //    _sendCompleted2 = sendCompleted;
-        //}
     }
 
 
@@ -199,6 +178,9 @@ namespace SharpConnect.Internal2
 
         internal override void UnbindSocket()
         {
+            //TODO: review here...
+
+
             //unbind socket ***
             //Socket tmp = _socket;
             //_sendAsyncEventArgs.AcceptSocket = null;
@@ -486,7 +468,7 @@ namespace SharpConnect.Internal2
         {
             if (this.UsedBySslStream)
             {
-                if (this._passHandshake)
+                if (_passHandshake)
                 {
                     //
                 }
@@ -648,17 +630,13 @@ namespace SharpConnect.Internal2
             _recvBuffer.CopyBuffer(readpos, dstBuffer, 0, copyLen);
             //System.Diagnostics.Debug.WriteLine("RecvCopyTo");
         }
-        internal override byte RecvReadByte(int pos)
-        {
-            return _recvBuffer.CopyByte(pos);
-            ////read byte from recv buffer at specific position
-            //System.Diagnostics.Debug.WriteLine("recv_read_byte");
-            //return 0;
-        }
+
+        internal override byte RecvReadByte(int pos) => _recvBuffer.CopyByte(pos);
+        ////read byte from recv buffer at specific position          
+
         internal override void EnqueueSendData(byte[] buffer, int len)
         {
             _enqueueOutputData.Write(buffer, 0, len);
-
         }
 
 
@@ -808,14 +786,8 @@ namespace SharpConnect.Internal2
             _socketNetworkStream.StartReceive();
         }
 
-
-        public override int ByteReadTransfered
-        {
-            get
-            {
-                return _recvBuffer.DataToReadLength;
-            }
-        }
+        public override int ByteReadTransfered => _recvBuffer.DataToReadLength;
+        
         public override byte GetByteFromBuffer(int index)
         {
             return _recvBuffer.GetByteFromBuffer(index);

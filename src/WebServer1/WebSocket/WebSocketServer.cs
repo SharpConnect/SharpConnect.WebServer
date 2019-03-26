@@ -34,13 +34,11 @@ namespace SharpConnect.WebServers
 {
     public class WebSocketServer
     {
-        Action<WebSocketContext> newContextConnected;
-        Action<SharpConnect.WebServers.Server2.WebSocketContext> newContextConnected2;
+        Action<WebSocketContext> _newContextConnected;
+        Action<SharpConnect.WebServers.Server2.WebSocketContext> _newContextConnected2;
 
-        Dictionary<int, WebSocketContext> workingWebSocketConns = new Dictionary<int, WebSocketContext>();
-        Dictionary<int, SharpConnect.WebServers.Server2.WebSocketContext> workingWebSocketConns2 = new Dictionary<int, SharpConnect.WebServers.Server2.WebSocketContext>();
-
-
+        Dictionary<int, WebSocketContext> _workingWebSocketConns = new Dictionary<int, WebSocketContext>();
+        Dictionary<int, SharpConnect.WebServers.Server2.WebSocketContext> _workingWebSocketConns2 = new Dictionary<int, SharpConnect.WebServers.Server2.WebSocketContext>();
 
         public WebSocketServer()
         {
@@ -53,12 +51,12 @@ namespace SharpConnect.WebServers
             string sec_websocket_key)
         {
             WebSocketContext wbcontext = new WebSocketContext(false);
-            workingWebSocketConns.Add(wbcontext.ConnectionId, wbcontext);//add to working socket 
+            _workingWebSocketConns.Add(wbcontext.ConnectionId, wbcontext);//add to working socket 
             wbcontext.Bind(clientSocket); //move client socket to webSocketConn    
             wbcontext.SendExternalRaw(MakeWebSocketUpgradeResponse(MakeResponseMagicCode(sec_websocket_key)));
             wbcontext.InitClientRequestUrl = initUrl;
 
-            newContextConnected?.Invoke(wbcontext);
+            _newContextConnected?.Invoke(wbcontext);
 
             return wbcontext;
         }
@@ -68,23 +66,23 @@ namespace SharpConnect.WebServers
             string sec_websocket_key)
         {
             SharpConnect.WebServers.Server2.WebSocketContext wbcontext = new Server2.WebSocketContext(false);
-            workingWebSocketConns2.Add(wbcontext.ConnectionId, wbcontext);//add to working socket 
+            _workingWebSocketConns2.Add(wbcontext.ConnectionId, wbcontext);//add to working socket 
 
             wbcontext.Bind(clientNetworkStream, MakeWebSocketUpgradeResponse(MakeResponseMagicCode(sec_websocket_key))); //move client socket to webSocketConn    
 
             wbcontext.InitClientRequestUrl = initUrl;
 
-            newContextConnected2?.Invoke(wbcontext);
+            _newContextConnected2?.Invoke(wbcontext);
             return wbcontext;
         }
 
         public void SetOnNewConnectionContext(Action<WebSocketContext> newContextConnected)
         {
-            this.newContextConnected = newContextConnected;
+            _newContextConnected = newContextConnected;
         }
         public void SetOnNewConnectionContext(Action<SharpConnect.WebServers.Server2.WebSocketContext> newContextConnected)
         {
-            this.newContextConnected2 = newContextConnected;
+            _newContextConnected2 = newContextConnected;
         }
 
         static byte[] MakeWebSocketUpgradeResponse(string webSocketSecCode)
@@ -109,10 +107,10 @@ namespace SharpConnect.WebServers
         }
         //----------------------------
         //websocket
-        const string magicString = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+        const string MAGIC_STRING = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
         static string MakeResponseMagicCode(string reqMagicString)
         {
-            string total = reqMagicString + magicString;
+            string total = reqMagicString + MAGIC_STRING;
             var sha1 = SHA1.Create();
             byte[] shaHash = sha1.ComputeHash(Encoding.ASCII.GetBytes(total));
             return Convert.ToBase64String(shaHash);

@@ -1,8 +1,5 @@
 ﻿//2015-2016, MIT, EngineKit
-using System;
-using System.IO;
-using System.Collections.Generic;
-using System.Text;
+
 
 namespace SharpConnect.WebServers
 {
@@ -70,37 +67,6 @@ namespace SharpConnect.WebServers
 
         //--------------------------------------------------
         public WebSocketServer WebSocketServer { get; set; }
-        public bool EnableWebSocket
-        {
-            get { return WebSocketServer != null; }
-        }
-
-        //internal bool CheckWebSocketUpgradeRequest(HttpContext httpConn)
-        //{
-        //    if (webSocketServer == null)
-        //    {
-        //        return false;
-        //    }
-
-        //    HttpRequest httpReq = httpConn.HttpReq;
-        //    HttpResponse httpResp = httpConn.HttpResp;
-        //    string upgradeKey = httpReq.GetHeaderKey("Upgrade");
-        //    if (upgradeKey != null && upgradeKey == "websocket")
-        //    {
-        //        //1. websocket request come here first                
-        //        //2. web server can design what web socket server will handle this request, based on httpCon url
-
-        //        string sec_websocket_key = httpReq.GetHeaderKey("Sec-WebSocket-Key");
-        //        Socket clientSocket = httpConn.RemoteSocket;
-        //        //backup data before unbind socket
-        //        string webSocketInitUrl = httpReq.Url;
-        //        //--------------------  
-        //        httpConn.UnBindSocket(false);//unbind  but not close client socket  
-        //                                     //--------------------
-        //        webSocketServer.RegisterNewWebSocket(clientSocket, webSocketInitUrl, sec_websocket_key);//the bind client to websocket server                 
-        //        return true;
-        //    }
-        //    return false;
-        //}
+        public bool EnableWebSocket => WebSocketServer != null;
     }
 }

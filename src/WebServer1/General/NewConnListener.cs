@@ -12,30 +12,30 @@ namespace SharpConnect
     public class NewConnectionListener
     {
         // the socket used to listen for incoming connection requests
-        Socket listenSocket;
+        Socket _listenSocket;
         /// <summary>
         /// reusable AsyncEventArgs  pool for accept ops
         /// </summary>
-        SharedResoucePool<SocketAsyncEventArgs> acceptArgsPool;
-        NewConnListenerSettings setting;
+        SharedResoucePool<SocketAsyncEventArgs> _acceptArgsPool;
+        NewConnListenerSettings _setting;
         //A Semaphore has two parameters, the initial number of available slots
         //and the maximum number of slots. We'll make them the same. 
         //This Semaphore is used to keep from going over max connection number. (It is not about 
         //controlling threading really here.)   
-        Semaphore maxConnEnforcer;
+        Semaphore _maxConnEnforcer;
 
         /// <summary>
         /// handle new req connection
         /// </summary>
-        Action<Socket> acceptNewConnectionHandler;
+        Action<Socket> _acceptNewConnectionHandler;
 
         public NewConnectionListener(NewConnListenerSettings setting, Action<Socket> acceptNewConnectionHandler)
         {
-            this.setting = setting;
-            this.acceptArgsPool = new SharedResoucePool<SocketAsyncEventArgs>(this.setting.MaxAcceptOps);
-            this.acceptNewConnectionHandler = acceptNewConnectionHandler;
+            _setting = setting;
+            _acceptArgsPool = new SharedResoucePool<SocketAsyncEventArgs>(_setting.MaxAcceptOps);
+            _acceptNewConnectionHandler = acceptNewConnectionHandler;
             // Create connections count enforcer
-            this.maxConnEnforcer = new Semaphore(this.setting.MaxConnections, this.setting.MaxConnections);
+            _maxConnEnforcer = new Semaphore(_setting.MaxConnections, _setting.MaxConnections);
         }
         /// <summary>
         /// async start listen for  new client
@@ -50,10 +50,10 @@ namespace SharpConnect
         void InitPools()
         {
             // preallocate pool of SocketAsyncEventArgs objects for accept operations           
-            for (int i = this.setting.MaxAcceptOps - 1; i >= 0; --i)
+            for (int i = _setting.MaxAcceptOps - 1; i >= 0; --i)
             {
                 // add SocketAsyncEventArg to the pool                 
-                this.acceptArgsPool.Push(CreateSocketAsyncEventArgsForAccept());
+                _acceptArgsPool.Push(CreateSocketAsyncEventArgsForAccept());
             }
         }
         void InitListenSocket()
@@ -69,10 +69,10 @@ namespace SharpConnect
             }
 #endif
             // create the socket which listens for incoming connections
-            listenSocket = new Socket(this.setting.ListnerEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            _listenSocket = new Socket(_setting.ListnerEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
             //bind it to the port
-            listenSocket.Bind(this.setting.ListnerEndPoint);
+            _listenSocket.Bind(_setting.ListnerEndPoint);
 
             // Start the listener with a backlog of however many connections.
             //"backlog" means pending connections. 
@@ -83,7 +83,7 @@ namespace SharpConnect
             //If the backlog is maxed out, then the client will receive an error when
             //trying to connect.
             //max # for backlog can be limited by the operating system.
-            listenSocket.Listen(this.setting.Backlog);
+            _listenSocket.Listen(_setting.Backlog);
 
             //#if DEBUG
             //            if (dbugLOG.watchProgramFlow)   //for testing
@@ -109,7 +109,7 @@ namespace SharpConnect
             //Allocate the SocketAsyncEventArgs object. 
             var acceptEventArg = new SocketAsyncEventArgs();
 #if DEBUG
-            acceptEventArg.UserToken = new dbugAcceptOpUserToken(acceptArgsPool.dbugGetNewTokenId() + 10000);
+            acceptEventArg.UserToken = new dbugAcceptOpUserToken(_acceptArgsPool.dbugGetNewTokenId() + 10000);
 #endif
 
             //SocketAsyncEventArgs.Completed is an event, (the only event,) 
@@ -160,12 +160,12 @@ namespace SharpConnect
             //Get a SocketAsyncEventArgs object to accept the connection.                        
             //Get it from the pool if there is more than one in the pool.
             //We could use zero as bottom, but one is a little safer.            
-            if (this.acceptArgsPool.Count > 1)
+            if (_acceptArgsPool.Count > 1)
             {
                 try
                 {
                     //use from pool
-                    acceptEventArg = this.acceptArgsPool.Pop();
+                    acceptEventArg = _acceptArgsPool.Pop();
                 }
                 //or make a new one.
                 catch
@@ -203,7 +203,7 @@ namespace SharpConnect
             // doing AcceptAsync. If maxConnections value has been reached,
             //then the application will pause here until the Semaphore gets released,
             //which happens in the CloseClientSocket method.            
-            this.maxConnEnforcer.WaitOne();
+            _maxConnEnforcer.WaitOne();
 
             //Socket.AcceptAsync begins asynchronous operation to accept the connection.
             //Note the listening socket will pass info to the SocketAsyncEventArgs
@@ -222,7 +222,7 @@ namespace SharpConnect
             //AcceptAsync returns false if the I/O operation completed synchronously.            
             //The SocketAsyncEventArgs.Completed event on the acceptEventArg 
             //parameter will NOT be raised when AcceptAsync returns false.
-            if (!listenSocket.AcceptAsync(acceptEventArg))
+            if (!_listenSocket.AcceptAsync(acceptEventArg))
             {
 #if DEBUG
                 if (dbugLOG.enableDebugLog && dbugLOG.watchProgramFlow)   //for testing
@@ -286,7 +286,7 @@ namespace SharpConnect
             //a reference for that socket to the SocketAsyncEventArgs 
             //object which will do receive/send.
             //----------------------------------------------------------------------
-            acceptNewConnectionHandler(acceptEventArgs.AcceptSocket);//*** (move socket object from acceptArgs to recvSendArgs 
+            _acceptNewConnectionHandler(acceptEventArgs.AcceptSocket);//*** (move socket object from acceptArgs to recvSendArgs 
             //---------------------------------------------------------------------- 
             //We have handed off the connection info from the
             //accepting socket to the receiving socket. So, now we can
@@ -295,7 +295,7 @@ namespace SharpConnect
             //the socket info from that object, so it will be 
             //ready for a new socket when it comes out of the pool.
             acceptEventArgs.AcceptSocket = null; //after remove set this to null
-            this.acceptArgsPool.Push(acceptEventArgs); //return to pool
+            _acceptArgsPool.Push(acceptEventArgs); //return to pool
 
 #if DEBUG
             dbugAcceptLog(acceptEventArgs, "back to poolOfAcceptEventArgs");
@@ -314,7 +314,7 @@ namespace SharpConnect
             acceptEventArgs.AcceptSocket.Close();
             acceptEventArgs.AcceptSocket = null;
             //Put the SAEA back in the pool.
-            acceptArgsPool.Push(acceptEventArgs);
+            _acceptArgsPool.Push(acceptEventArgs);
         }
 
         [System.Diagnostics.Conditional("DEBUG")]
@@ -335,18 +335,18 @@ namespace SharpConnect
             //Release Semaphore so that its connection counter will be decremented.
             //This must be done AFTER putting the SocketAsyncEventArg back into the pool,
             //or you can run into problems.   
-            maxConnEnforcer.Release();
+            _maxConnEnforcer.Release();
         }
         public void StopAccept()
         {
             //close listen socket
-            listenSocket.Close();
+            _listenSocket.Close();
         }
         public void DisposePool()
         {
-            while (this.acceptArgsPool.Count > 0)
+            while (_acceptArgsPool.Count > 0)
             {
-                acceptArgsPool.Pop().Dispose();
+                _acceptArgsPool.Pop().Dispose();
             }
         }
     }

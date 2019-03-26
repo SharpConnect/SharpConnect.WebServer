@@ -29,16 +29,17 @@ namespace SharpConnect.WebServers
 {
     public class WebSocketResponse : IDisposable
     {
-        MemoryStream bodyMs = new MemoryStream();
+        MemoryStream _bodyMs = new MemoryStream();
 
-        ISendIO sendIO;
-        Random _rdForMask;
-        bool _asClient;
-        internal WebSocketResponse(bool asClient, ISendIO conn)
+        readonly ISendIO _sendIO;
+        readonly Random _rdForMask;
+        readonly bool _asClient;
+        readonly int _connId; //connectio id
+        internal WebSocketResponse(int connId, bool asClient, ISendIO conn)
         {
-            //this.conn = conn;
-            this.sendIO = conn;
-            this._asClient = asClient;
+            _connId = connId;
+            _sendIO = conn;
+            _asClient = asClient;
             if (asClient)
             {
                 _rdForMask = new Random();
@@ -52,13 +53,13 @@ namespace SharpConnect.WebServers
                 return 0;
             }
         }
-       
+
         public void Dispose()
         {
-            if (bodyMs != null)
+            if (_bodyMs != null)
             {
-                bodyMs.Dispose();
-                bodyMs = null;
+                _bodyMs.Dispose();
+                _bodyMs = null;
             }
         }
 
@@ -66,14 +67,14 @@ namespace SharpConnect.WebServers
         {
             int maskKey = _asClient ? _rdForMask.Next() : 0;
             byte[] dataToSend = CreateSendBuffer(content, maskKey);
-            sendIO.EnqueueSendingData(dataToSend, dataToSend.Length);
-            sendIO.SendIOStartSend();
+            _sendIO.EnqueueSendingData(dataToSend, dataToSend.Length);
+            _sendIO.SendIOStartSend();
         }
         public int SendQueueCount
         {
             get
             {
-                return sendIO.QueueCount;
+                return _sendIO.QueueCount;
             }
         }
         static void MaskAgain(byte[] data, byte[] key)
