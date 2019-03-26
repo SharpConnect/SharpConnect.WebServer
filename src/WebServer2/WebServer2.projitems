@@ -9,13 +9,16 @@
     <Import_RootNamespace>WebServer2</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer\HttpsContext.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer\RecvIO_SendIO.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer\HttpsRequest.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer\HttpsWebResponse.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer\HttpsWebServer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpsWebServer\HttpsContext.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpsWebServer\RecvIO_SendIO.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpsWebServer\HttpsRequest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpsWebServer\HttpsWebResponse.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpsWebServer\HttpsWebServer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Internal\SockAsyncNetworkStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketProtocolParser.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)WebSocket\SecureWebSocketClient.cs" />
   </ItemGroup>
 </Project>
