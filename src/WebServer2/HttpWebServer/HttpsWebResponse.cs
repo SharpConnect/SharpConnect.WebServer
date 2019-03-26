@@ -7,7 +7,7 @@ namespace SharpConnect.WebServers.Server2
         internal HttpsWebResponse(HttpsContext context)
             : base(context)
         {
-            this._context = context;
+            _context = context;
 
             StatusCode = 200; //init
 

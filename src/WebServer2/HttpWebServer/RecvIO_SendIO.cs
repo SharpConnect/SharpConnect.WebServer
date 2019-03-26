@@ -517,7 +517,7 @@ namespace SharpConnect.Internal2
 
         public bool IsEnd() => _readpos >= _totalLen;
 
-        public int Length => this._totalLen;
+        public int Length => _totalLen;
 
         public bool Ensure(int len) => _readpos + len <= _totalLen;
 

@@ -42,7 +42,7 @@ namespace SharpConnect.WebServers
             {
                 throw new NotSupportedException();
             }
-            this._data = newDataBuffer;
+            _data = newDataBuffer;
         }
         public string ReadAsString()
         {

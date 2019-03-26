@@ -105,13 +105,13 @@ namespace SharpConnect.Internal
 
         public RecvIO(SocketAsyncEventArgs recvArgs, int recvStartOffset, int recvBufferSize, Action<RecvEventCode> recvNotify)
         {
-            this._recvArgs = recvArgs;
-            this._recvStartOffset = recvStartOffset;
-            this._recvBufferSize = recvBufferSize;
-            this._recvNotify = recvNotify;
+            _recvArgs = recvArgs;
+            _recvStartOffset = recvStartOffset;
+            _recvBufferSize = recvBufferSize;
+            _recvNotify = recvNotify;
         }
 
-        public byte ReadByte(int index) => _recvArgs.Buffer[this._recvStartOffset + index];
+        public byte ReadByte(int index) => _recvArgs.Buffer[_recvStartOffset + index];
 
         public void CopyTo(int srcIndex, byte[] destBuffer, int destIndex, int count)
         {
@@ -180,7 +180,7 @@ namespace SharpConnect.Internal
         /// </summary>
         public void StartReceive()
         {
-            _recvArgs.SetBuffer(this._recvStartOffset, this._recvBufferSize);
+            _recvArgs.SetBuffer(_recvStartOffset, _recvBufferSize);
             if (!_recvArgs.AcceptSocket.ReceiveAsync(_recvArgs))
             {
                 ProcessReceivedData();
@@ -219,10 +219,10 @@ namespace SharpConnect.Internal
             int sendBufferSize,
             Action<SendIOEventCode> notify)
         {
-            this._sendArgs = sendArgs;
-            this._sendStartOffset = sendStartOffset;
-            this._sendBufferSize = sendBufferSize;
-            this._notify = notify;
+            _sendArgs = sendArgs;
+            _sendStartOffset = sendStartOffset;
+            _sendBufferSize = sendBufferSize;
+            _notify = notify;
         }
         SendIOState sendingState
         {
@@ -351,17 +351,17 @@ namespace SharpConnect.Internal
 
             //------------------------------------------------------------------------
             //send this data first 
-            int remaining = this._sendingTargetBytes - this._sendingTransferredBytes;
+            int remaining = _sendingTargetBytes - _sendingTransferredBytes;
             if (remaining == 0)
             {
                 bool hasSomeData = false;
                 lock (_queueLock)
                 {
-                    if (this._sendingQueue.Count > 0)
+                    if (_sendingQueue.Count > 0)
                     {
-                        this._currentSendingData = _sendingQueue.Dequeue();
-                        remaining = this._sendingTargetBytes = _currentSendingData.Length;
-                        this._sendingTransferredBytes = 0;
+                        _currentSendingData = _sendingQueue.Dequeue();
+                        remaining = _sendingTargetBytes = _currentSendingData.Length;
+                        _sendingTransferredBytes = 0;
                         hasSomeData = true;
                     }
                 }
@@ -380,16 +380,16 @@ namespace SharpConnect.Internal
             }
 
 
-            if (remaining <= this._sendBufferSize)
+            if (remaining <= _sendBufferSize)
             {
-                _sendArgs.SetBuffer(this._sendStartOffset, remaining);
+                _sendArgs.SetBuffer(_sendStartOffset, remaining);
                 //*** copy from src to dest
                 if (_currentSendingData != null)
                 {
-                    Buffer.BlockCopy(this._currentSendingData, //src
-                        this._sendingTransferredBytes,
+                    Buffer.BlockCopy(_currentSendingData, //src
+                        _sendingTransferredBytes,
                         _sendArgs.Buffer, //dest
-                        this._sendStartOffset,
+                        _sendStartOffset,
                         remaining);
                 }
             }
@@ -398,13 +398,13 @@ namespace SharpConnect.Internal
                 //We cannot try to set the buffer any larger than its size.
                 //So since receiveSendToken.sendBytesRemainingCount > BufferSize, we just
                 //set it to the maximum size, to send the most data possible.
-                _sendArgs.SetBuffer(this._sendStartOffset, this._sendBufferSize);
+                _sendArgs.SetBuffer(_sendStartOffset, _sendBufferSize);
                 //Copy the bytes to the buffer associated with this SAEA object.
-                Buffer.BlockCopy(this._currentSendingData,
-                    this._sendingTransferredBytes,
+                Buffer.BlockCopy(_currentSendingData,
+                    _sendingTransferredBytes,
                     _sendArgs.Buffer,
-                    this._sendStartOffset,
-                    this._sendBufferSize);
+                    _sendStartOffset,
+                    _sendBufferSize);
             }
 
 
@@ -437,8 +437,8 @@ namespace SharpConnect.Internal
                     break;
                 case SocketError.Success:
                     {
-                        this._sendingTransferredBytes += _sendArgs.BytesTransferred;
-                        int remainingBytes = this._sendingTargetBytes - _sendingTransferredBytes;
+                        _sendingTransferredBytes += _sendArgs.BytesTransferred;
+                        int remainingBytes = _sendingTargetBytes - _sendingTransferredBytes;
                         if (remainingBytes > 0)
                         {
                             //no complete!, 
@@ -459,15 +459,15 @@ namespace SharpConnect.Internal
                                 if (_sendingQueue.Count > 0)
                                 {
                                     //move new chunck to current Sending data
-                                    this._currentSendingData = _sendingQueue.Dequeue();
+                                    _currentSendingData = _sendingQueue.Dequeue();
                                     hasSomeData = true;
                                 }
                             }
 
                             if (hasSomeData)
                             {
-                                this._sendingTargetBytes = _currentSendingData.Length;
-                                this._sendingTransferredBytes = 0;
+                                _sendingTargetBytes = _currentSendingData.Length;
+                                _sendingTransferredBytes = 0;
                                 //****
                                 sendingState = SendIOState.ReadyNextSend;
                                 StartSendAsync();
@@ -540,10 +540,10 @@ namespace SharpConnect.Internal
         }
         public void SetBuffer(byte[] originalBuffer, int bufferStartIndex, int bufferSize)
         {
-            this._originalBuffer = originalBuffer;
-            this._usedBuffersize = bufferSize;
-            this._bufferStartIndex = bufferStartIndex;
-            this._readIndex = bufferStartIndex; //auto
+            _originalBuffer = originalBuffer;
+            _usedBuffersize = bufferSize;
+            _bufferStartIndex = bufferStartIndex;
+            _readIndex = bufferStartIndex; //auto
         }
         public bool Ensure(int len) => _readIndex + len <= _usedBuffersize;
 
@@ -794,7 +794,7 @@ namespace SharpConnect.Internal
         }
         internal byte[] UnsafeGetInternalBuffer()
         {
-            return this._originalBuffer;
+            return _originalBuffer;
         }
         internal int UsedBufferDataLen
         {
@@ -871,7 +871,7 @@ namespace SharpConnect.Internal
         RecvIO _latestRecvIO;
         public RecvIOBufferStream(RecvIO recvIO)
         {
-            this._latestRecvIO = recvIO;
+            _latestRecvIO = recvIO;
             AutoClearPrevBufferBlock = true;
         }
         public bool AutoClearPrevBufferBlock { get; set; }
@@ -920,7 +920,7 @@ namespace SharpConnect.Internal
             }
         }
 
-        public int Length => this._totalLen;
+        public int Length => _totalLen;
 
         /// <summary>
         /// 

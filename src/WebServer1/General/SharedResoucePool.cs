@@ -25,20 +25,20 @@ namespace SharpConnect
             }
 #endif
 
-            this._pool = new Stack<T>(capacity);
+            _pool = new Stack<T>(capacity);
         }
 
         // The number of SocketAsyncEventArgs instances in the pool.         
-        internal int Count => this._pool.Count;
+        internal int Count => _pool.Count;
 
 
         // Removes a SocketAsyncEventArgs instance from the pool.
         // returns SocketAsyncEventArgs removed from the pool.
         internal T Pop()
         {
-            lock (this._pool)
+            lock (_pool)
             {
-                return this._pool.Pop();
+                return _pool.Pop();
             }
         }
 
@@ -50,9 +50,9 @@ namespace SharpConnect
             {
                 throw new ArgumentNullException("Items added to a SocketAsyncEventArgsPool cannot be null");
             }
-            lock (this._pool)
+            lock (_pool)
             {
-                this._pool.Push(item);
+                _pool.Push(item);
             }
         }
 #if DEBUG

@@ -105,13 +105,13 @@ namespace SharpConnect.WebServers
                 }
             });
             //------------------------------------------------------------------------------------             
-            this._webSocketReqParser = new WebSocketProtocolParser(this.AsClientContext, new RecvIOBufferStream(_recvIO));
+            _webSocketReqParser = new WebSocketProtocolParser(this.AsClientContext, new RecvIOBufferStream(_recvIO));
 
         }
         public bool AsClientContext => _asClientContext;
         public void Bind(Socket clientSocket)
         {
-            this._clientSocket = clientSocket;
+            _clientSocket = clientSocket;
             //sender
             _sockAsyncSender.AcceptSocket = clientSocket;
             //------------------------------------------------------
@@ -133,7 +133,7 @@ namespace SharpConnect.WebServers
                 case RecvEventCode.HasSomeData:
 
                     //parse recv msg
-                    switch (this._webSocketReqParser.ParseRecvData())
+                    switch (_webSocketReqParser.ParseRecvData())
                     {
                         //in this version all data is copy into WebSocketRequest
                         //so we can reuse recv buffer 
@@ -189,11 +189,11 @@ namespace SharpConnect.WebServers
 
         public int ConnectionId
         {
-            get { return this._connectionId; }
+            get { return _connectionId; }
         }
         public void SetMessageHandler(ReqRespHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler)
         {
-            this._webSocketReqHandler = webSocketReqHandler;
+            _webSocketReqHandler = webSocketReqHandler;
         }
 
 

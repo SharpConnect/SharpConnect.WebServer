@@ -38,8 +38,8 @@ namespace SharpConnect.WebServers
         internal WebSocketResponse(int connId, bool asClient, ISendIO conn)
         {
             _connId = connId;
-            this._sendIO = conn;
-            this._asClient = asClient;
+            _sendIO = conn;
+            _asClient = asClient;
             if (asClient)
             {
                 _rdForMask = new Random();

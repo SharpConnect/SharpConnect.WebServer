@@ -15,10 +15,10 @@ namespace SharpConnect.WebServers
 
         internal HttpWebResponse(HttpContext context) : base(context)
         {
-            this._context = context;
+            _context = context;
             //bodyMs = new MemoryStream();
             StatusCode = 200; //init
-            this._context = context;
+            _context = context;
             this.ContentTypeCharSet = WebServers.TextCharSet.Utf8;
         }
         public override bool KeepAlive => _context.KeepAlive;

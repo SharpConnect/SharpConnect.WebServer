@@ -18,7 +18,7 @@ namespace SharpConnect.WebServers.Server2
         SharedResoucePool<HttpsContext> _contextPool;
         public HttpsWebServer(int port, bool localOnly, ReqRespHandler<HttpRequest, HttpResponse> reqHandler)
         {
-            this._reqHandler = reqHandler;
+            _reqHandler = reqHandler;
 
             int maxNumberOfConnections = 500;
             int excessSaeaObjectsInPool = 200;
@@ -41,7 +41,7 @@ namespace SharpConnect.WebServers.Server2
                         int recvSize = 1024 * 2;
                         int sendSize = 1024 * 2;
                         HttpsContext context = new HttpsContext(this, recvSize, sendSize);
-                        context.BindReqHandler(this._reqHandler); //client handler
+                        context.BindReqHandler(_reqHandler); //client handler
 #if DEBUG
                         context.dbugForHttps = true;
 #endif
@@ -52,7 +52,7 @@ namespace SharpConnect.WebServers.Server2
                     }
                     else
                     {
-                        HttpsContext context = this._contextPool.Pop();
+                        HttpsContext context = _contextPool.Pop();
                         context.BindSocket(clientSocket); //*** bind to client socket                      
                         context.StartReceive(UseSsl ? _serverCert : null);
                     }
@@ -75,7 +75,7 @@ namespace SharpConnect.WebServers.Server2
             //Allocate memory for buffers. We are using a separate buffer space for
             //receive and send, instead of sharing the buffer space, like the Microsoft
             //example does.    
-            this._contextPool = new SharedResoucePool<HttpsContext>(maxNumberOfConnnections);
+            _contextPool = new SharedResoucePool<HttpsContext>(maxNumberOfConnnections);
             //------------------------------------------------------------------
             //It is NOT mandatory that you preallocate them or reuse them. But, but it is 
             //done this way to illustrate how the API can 
@@ -88,15 +88,15 @@ namespace SharpConnect.WebServers.Server2
                     recvSize,
                     sendSize);
                 context.CreatedFromPool = true;
-                context.BindReqHandler(this._reqHandler); //client handler
+                context.BindReqHandler(_reqHandler); //client handler
 
-                this._contextPool.Push(context);
+                _contextPool.Push(context);
             }
         }
 
         internal void SetBufferFor(SocketAsyncEventArgs e)
         {
-            this._bufferMan.SetBufferFor(e);
+            _bufferMan.SetBufferFor(e);
         }
         internal void ReleaseChildConn(HttpsContext httpContext)
         {
@@ -106,7 +106,7 @@ namespace SharpConnect.WebServers.Server2
                 httpContext.Reset();
                 if (httpContext.CreatedFromPool)
                 {
-                    this._contextPool.Push(httpContext);
+                    _contextPool.Push(httpContext);
                 }
                 _newConnListener.NotifyFreeAcceptQuota();
             }
@@ -128,7 +128,7 @@ namespace SharpConnect.WebServers.Server2
         public void Stop()
         {
             _newConnListener.DisposePool();
-            while (this._contextPool.Count > 0)
+            while (_contextPool.Count > 0)
             {
                 _contextPool.Pop().Dispose();
             }

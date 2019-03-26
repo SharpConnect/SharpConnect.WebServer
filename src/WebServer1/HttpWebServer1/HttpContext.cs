@@ -59,7 +59,7 @@ namespace SharpConnect.WebServers
             int sendBufferSize)
         {
             this.EnableWebSocket = true;
-            this._ownerServer = ownerServer;
+            _ownerServer = ownerServer;
             //each recvSendArgs is created for this connection session only ***
             //---------------------------------------------------------------------------------------------------------- 
 
@@ -139,11 +139,11 @@ namespace SharpConnect.WebServers
                                     //goto user action
 
                                     if (this.EnableWebSocket &&
-                                        this._ownerServer.CheckWebSocketUpgradeRequest(this))
+                                        _ownerServer.CheckWebSocketUpgradeRequest(this))
                                     {
                                         return;
                                     }
-                                    _reqHandler(this._httpReq, _httpResp);
+                                    _reqHandler(_httpReq, _httpResp);
                                 }
                                 break;
                             case ProcessReceiveBufferResult.NeedMore:
@@ -207,7 +207,7 @@ namespace SharpConnect.WebServers
         }
         internal void BindReqHandler(ReqRespHandler<HttpRequest, HttpResponse> reqHandler)
         {
-            this._reqHandler = reqHandler;
+            _reqHandler = reqHandler;
         }
         internal void UnBindSocket(bool closeClientSocket)
         {
@@ -256,7 +256,7 @@ namespace SharpConnect.WebServers
 
         public void Dispose()
         {
-            this._recv_a.Dispose();
+            _recv_a.Dispose();
         }
 
         internal HttpWebServer OwnerWebServer => _ownerServer;
@@ -272,12 +272,12 @@ namespace SharpConnect.WebServers
             //new session id
             _dbugSessionId = System.Threading.Interlocked.Increment(ref dbug_s_mainSessionId);
         }
-        public Int32 dbugSessionId => this._dbugSessionId;
+        public Int32 dbugSessionId => _dbugSessionId;
 
         int _dbugSessionId;
         public void dbugSetInfo(int tokenId)
         {
-            this._dbugTokenId = tokenId;
+            _dbugTokenId = tokenId;
         }
 
         public void StartSendAsync() => _sendIO.StartSendAsync();
@@ -296,7 +296,7 @@ namespace SharpConnect.WebServers
             //is happening better if we want to.
             get
             {
-                return this._dbugTokenId;
+                return _dbugTokenId;
             }
         }
         int _dbugTokenId; //for testing only    

@@ -24,7 +24,7 @@ namespace SharpConnect.WebServers
             bool localOnly,
             ReqRespHandler<HttpRequest, HttpResponse> reqHandler)
         {
-            this._reqHandler = reqHandler;
+            _reqHandler = reqHandler;
 
             int maxNumberOfConnections = 500;
             int excessSaeaObjectsInPool = 200;
@@ -42,7 +42,7 @@ namespace SharpConnect.WebServers
                 clientSocket =>
                 {
                     //when accept new client
-                    HttpContext context = this._contextPool.Pop();
+                    HttpContext context = _contextPool.Pop();
                     context.BindSocket(clientSocket); //*** bind to client socket 
                     context.StartReceive(); //start receive data
                 });
@@ -56,7 +56,7 @@ namespace SharpConnect.WebServers
             //Allocate memory for buffers. We are using a separate buffer space for
             //receive and send, instead of sharing the buffer space, like the Microsoft
             //example does.    
-            this._contextPool = new SharedResoucePool<HttpContext>(maxNumberOfConnnections);
+            _contextPool = new SharedResoucePool<HttpContext>(maxNumberOfConnnections);
             //------------------------------------------------------------------
             //It is NOT mandatory that you preallocate them or reuse them. But, but it is 
             //done this way to illustrate how the API can 
@@ -69,22 +69,22 @@ namespace SharpConnect.WebServers
                     recvSize,
                    sendSize);
 
-                context.BindReqHandler(this._reqHandler); //client handler
+                context.BindReqHandler(_reqHandler); //client handler
 
-                this._contextPool.Push(context);
+                _contextPool.Push(context);
             }
         }
 
         internal void SetBufferFor(SocketAsyncEventArgs e)
         {
-            this._bufferMan.SetBufferFor(e);
+            _bufferMan.SetBufferFor(e);
         }
         internal void ReleaseChildConn(HttpContext httpConn)
         {
             if (httpConn != null)
             {
                 httpConn.Reset();
-                this._contextPool.Push(httpConn);
+                _contextPool.Push(httpConn);
                 _newConnListener.NotifyFreeAcceptQuota();
             }
         }
@@ -105,7 +105,7 @@ namespace SharpConnect.WebServers
         public void Stop()
         {
             _newConnListener.DisposePool();
-            while (this._contextPool.Count > 0)
+            while (_contextPool.Count > 0)
             {
                 _contextPool.Pop().Dispose();
             }

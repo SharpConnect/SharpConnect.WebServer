@@ -95,7 +95,7 @@ namespace SharpConnect.WebServers.Server2
                 case RecvEventCode.HasSomeData:
 
                     //parse recv msg
-                    switch (this._webSocketReqParser.ParseRecvData())
+                    switch (_webSocketReqParser.ParseRecvData())
                     {
                         //in this version all data is copy into WebSocketRequest
                         //so we can reuse recv buffer 

@@ -107,14 +107,14 @@ namespace SharpConnect.WebServers
             {
                 //as client context (we are in client context)
                 if (currentMask != Mask.Off) throw new NotSupportedException();
-                this._useMask = false;
+                _useMask = false;
             }
             else
             {
                 //as server context (we are in server context)
                 //data from client must useMask
                 if (currentMask != Mask.On) throw new NotSupportedException();
-                this._useMask = true;
+                _useMask = true;
             }
             //----------------------------------------------------------
             // Payload Length
@@ -196,24 +196,24 @@ namespace SharpConnect.WebServers
                 throw new NotSupportedException();
             }
             //----------------------------------------------------------  
-            this._currentPacketLen = payloadLen;
+            _currentPacketLen = payloadLen;
             _currentReq.OpCode = _currentOpCode;
-            this._currentMaskLen = (currentMask == Mask.On) ? 4 : 0;
+            _currentMaskLen = (currentMask == Mask.On) ? 4 : 0;
             //----------------------------------------------------------
             if (payloadLen >= 126)
             {
-                this._parseState = ParseState.ReadExtendedPayloadLen;
+                _parseState = ParseState.ReadExtendedPayloadLen;
                 return true;
             }
             //----------------------------------------------------------
-            this._parseState = this._currentMaskLen > 0 ?
+            _parseState = _currentMaskLen > 0 ?
                 ParseState.ReadMask :
                 ParseState.ExpectBody;
             return true;
         }
         bool ReadPayloadLen()
         {
-            int extendedPayloadByteCount = (this._currentPacketLen == 126 ? 2 : 8);
+            int extendedPayloadByteCount = (_currentPacketLen == 126 ? 2 : 8);
             if (!_myBufferStream.Ensure(extendedPayloadByteCount))
             {
                 _myBufferStream.BackupRecvIO();
@@ -229,8 +229,8 @@ namespace SharpConnect.WebServers
                 //in this version ***
                 throw new NotSupportedException();
             }
-            this._currentPacketLen = (int)org_packetLen1;
-            this._parseState = _currentMaskLen > 0 ?
+            _currentPacketLen = (int)org_packetLen1;
+            _parseState = _currentMaskLen > 0 ?
                      ParseState.ReadMask :
                      ParseState.ExpectBody;
             return true;
@@ -246,7 +246,7 @@ namespace SharpConnect.WebServers
             //read mask data                     
 
             _myBufferStream.CopyBuffer(_maskKey, _currentMaskLen);
-            this._parseState = ParseState.ExpectBody;
+            _parseState = ParseState.ExpectBody;
             return true;
         }
 

@@ -71,7 +71,7 @@ namespace SharpConnect.WebServers.Server2
 
 
             this.EnableWebSocket = true;
-            this._ownerServer = ownerServer;
+            _ownerServer = ownerServer;
 
             byte[] recvBuff = new byte[recvBufferSize];
             byte[] sendBuffer = new byte[sendBufferSize];
@@ -127,7 +127,7 @@ namespace SharpConnect.WebServers.Server2
         }
         internal void BindReqHandler(ReqRespHandler<HttpRequest, HttpResponse> reqHandler)
         {
-            this._reqHandler = reqHandler;
+            _reqHandler = reqHandler;
         }
         internal void UnBindSocket(bool closeClientSocket)
         {
@@ -325,11 +325,11 @@ namespace SharpConnect.WebServers.Server2
                                     //recv and parse complete  
                                     //goto user action 
                                     if (this.EnableWebSocket &&
-                                        this._ownerServer.CheckWebSocketUpgradeRequest(this))
+                                        _ownerServer.CheckWebSocketUpgradeRequest(this))
                                     {
                                         return;
                                     }
-                                    _reqHandler(this._httpReq, _httpResp);
+                                    _reqHandler(_httpReq, _httpResp);
                                 }
                                 break;
                             case ProcessReceiveBufferResult.NeedMore:

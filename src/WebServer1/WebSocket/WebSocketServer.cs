@@ -78,11 +78,11 @@ namespace SharpConnect.WebServers
 
         public void SetOnNewConnectionContext(Action<WebSocketContext> newContextConnected)
         {
-            this._newContextConnected = newContextConnected;
+            _newContextConnected = newContextConnected;
         }
         public void SetOnNewConnectionContext(Action<SharpConnect.WebServers.Server2.WebSocketContext> newContextConnected)
         {
-            this._newContextConnected2 = newContextConnected;
+            _newContextConnected2 = newContextConnected;
         }
 
         static byte[] MakeWebSocketUpgradeResponse(string webSocketSecCode)

@@ -16,7 +16,7 @@ namespace SharpConnect.WebServers.Server2
         HttpsContext _context;
         internal HttpsWebRequest(HttpsContext context)
         {
-            this._context = context;
+            _context = context;
         }
 
         //===================
@@ -38,12 +38,12 @@ namespace SharpConnect.WebServers.Server2
             {
                 case "Content-Length":
                     {
-                        int.TryParse(value, out this._targetContentLength);
+                        int.TryParse(value, out _targetContentLength);
                     }
                     break;
                 case "Connection":
                     {
-                        this._context.KeepAlive = (value.ToLower().Trim() == "keep-alive");
+                        _context.KeepAlive = (value.ToLower().Trim() == "keep-alive");
 
                     }
                     break;
@@ -232,7 +232,7 @@ namespace SharpConnect.WebServers.Server2
                     //add to req  
                     AddMsgBody(buff, 0, wantBytes);
                     //complete 
-                    this._parseState = HttpParsingState.Complete;
+                    _parseState = HttpParsingState.Complete;
                     return;
                 }
                 else
@@ -249,7 +249,7 @@ namespace SharpConnect.WebServers.Server2
                     return;
                 }
             }
-            this._parseState = HttpParsingState.Complete;
+            _parseState = HttpParsingState.Complete;
         }
     }
 

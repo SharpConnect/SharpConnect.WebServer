@@ -468,7 +468,7 @@ namespace SharpConnect.Internal2
         {
             if (this.UsedBySslStream)
             {
-                if (this._passHandshake)
+                if (_passHandshake)
                 {
                     //
                 }

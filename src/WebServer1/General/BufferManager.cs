@@ -44,11 +44,11 @@ namespace SharpConnect
         public BufferManager(int totalBytes, int totalBufferBytesInEachSocketAsyncEventArgs)
         {
             _totalBytesInBufferBlock = totalBytes;
-            this._currentIndex = 0;
-            this._totalBufferBytesInEachSocketAsyncEventArgs = totalBufferBytesInEachSocketAsyncEventArgs;
-            this._freeIndexPool = new Stack<int>();
+            _currentIndex = 0;
+            _totalBufferBytesInEachSocketAsyncEventArgs = totalBufferBytesInEachSocketAsyncEventArgs;
+            _freeIndexPool = new Stack<int>();
 
-            this._bufferBlock = new byte[_totalBytesInBufferBlock];
+            _bufferBlock = new byte[_totalBytesInBufferBlock];
         }
         // Divide that one large buffer block out to each SocketAsyncEventArg object.
         // Assign a buffer space from the buffer block to the 
@@ -63,24 +63,24 @@ namespace SharpConnect
         internal bool SetBufferFor(SocketAsyncEventArgs args)
         {
 
-            if (this._freeIndexPool.Count > 0)
+            if (_freeIndexPool.Count > 0)
             {
                 //This if-statement is only true if you have called the FreeBuffer
                 //method previously, which would put an offset for a buffer space 
                 //back into this stack.
-                args.SetBuffer(this._bufferBlock, this._freeIndexPool.Pop(), this._totalBufferBytesInEachSocketAsyncEventArgs);
+                args.SetBuffer(_bufferBlock, _freeIndexPool.Pop(), _totalBufferBytesInEachSocketAsyncEventArgs);
             }
             else
             {
                 //Inside this else-statement is the code that is used to set the 
                 //buffer for each SAEA object when the pool of SAEA objects is built
                 //in the Init method.
-                if ((_totalBytesInBufferBlock - this._totalBufferBytesInEachSocketAsyncEventArgs) < this._currentIndex)
+                if ((_totalBytesInBufferBlock - _totalBufferBytesInEachSocketAsyncEventArgs) < _currentIndex)
                 {
                     return false;
                 }
-                args.SetBuffer(this._bufferBlock, this._currentIndex, this._totalBufferBytesInEachSocketAsyncEventArgs);
-                this._currentIndex += this._totalBufferBytesInEachSocketAsyncEventArgs;
+                args.SetBuffer(_bufferBlock, _currentIndex, _totalBufferBytesInEachSocketAsyncEventArgs);
+                _currentIndex += _totalBufferBytesInEachSocketAsyncEventArgs;
             }
             return true;
         }
@@ -93,7 +93,7 @@ namespace SharpConnect
         // this app's running.
         internal void FreeBuffer(SocketAsyncEventArgs args)
         {
-            this._freeIndexPool.Push(args.Offset);
+            _freeIndexPool.Push(args.Offset);
             args.SetBuffer(null, 0, 0);
         }
         //-------------------------------------------------------------------------------------------------------
