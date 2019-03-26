@@ -10,11 +10,9 @@ namespace SharpConnect
 
         static void Main(string[] args)
         {
-            Main_Http();
-            //Main_Https();
+            //Main_Http();
+           Main_Https();
         }
-
-
 
         static List<SharpConnect.WebServers.WebSocketContext> s_contextList = new List<SharpConnect.WebServers.WebSocketContext>();
         static List<SharpConnect.WebServers.Server2.WebSocketContext> s_contextList1 = new List<WebServers.Server2.WebSocketContext>();

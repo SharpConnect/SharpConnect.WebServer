@@ -17,7 +17,6 @@ namespace SharpConnect.WebServers
         string _certFile;
         string _certPsw;
         bool _isRunning;
-        WebSocketServer _webSocketServer;
 
         public WebServer(int port, bool localOnly, ReqRespHandler<HttpRequest, HttpResponse> reqHandler)
         {
@@ -39,11 +38,14 @@ namespace SharpConnect.WebServers
         {
             if (_isRunning) return;
 
+            _isRunning = true;
+
             if (UseSsl)
             {
                 _server2 = new Server2.HttpsWebServer(_port, _localOnly, _reqHandler);
                 _server2.LoadCertificate(_certFile, _certPsw);
                 _server2.UseSsl = true;
+                _server2.WebSocketServer = WebSocketServer;
                 _server2.Start();
             }
             else

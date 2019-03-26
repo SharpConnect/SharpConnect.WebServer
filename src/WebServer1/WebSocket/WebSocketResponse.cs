@@ -30,14 +30,16 @@ namespace SharpConnect.WebServers
     public class WebSocketResponse : IDisposable
     {
         MemoryStream bodyMs = new MemoryStream();
-        readonly WebSocketContext conn;
+
         ISendIO sendIO;
         Random _rdForMask;
-        internal WebSocketResponse(WebSocketContext conn)
+        bool _asClient;
+        internal WebSocketResponse(bool asClient, ISendIO conn)
         {
-            this.conn = conn;
+            //this.conn = conn;
             this.sendIO = conn;
-            if (conn.AsClientContext)
+            this._asClient = asClient;
+            if (asClient)
             {
                 _rdForMask = new Random();
             }
@@ -46,13 +48,11 @@ namespace SharpConnect.WebServers
         {
             get
             {
-                return conn.ConnectionId;
+                //temp
+                return 0;
             }
         }
-        public WebSocketContext OwnerContext
-        {
-            get { return this.conn; }
-        }
+       
         public void Dispose()
         {
             if (bodyMs != null)
@@ -64,7 +64,7 @@ namespace SharpConnect.WebServers
 
         public void Write(string content)
         {
-            int maskKey = conn.AsClientContext ? _rdForMask.Next() : 0;
+            int maskKey = _asClient ? _rdForMask.Next() : 0;
             byte[] dataToSend = CreateSendBuffer(content, maskKey);
             sendIO.EnqueueSendingData(dataToSend, dataToSend.Length);
             sendIO.SendIOStartSend();

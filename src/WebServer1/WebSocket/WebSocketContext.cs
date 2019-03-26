@@ -74,7 +74,7 @@ namespace SharpConnect.WebServers
                         break;
                 }
             });
-            webSocketResp = new WebSocketResponse(this);
+            webSocketResp = new WebSocketResponse(asClient, this);
 
             //------------------------------------------------------------------------------------
             //recv,req ,new socket
