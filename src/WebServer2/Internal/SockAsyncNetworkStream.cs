@@ -74,7 +74,9 @@ namespace SharpConnect.Internal2
         internal abstract void RecvCopyTo(int readpos, byte[] dstBuffer, int copyLen);
 
         internal abstract void UnbindSocket();
-
+        internal abstract int QueueCount { get; }
+        //***
+        internal abstract byte[] UnsafeGetRecvInternalBuffer();
     }
 
 
@@ -130,7 +132,11 @@ namespace SharpConnect.Internal2
             _sendIO = new SendIO();
             _sendIO.Bind(this);
         }
-        internal int QueueCount => _sendIO.QueueCount;//?
+        internal override int QueueCount => _sendIO.QueueCount;
+        internal override byte[] UnsafeGetRecvInternalBuffer()
+        {
+            return _recvBuffer._largeBuffer;
+        }
         public override void Reset()
         {
             _sendIO.Reset();
@@ -612,6 +618,8 @@ namespace SharpConnect.Internal2
             byte[] tmpIOBuffer = new byte[2048];//TODO: alloc this from external 
             _recvBuffer = new IOBuffer(tmpIOBuffer, 0, tmpIOBuffer.Length);
         }
+        internal override byte[] UnsafeGetRecvInternalBuffer() => _recvBuffer._largeBuffer;
+        internal override int QueueCount => _socketNetworkStream.QueueCount;// sending queue count
         internal override void RecvCopyTo(int readpos, byte[] dstBuffer, int copyLen)
         {
             _recvBuffer.CopyBuffer(readpos, dstBuffer, 0, copyLen);

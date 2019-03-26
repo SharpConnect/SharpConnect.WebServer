@@ -78,10 +78,13 @@ namespace SharpConnect.WebServers
             return wbcontext;
         }
 
-
         public void SetOnNewConnectionContext(Action<WebSocketContext> newContextConnected)
         {
             this.newContextConnected = newContextConnected;
+        }
+        public void SetOnNewConnectionContext(Action<SharpConnect.WebServers.Server2.WebSocketContext> newContextConnected)
+        {
+            this.newContextConnected2 = newContextConnected;
         }
         static byte[] MakeWebSocketUpgradeResponse(string webSocketSecCode)
         {

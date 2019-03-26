@@ -25,7 +25,7 @@ using System;
 using System.Collections.Generic;
 using SharpConnect.Internal;
 
-namespace SharpConnect.WebServers
+namespace SharpConnect.WebServers.Server2
 {
 
     class WebSocketProtocolParser
@@ -41,9 +41,9 @@ namespace SharpConnect.WebServers
         }
 
         Queue<WebSocketRequest> incommingReqs = new Queue<WebSocketRequest>();
-        RecvIOBufferStream myBufferStream;
+        SharpConnect.Internal2.RecvIOBufferStream2 myBufferStream;
         WebSocketRequest currentReq;
-       
+
         ParseState parseState;
 
         int _currentPacketLen;
@@ -56,7 +56,7 @@ namespace SharpConnect.WebServers
                                            //-----------------------
 
         bool _asClientContext;
-        internal WebSocketProtocolParser(bool asClientContext, RecvIOBufferStream recvBufferStream)
+        internal WebSocketProtocolParser(bool asClientContext, SharpConnect.Internal2.RecvIOBufferStream2 recvBufferStream)
         {
             _asClientContext = asClientContext;
             myBufferStream = recvBufferStream;

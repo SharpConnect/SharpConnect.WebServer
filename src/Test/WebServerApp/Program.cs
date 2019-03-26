@@ -14,26 +14,28 @@ namespace SharpConnect
             //Main_Https();
         }
 
-        static void Main_Https()
+
+
+        static List<SharpConnect.WebServers.WebSocketContext> s_contextList = new List<SharpConnect.WebServers.WebSocketContext>();
+        static List<SharpConnect.WebServers.Server2.WebSocketContext> s_contextList1 = new List<WebServers.Server2.WebSocketContext>();
+
+        static void Main_Http()
         {
-            Console.WriteLine("Hello!, from SharpConnect Https");
+            Console.WriteLine("Hello!, from SharpConnect Http");
 
             TestApp testApp = new TestApp();
             try
             {
                 //1. create  
                 SharpConnect.WebServers.WebServer webServer = new SharpConnect.WebServers.WebServer(8080, true, testApp.HandleRequest);
-                webServer.LoadCertificate(@"D:\WImageTest\mycert.p12", "12345");
-                webServer.UseSsl = true;
-
-                ////test websocket 
-                //var webSocketServer = new SharpConnect.WebServers.WebSocketServer();
-                //webSocketServer.SetOnNewConnectionContext(ctx =>
-                //{
-                //    s_contextList.Add(ctx);
-                //    ctx.SetMessageHandler(testApp.HandleWebSocket);
-                //});
-                //webServer.WebSocketServer = webSocketServer;
+                //test websocket 
+                var webSocketServer = new SharpConnect.WebServers.WebSocketServer();
+                webSocketServer.SetOnNewConnectionContext(ctx =>
+                {
+                    s_contextList.Add(ctx);
+                    ctx.SetMessageHandler(testApp.HandleWebSocket);
+                });
+                webServer.WebSocketServer = webSocketServer;
                 webServer.Start();
 
                 string cmd = "";
@@ -75,21 +77,24 @@ namespace SharpConnect
             }
         }
 
-        static List<SharpConnect.WebServers.WebSocketContext> s_contextList = new List<SharpConnect.WebServers.WebSocketContext>();
-        static void Main_Http()
+
+        static void Main_Https()
         {
-            Console.WriteLine("Hello!, from SharpConnect Http");
+            Console.WriteLine("Hello!, from SharpConnect Https");
 
             TestApp testApp = new TestApp();
             try
             {
                 //1. create  
                 SharpConnect.WebServers.WebServer webServer = new SharpConnect.WebServers.WebServer(8080, true, testApp.HandleRequest);
+                webServer.LoadCertificate(@"D:\WImageTest\mycert.p12", "12345");
+                webServer.UseSsl = true;
+
                 //test websocket 
                 var webSocketServer = new SharpConnect.WebServers.WebSocketServer();
-                webSocketServer.SetOnNewConnectionContext(ctx =>
+                webSocketServer.SetOnNewConnectionContext((SharpConnect.WebServers.Server2.WebSocketContext ctx) =>
                 {
-                    s_contextList.Add(ctx);
+                    s_contextList1.Add(ctx);
                     ctx.SetMessageHandler(testApp.HandleWebSocket);
                 });
                 webServer.WebSocketServer = webSocketServer;
