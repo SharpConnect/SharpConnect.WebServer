@@ -32,12 +32,12 @@ namespace SharpConnect.WebServers
     {
         MemoryStream bodyMs = new MemoryStream();
         readonly WebSocketContext conn;
-        SendIO sendIO;
+        ISendIO sendIO;
         Random _rdForMask;
-        internal WebSocketResponse(WebSocketContext conn, SendIO sendIO)
+        internal WebSocketResponse(WebSocketContext conn)
         {
             this.conn = conn;
-            this.sendIO = sendIO;
+            this.sendIO = conn;
             if (conn.AsClientContext)
             {
                 _rdForMask = new Random();
@@ -67,8 +67,8 @@ namespace SharpConnect.WebServers
         {
             int maskKey = conn.AsClientContext ? _rdForMask.Next() : 0;
             byte[] dataToSend = CreateSendBuffer(content, maskKey);
-            sendIO.EnqueueOutputData(dataToSend, dataToSend.Length);
-            sendIO.StartSendAsync();
+            sendIO.EnqueueSendingData(dataToSend, dataToSend.Length);
+            sendIO.SendIOStartSend();
         }
         public int SendQueueCount
         {

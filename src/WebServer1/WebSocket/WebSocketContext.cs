@@ -27,9 +27,9 @@ using SharpConnect.Internal;
 
 namespace SharpConnect.WebServers
 {
-    public class WebSocketContext : IDisposable
+    public class WebSocketContext : IDisposable, ISendIO
     {
-       
+
         readonly SocketAsyncEventArgs sockAsyncSender;
         readonly SocketAsyncEventArgs sockAsyncListener;
 
@@ -74,7 +74,7 @@ namespace SharpConnect.WebServers
                         break;
                 }
             });
-            webSocketResp = new WebSocketResponse(this, sendIO);
+            webSocketResp = new WebSocketResponse(this);
 
             //------------------------------------------------------------------------------------
             //recv,req ,new socket
@@ -101,7 +101,7 @@ namespace SharpConnect.WebServers
                 }
             });
             //------------------------------------------------------------------------------------             
-            this.webSocketReqParser = new WebSocketProtocolParser(this, recvIO);
+            this.webSocketReqParser = new WebSocketProtocolParser(this, new RecvIOBufferStream(recvIO));
 
         }
         public bool AsClientContext => _asClientContext;
@@ -119,6 +119,9 @@ namespace SharpConnect.WebServers
             clientSocket.ReceiveAsync(sockAsyncListener);
             //------------------------------------------------------  
         }
+        void ISendIO.EnqueueSendingData(byte[] buffer, int len) => sendIO.EnqueueOutputData(buffer, len);
+        void ISendIO.SendIOStartSend() => sendIO.StartSendAsync();
+        int ISendIO.QueueCount => sendIO.QueueCount;
         void HandleReceivedData(RecvEventCode recvCode)
         {
             switch (recvCode)

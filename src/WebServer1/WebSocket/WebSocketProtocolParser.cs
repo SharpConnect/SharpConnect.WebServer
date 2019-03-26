@@ -56,12 +56,11 @@ namespace SharpConnect.WebServers
         //-----------------------
         WebSocketContext _ownerContext;
         bool _asClientContext;
-        internal WebSocketProtocolParser(WebSocketContext context, RecvIO recvIO)
-        {
-            this.recvIO = recvIO;
+        internal WebSocketProtocolParser(WebSocketContext context, RecvIOBufferStream recvBufferStream)
+        {        
             this._ownerContext = context;
             _asClientContext = context.AsClientContext;
-            myBufferStream = new RecvIOBufferStream(recvIO);
+            myBufferStream = recvBufferStream;
         }
         public int ReqCount
         {
