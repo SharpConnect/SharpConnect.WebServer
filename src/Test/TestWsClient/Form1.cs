@@ -10,7 +10,7 @@ namespace TestWsClient
 {
     public partial class Form1 : Form
     {
-       
+        
         WebSocketClient _client;
         public Form1()
         {

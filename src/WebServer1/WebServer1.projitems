@@ -35,6 +35,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketServer.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketClient.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketClient.cs" />
   </ItemGroup>
 </Project>

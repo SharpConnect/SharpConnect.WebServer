@@ -9,6 +9,7 @@ namespace SharpConnect
         static CrossOriginPolicy crossOriginPolicy = new CrossOriginPolicy(AllowCrossOrigin.All, "*");
         static TestApp()
         {
+            
             //eg.
             //stBuilder.Append("Access-Control-Allow-Methods: GET, POST\r\n");
             //stBuilder.Append("Access-Control-Allow-Headers: Content-Type\r\n");
