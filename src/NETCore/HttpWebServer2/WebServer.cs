@@ -7,7 +7,7 @@ using System.Net;
 using System.Net.Sockets;
 using SharpConnect.Internal;
 
-namespace SharpConnect.WebServers
+namespace SharpConnect.WebServers2
 {
 
     public class WebServer
@@ -23,7 +23,7 @@ namespace SharpConnect.WebServers
         {
             this.reqHandler = reqHandler;
 
-            int maxNumberOfConnections = 500;
+            int maxNumberOfConnections = 1000;
             int excessSaeaObjectsInPool = 200;
             int backlog = 100;
             int maxSimultaneousAcceptOps = 100;
@@ -39,16 +39,41 @@ namespace SharpConnect.WebServers
                 clientSocket =>
                 {
                     //when accept new client
-                    HttpContext context = this.contextPool.Pop();
-                    context.BindSocket(clientSocket); //*** bind to client socket 
-                    context.StartReceive(); //start receive data
+                    if (UseSsl)
+                    {
+                        int recvSize = 1024 * 2;
+                        int sendSize = 1024 * 2;
+                        HttpContext context = new HttpContext(this, recvSize, sendSize);
+                        context.BindReqHandler(this.reqHandler); //client handler
+#if DEBUG
+                        context.dbugForHttps = true;
+#endif
+
+
+                        context.BindSocket(clientSocket); //*** bind to client socket                      
+                        context.StartReceive(UseSsl ? _serverCert : null);
+                    }
+                    else
+                    {
+                        HttpContext context = this.contextPool.Pop();
+                        context.BindSocket(clientSocket); //*** bind to client socket                      
+                        context.StartReceive(UseSsl ? _serverCert : null);
+                    }
+
                 });
+        }
+
+        public bool UseSsl { get; set; }
+        System.Security.Cryptography.X509Certificates.X509Certificate2 _serverCert;
+        public void LoadCertificate(string certFile, string psw)
+        {
+            _serverCert = new System.Security.Cryptography.X509Certificates.X509Certificate2(certFile, psw);
         }
 
         void CreateContextPool(int maxNumberOfConnnections)
         {
-            int recvSize = 1024;
-            int sendSize = 1024;
+            int recvSize = 1024 * 2;
+            int sendSize = 1024 * 2;
             bufferMan = new BufferManager((recvSize + sendSize) * maxNumberOfConnnections, (recvSize + sendSize));
             //Allocate memory for buffers. We are using a separate buffer space for
             //receive and send, instead of sharing the buffer space, like the Microsoft
@@ -64,8 +89,8 @@ namespace SharpConnect.WebServers
             {
                 var context = new HttpContext(this,
                     recvSize,
-                   sendSize);
-
+                    sendSize);
+                context.CreatedFromPool = true;
                 context.BindReqHandler(this.reqHandler); //client handler
 
                 this.contextPool.Push(context);
@@ -76,12 +101,16 @@ namespace SharpConnect.WebServers
         {
             this.bufferMan.SetBufferFor(e);
         }
-        internal void ReleaseChildConn(HttpContext httpConn)
+        internal void ReleaseChildConn(HttpContext httpContext)
         {
-            if (httpConn != null)
+            if (httpContext != null)
             {
-                httpConn.Reset();
-                this.contextPool.Push(httpConn);
+
+                httpContext.Reset();
+                if (httpContext.CreatedFromPool)
+                {
+                    this.contextPool.Push(httpContext);
+                }
                 newConnListener.NotifyFreeAcceptQuota();
             }
         }
@@ -151,5 +180,4 @@ namespace SharpConnect.WebServers
         }
     }
 
- 
 }
