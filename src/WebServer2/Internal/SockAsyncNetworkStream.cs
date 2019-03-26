@@ -177,11 +177,11 @@ namespace SharpConnect.Internal2
         internal override void UnbindSocket()
         {
             //unbind socket ***
-            Socket tmp = _socket;
-            _sendAsyncEventArgs.AcceptSocket = null;
-            _recvAsyncEventArgs.AcceptSocket = null;
-            _socket = null;
-            _passHandshake = false;
+            //Socket tmp = _socket;
+            //_sendAsyncEventArgs.AcceptSocket = null;
+            //_recvAsyncEventArgs.AcceptSocket = null;
+            //_socket = null;
+            //_passHandshake = false;
 
         }
         public override void ClearReceiveBuffer()

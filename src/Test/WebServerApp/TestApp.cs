@@ -129,6 +129,12 @@ namespace SharpConnect
         public void HandleWebSocket(WebSocketRequest req, WebSocketResponse resp)
         {
             string clientMsg = req.ReadAsString();
+            if (clientMsg == null)
+            {
+                resp.Write("");
+                return;
+            }
+
             if (clientMsg.StartsWith("LOOPBACK"))
             {
                 resp.Write("from SERVER " + clientMsg);

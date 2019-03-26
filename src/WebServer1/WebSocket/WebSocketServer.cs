@@ -70,8 +70,8 @@ namespace SharpConnect.WebServers
             SharpConnect.WebServers.Server2.WebSocketContext wbcontext = new Server2.WebSocketContext(false);
             workingWebSocketConns2.Add(wbcontext.ConnectionId, wbcontext);//add to working socket 
 
-            wbcontext.Bind(clientNetworkStream); //move client socket to webSocketConn    
-            wbcontext.SendExternalRaw(MakeWebSocketUpgradeResponse(MakeResponseMagicCode(sec_websocket_key)));
+            wbcontext.Bind(clientNetworkStream, MakeWebSocketUpgradeResponse(MakeResponseMagicCode(sec_websocket_key))); //move client socket to webSocketConn    
+
             wbcontext.InitClientRequestUrl = initUrl;
 
             newContextConnected2?.Invoke(wbcontext);
@@ -86,6 +86,7 @@ namespace SharpConnect.WebServers
         {
             this.newContextConnected2 = newContextConnected;
         }
+
         static byte[] MakeWebSocketUpgradeResponse(string webSocketSecCode)
         {
             int contentByteCount = 0; // "" empty string 
@@ -116,6 +117,7 @@ namespace SharpConnect.WebServers
             byte[] shaHash = sha1.ComputeHash(Encoding.ASCII.GetBytes(total));
             return Convert.ToBase64String(shaHash);
         }
+
     }
 
 

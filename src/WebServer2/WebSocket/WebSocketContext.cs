@@ -24,7 +24,8 @@
 using System;
 using System.Net.Sockets;
 using SharpConnect.Internal;
-
+using System.Text;
+using System.Net.Security;
 namespace SharpConnect.WebServers.Server2
 {
     public class WebSocketContext : IDisposable, ISendIO
@@ -48,26 +49,37 @@ namespace SharpConnect.WebServers.Server2
         {
             _asClientContext = asClient;
             connectionId = System.Threading.Interlocked.Increment(ref connectionIdTotal);
-            
+            webSocketResp = new WebSocketResponse(asClient, this);
         }
         //
         public bool AsClientContext => _asClientContext;
-        //
-        internal void Bind(SharpConnect.Internal2.AbstractAsyncNetworkStream clientStream)
+
+
+
+        bool _upgradeRespSent;
+
+        internal void Bind(SharpConnect.Internal2.AbstractAsyncNetworkStream clientStream, byte[] wsUpgradeResponseMsg)
         {
 
             this.webSocketReqParser = new WebSocketProtocolParser(this.AsClientContext, new SharpConnect.Internal2.RecvIOBufferStream2(clientStream));
             _clientStream = clientStream;
+
+            _upgradeRespSent = true;
+           
+
             _clientStream.SetRecvCompleteEventHandler((s, e) =>
             {
+                HandleReceivedData(RecvEventCode.HasSomeData);
 
             });
             _clientStream.SetSendCompleteEventHandler((s, e) =>
             {
-
+                sendIO_SendCompleted(SendIOEventCode.SendComplete);
             });
-
             _clientStream.StartReceive();
+            SendExternalRaw(wsUpgradeResponseMsg);
+
+          
         }
         void ISendIO.EnqueueSendingData(byte[] buffer, int len) => _clientStream.EnqueueSendData(buffer, len);
         void ISendIO.SendIOStartSend() => _clientStream.StartSend();
