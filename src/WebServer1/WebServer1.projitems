@@ -23,10 +23,10 @@
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer0\HttpResponse.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer0\WebServer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer1\HttpContext.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer1\HttpRequest.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer1\HttpResponse.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer1\HttpWebRequest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer1\HttpWebResponse.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer1\RecvIO_SendIO.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer1\WebServer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer1\HttpWebServer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\Flags.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketProtocolParser.cs" />

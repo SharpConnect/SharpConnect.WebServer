@@ -70,7 +70,7 @@ namespace SharpConnect.WebServers2
             using (MemoryStream ms = new MemoryStream())
             {
                 //create data   
-                byte b1 = ((byte)Fin.Final) << 7; //final
+                byte b1 = ((byte)SharpConnect.WebServers.Fin.Final) << 7; //final
                 //// FIN
                 //Fin fin = (b1 & (1 << 7)) == (1 << 7) ? Fin.Final : Fin.More; 
                 //// RSV1

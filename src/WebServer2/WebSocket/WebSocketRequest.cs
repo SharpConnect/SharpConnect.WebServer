@@ -22,9 +22,7 @@
 * THE SOFTWARE.
 */
 using System;
-using System.IO;
-using System.Collections.Generic;
-
+using SharpConnect.WebServers;
 
 namespace SharpConnect.WebServers2
 {
@@ -32,11 +30,11 @@ namespace SharpConnect.WebServers2
     public class WebSocketRequest
     {
 
-        byte[] data; 
+        byte[] data;
         internal WebSocketRequest()
         {
         }
-        public Opcode OpCode
+        public SharpConnect.WebServers.Opcode OpCode
         {
             get;
             internal set;
