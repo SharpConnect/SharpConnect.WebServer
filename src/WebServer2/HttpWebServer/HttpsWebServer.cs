@@ -164,13 +164,14 @@ namespace SharpConnect.WebServers.Server2
                 //2. web server can design what web socket server will handle this request, based on httpCon url
 
                 string sec_websocket_key = httpReq.GetHeaderKey("Sec-WebSocket-Key");
-                Socket clientSocket = httpConn.RemoteSocket;
+
+                Internal2.AbstractAsyncNetworkStream baseStream = httpConn.BaseStream;
                 //backup data before unbind socket
                 string webSocketInitUrl = httpReq.Url;
                 //--------------------  
                 httpConn.UnBindSocket(false);//unbind  but not close client socket  
                                              //--------------------
-                webSocketServer.RegisterNewWebSocket(clientSocket, webSocketInitUrl, sec_websocket_key);//the bind client to websocket server                 
+                webSocketServer.RegisterNewWebSocket(baseStream, webSocketInitUrl, sec_websocket_key);//the bind client to websocket server                 
                 return true;
             }
             return false;

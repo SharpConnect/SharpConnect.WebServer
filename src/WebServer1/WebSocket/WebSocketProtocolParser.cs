@@ -53,13 +53,12 @@ namespace SharpConnect.WebServers
         byte[] fullPayloadLengthBuffer = new byte[8];
         bool useMask;
         Opcode currentOpCode = Opcode.Cont;//use default 
-        //-----------------------
-        WebSocketContext _ownerContext;
+                                           //-----------------------
+
         bool _asClientContext;
-        internal WebSocketProtocolParser(WebSocketContext context, RecvIOBufferStream recvBufferStream)
-        {        
-            this._ownerContext = context;
-            _asClientContext = context.AsClientContext;
+        internal WebSocketProtocolParser(bool asClientContext, RecvIOBufferStream recvBufferStream)
+        {
+            _asClientContext = asClientContext;
             myBufferStream = recvBufferStream;
         }
         public int ReqCount
@@ -83,7 +82,7 @@ namespace SharpConnect.WebServers
             }
             //----------------------------------------------------------
             //when we read header we start a new websocket request
-            currentReq = new WebSocketRequest(this._ownerContext);
+            currentReq = new WebSocketRequest();
             incommingReqs.Enqueue(currentReq);
 
 
@@ -110,7 +109,7 @@ namespace SharpConnect.WebServers
             // MASK
             Mask currentMask = (b2 & (1 << 7)) == (1 << 7) ? Mask.On : Mask.Off;
             //we should check receive frame here ... 
-          
+
             if (_asClientContext)
             {
                 //as client context (we are in client context)
@@ -370,7 +369,7 @@ namespace SharpConnect.WebServers
         }
 
         static void MaskAgain(byte[] data, byte[] key)
-        {   
+        {
             for (int i = data.Length - 1; i >= 0; --i)
             {
                 data[i] ^= key[i % 4];

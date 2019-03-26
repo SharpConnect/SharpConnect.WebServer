@@ -22,10 +22,6 @@
 * THE SOFTWARE.
 */
 using System;
-using System.IO;
-using System.Collections.Generic;
-
-
 namespace SharpConnect.WebServers
 {
 
@@ -33,10 +29,8 @@ namespace SharpConnect.WebServers
     {
 
         byte[] data;
-        WebSocketContext context;
-        internal WebSocketRequest(WebSocketContext context)
-        {
-            this.context = context;
+        internal WebSocketRequest()
+        { 
         }
         public Opcode OpCode
         {
@@ -72,12 +66,6 @@ namespace SharpConnect.WebServers
             {
                 return null;
             }
-        }
-
-
-        public WebSocketContext Context
-        {
-            get { return this.context; }
         }
     }
 }

@@ -28,22 +28,25 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Security.Cryptography;
-using SharpConnect.Internal;
+
 
 namespace SharpConnect.WebServers
 {
-
-
     public class WebSocketServer
     {
-
-
         Action<WebSocketContext> newContextConnected;
+        Action<SharpConnect.WebServers.Server2.WebSocketContext> newContextConnected2;
+
         Dictionary<int, WebSocketContext> workingWebSocketConns = new Dictionary<int, WebSocketContext>();
+        Dictionary<int, SharpConnect.WebServers.Server2.WebSocketContext> workingWebSocketConns2 = new Dictionary<int, SharpConnect.WebServers.Server2.WebSocketContext>();
+
+
+
         public WebSocketServer()
         {
 
         }
+
         internal WebSocketContext RegisterNewWebSocket(
             Socket clientSocket,
             string initUrl,
@@ -54,13 +57,28 @@ namespace SharpConnect.WebServers
             wbcontext.Bind(clientSocket); //move client socket to webSocketConn    
             wbcontext.SendExternalRaw(MakeWebSocketUpgradeResponse(MakeResponseMagicCode(sec_websocket_key)));
             wbcontext.InitClientRequestUrl = initUrl;
-            if (newContextConnected != null)
-            {
-                newContextConnected(wbcontext);
-            }
+
+            newContextConnected?.Invoke(wbcontext);
 
             return wbcontext;
         }
+        internal SharpConnect.WebServers.Server2.WebSocketContext RegisterNewWebSocket(
+            SharpConnect.Internal2.AbstractAsyncNetworkStream clientNetworkStream,
+            string initUrl,
+            string sec_websocket_key)
+        {
+            SharpConnect.WebServers.Server2.WebSocketContext wbcontext = new Server2.WebSocketContext(false);
+            workingWebSocketConns2.Add(wbcontext.ConnectionId, wbcontext);//add to working socket 
+
+            wbcontext.Bind(clientNetworkStream); //move client socket to webSocketConn    
+            wbcontext.SendExternalRaw(MakeWebSocketUpgradeResponse(MakeResponseMagicCode(sec_websocket_key)));
+            wbcontext.InitClientRequestUrl = initUrl;
+
+            newContextConnected2?.Invoke(wbcontext);
+            return wbcontext;
+        }
+
+
         public void SetOnNewConnectionContext(Action<WebSocketContext> newContextConnected)
         {
             this.newContextConnected = newContextConnected;

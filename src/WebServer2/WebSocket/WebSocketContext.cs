@@ -25,7 +25,7 @@ using System;
 using System.Net.Sockets;
 using SharpConnect.Internal;
 
-namespace SharpConnect.WebServers
+namespace SharpConnect.WebServers.Server2
 {
     public class WebSocketContext : IDisposable, ISendIO
     {
@@ -43,6 +43,7 @@ namespace SharpConnect.WebServers
 
         RecvIO recvIO;
         SendIO sendIO;
+
         int connectionId;
         static int connectionIdTotal;
         bool _asClientContext;
@@ -102,10 +103,11 @@ namespace SharpConnect.WebServers
             });
             //------------------------------------------------------------------------------------             
             this.webSocketReqParser = new WebSocketProtocolParser(this.AsClientContext, new RecvIOBufferStream(recvIO));
-
         }
+        //
         public bool AsClientContext => _asClientContext;
-        public void Bind(Socket clientSocket)
+        //
+        internal void Bind(SharpConnect.Internal2.AbstractAsyncNetworkStream clientStream)
         {
             this.clientSocket = clientSocket;
             //sender
