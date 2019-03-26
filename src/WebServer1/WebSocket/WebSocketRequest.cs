@@ -27,10 +27,9 @@ namespace SharpConnect.WebServers
 
     public class WebSocketRequest
     {
-
-        byte[] data;
+        byte[] _data;
         internal WebSocketRequest()
-        { 
+        {
         }
         public Opcode OpCode
         {
@@ -39,17 +38,17 @@ namespace SharpConnect.WebServers
         }
         internal void SetData(byte[] newDataBuffer)
         {
-            if (data != null)
+            if (_data != null)
             {
                 throw new NotSupportedException();
             }
-            this.data = newDataBuffer;
+            this._data = newDataBuffer;
         }
         public string ReadAsString()
         {
-            if (data != null && this.OpCode == Opcode.Text)
+            if (_data != null && this.OpCode == Opcode.Text)
             {
-                return System.Text.Encoding.UTF8.GetString(data);
+                return System.Text.Encoding.UTF8.GetString(_data);
             }
             else
             {
@@ -58,9 +57,9 @@ namespace SharpConnect.WebServers
         }
         public char[] ReadAsChars()
         {
-            if (data != null && this.OpCode == Opcode.Text)
+            if (_data != null && this.OpCode == Opcode.Text)
             {
-                return System.Text.Encoding.UTF8.GetChars(data);
+                return System.Text.Encoding.UTF8.GetChars(_data);
             }
             else
             {

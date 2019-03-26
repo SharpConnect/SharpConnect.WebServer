@@ -36,11 +36,11 @@ namespace SharpConnect.WebServers
     {
 
         Socket _clientSocket;
-        WebSocketContext wbContext;
+        WebSocketContext _wbContext;
         public WebSocketClient()
         {
-            wbContext = new WebSocketContext(true);
-            wbContext.SetMessageHandler((req, resp) =>
+            _wbContext = new WebSocketContext(true);
+            _wbContext.SetMessageHandler((req, resp) =>
             {
                 //default
             });
@@ -79,12 +79,12 @@ namespace SharpConnect.WebServers
 
             //****
             //add event listener to our socket  
-            wbContext.Bind(_clientSocket);
+            _wbContext.Bind(_clientSocket);
         }
         public void SetHandler(ReqRespHandler<WebSocketRequest, WebSocketResponse> websocketHandler)
         {
             //set external msg handler
-            wbContext.SetMessageHandler(websocketHandler);
+            _wbContext.SetMessageHandler(websocketHandler);
         }
         /// <summary>
         /// send text data to the server
@@ -92,7 +92,7 @@ namespace SharpConnect.WebServers
         /// <param name="data"></param>
         public void SendData(string data)
         {
-            wbContext.Send(data);
+            _wbContext.Send(data);
         }
 
         StringBuilder CreateWebSocketUpgradeReq(string host, string url)

@@ -10,20 +10,18 @@ namespace SharpConnect.WebServers
         {
             HttpHead,
             HttpBody,
-        } 
-        readonly HttpContext context;  
+        }
+        readonly HttpContext _context;
 
         internal HttpWebResponse(HttpContext context) : base(context)
         {
-            this.context = context;
+            this._context = context;
             //bodyMs = new MemoryStream();
             StatusCode = 200; //init
-            this.context = context;
+            this._context = context;
             this.ContentTypeCharSet = WebServers.TextCharSet.Utf8;
         }
-        public override bool KeepAlive => context.KeepAlive;
-
-
+        public override bool KeepAlive => _context.KeepAlive;
     }
 
 }

@@ -12,7 +12,7 @@ namespace SharpConnect
     {
         //just for assigning an ID so we can watch our objects while testing. 
         // Pool of reusable SocketAsyncEventArgs objects.        
-        Stack<T> pool;
+        Stack<T> _pool;
         // initializes the object pool to the specified size.
         // "capacity" = Maximum number of SocketAsyncEventArgs objects
         public SharedResoucePool(int capacity)
@@ -25,22 +25,20 @@ namespace SharpConnect
             }
 #endif
 
-            this.pool = new Stack<T>(capacity);
+            this._pool = new Stack<T>(capacity);
         }
 
         // The number of SocketAsyncEventArgs instances in the pool.         
-        internal int Count
-        {
-            get { return this.pool.Count; }
-        }
+        internal int Count => this._pool.Count;
+
 
         // Removes a SocketAsyncEventArgs instance from the pool.
         // returns SocketAsyncEventArgs removed from the pool.
         internal T Pop()
         {
-            lock (this.pool)
+            lock (this._pool)
             {
-                return this.pool.Pop();
+                return this._pool.Pop();
             }
         }
 
@@ -52,9 +50,9 @@ namespace SharpConnect
             {
                 throw new ArgumentNullException("Items added to a SocketAsyncEventArgsPool cannot be null");
             }
-            lock (this.pool)
+            lock (this._pool)
             {
-                this.pool.Push(item);
+                this._pool.Push(item);
             }
         }
 #if DEBUG

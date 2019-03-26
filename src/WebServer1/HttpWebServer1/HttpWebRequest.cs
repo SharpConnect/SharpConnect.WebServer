@@ -8,42 +8,40 @@ namespace SharpConnect.WebServers
 
     class HttpWebRequest : HttpRequest
     {
-        HttpContext context;
+        HttpContext _context;
         internal HttpWebRequest(HttpContext context)
             : base()
         {
-            this.context = context;
-            bodyMs = new MemoryStream();
+            this._context = context;
+            _bodyMs = new MemoryStream();
         }
 
 
         //===================
         //parsing 
-        HttpParsingState parseState;
-        bool IsMsgBodyComplete
-        {
-            get { return contentByteCount >= targetContentLength; }
-        }
+        HttpParsingState _parseState;
+        bool IsMsgBodyComplete => _contentByteCount >= _targetContentLength;
+
         void AddMsgBody(byte[] buffer, int start, int count)
         {
-            bodyMs.Write(buffer, start, count);
-            contentByteCount += count;
+            _bodyMs.Write(buffer, start, count);
+            _contentByteCount += count;
         }
         void AddHeaderInfo(string key, string value)
         {
             //replace if exist
-            headerKeyValues[key] = value;
+            _headerKeyValues[key] = value;
             //translate some key eg. content-length,encoding
             switch (key)
             {
                 case "Content-Length":
                     {
-                        int.TryParse(value, out this.targetContentLength);
+                        int.TryParse(value, out this._targetContentLength);
                     }
                     break;
                 case "Connection":
                     {
-                        this.context.KeepAlive = (value.ToLower().Trim() == "keep-alive");
+                        this._context.KeepAlive = (value.ToLower().Trim() == "keep-alive");
 
                     }
                     break;
@@ -55,14 +53,14 @@ namespace SharpConnect.WebServers
         /// <param name="buffer"></param>
         internal ProcessReceiveBufferResult LoadData(Internal.RecvIO recvIO)
         {
-            switch (parseState)
+            switch (_parseState)
             {
                 case HttpParsingState.Head:
                     {
                         //find html header 
                         int readpos = ParseHttpRequestHeader(recvIO);
                         //check if complete or not
-                        if (parseState == HttpParsingState.Body)
+                        if (_parseState == HttpParsingState.Body)
                         {
                             ProcessHtmlPostBody(readpos, recvIO);
                         }
@@ -77,7 +75,7 @@ namespace SharpConnect.WebServers
                     throw new NotSupportedException();
             }
 
-            if (parseState == HttpParsingState.Complete)
+            if (_parseState == HttpParsingState.Complete)
             {
                 return ProcessReceiveBufferResult.Complete;
             }
@@ -179,16 +177,16 @@ namespace SharpConnect.WebServers
                     if (i - readpos < 512)
                     {
                         //copy     
-                        recvIO.CopyTo(readpos, tmpReadBuffer, i - readpos);
+                        recvIO.CopyTo(readpos, _tmpReadBuffer, i - readpos);
                         //translate
-                        string line = Encoding.UTF8.GetString(tmpReadBuffer, 0, i - readpos);
+                        string line = Encoding.UTF8.GetString(_tmpReadBuffer, 0, i - readpos);
                         readpos = i + 2;
                         i++; //skip \n            
                              //translate header ***
                         if (line == "")
                         {
                             //complete http header                           
-                            parseState = HttpParsingState.Body;
+                            _parseState = HttpParsingState.Body;
                             return readpos;
                         }
                         else
@@ -215,7 +213,7 @@ namespace SharpConnect.WebServers
             int remaining = transferedBytes - readpos;
             if (!IsMsgBodyComplete)
             {
-                int wantBytes = ContentLength - contentByteCount;
+                int wantBytes = ContentLength - _contentByteCount;
                 if (wantBytes <= remaining)
                 {
                     //complete here 
@@ -224,7 +222,7 @@ namespace SharpConnect.WebServers
                     //add to req  
                     AddMsgBody(buff, 0, wantBytes);
                     //complete 
-                    this.parseState = HttpParsingState.Complete;
+                    this._parseState = HttpParsingState.Complete;
                     return;
                 }
                 else
@@ -241,107 +239,8 @@ namespace SharpConnect.WebServers
                     return;
                 }
             }
-            this.parseState = HttpParsingState.Complete;
-
-        }
-        //===================
+            this._parseState = HttpParsingState.Complete; 
+        } 
     }
-
-
-    //class Server1HttpRequest : IDisposable
-    //{
-    //    HttpContext context;
-    //    internal Server1HttpRequest(HttpContext context)
-    //    {
-    //        this.context = context;
-    //        bodyMs = new MemoryStream();
-    //    }
-    //    public void Dispose()
-    //    {
-    //        if (bodyMs != null)
-    //        {
-    //            bodyMs.Dispose();
-    //            bodyMs = null;
-    //        }
-    //    }
-    //    public WebRequestParameter[] ReqParameters
-    //    {
-    //        get;
-    //        internal set;
-    //    }
-    //    public string GetReqParameterValue(string key)
-    //    {
-    //        WebRequestParameter[] reqs = ReqParameters;
-    //        if (reqs != null)
-    //        {
-    //            int j = reqs.Length;
-    //            for (int i = 0; i < j; ++i)
-    //            {
-    //                if (reqs[i].ParameterName == key)
-    //                {
-    //                    return reqs[i].Value;
-    //                }
-    //            }
-    //        }
-    //        return "";
-
-    //    }
-    //    internal void Reset()
-    //    {
-
-    //        headerKeyValues.Clear();
-    //        Url = null;
-    //        ReqParameters = null;
-    //        HttpMethod = HttpMethod.Get;
-
-    //        contentByteCount = 0;
-    //        bodyMs.Position = 0;
-    //        targetContentLength = 0;
-    //        parseState = HttpParsingState.Head;
-
-    //    }
-
-
-    //    int ContentLength
-    //    {
-    //        get { return targetContentLength; }
-    //    }
-
-    //    public string GetHeaderKey(string key)
-    //    {
-    //        string found;
-    //        headerKeyValues.TryGetValue(key, out found);
-    //        return found;
-    //    }
-    //    public string GetBodyContentAsString()
-    //    {
-    //        if (contentByteCount > 0)
-    //        {
-    //            var pos = bodyMs.Position;
-    //            bodyMs.Position = 0;
-    //            byte[] buffer = new byte[contentByteCount];
-    //            bodyMs.Read(buffer, 0, contentByteCount);
-    //            bodyMs.Position = pos;
-    //            return Encoding.UTF8.GetString(buffer);
-    //        }
-    //        else
-    //        {
-    //            return "";
-    //        }
-    //    }
-    //    public string Url
-    //    {
-    //        get;
-    //        set;
-    //    }
-
-    //    public HttpMethod HttpMethod
-    //    {
-    //        get;
-    //        internal set;
-    //    }
-
-
-    //}
 
 }

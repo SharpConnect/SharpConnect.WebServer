@@ -11,19 +11,20 @@ namespace SharpConnect.WebServers
 
     class HttpWebServer
     {
-        bool isRunning;
-        ReqRespHandler<HttpRequest, HttpResponse> reqHandler;
-        NewConnectionListener newConnListener; //listen to a new connection
+        bool _isRunning;
+        ReqRespHandler<HttpRequest, HttpResponse> _reqHandler;
+        NewConnectionListener _newConnListener; //listen to a new connection
 
-        WebSocketServer webSocketServer;
-        BufferManager bufferMan;
-        SharedResoucePool<HttpContext> contextPool;
+        WebSocketServer _webSocketServer;
+        BufferManager _bufferMan;
+        SharedResoucePool<HttpContext> _contextPool;
+
         public HttpWebServer(
             int port,
             bool localOnly,
             ReqRespHandler<HttpRequest, HttpResponse> reqHandler)
         {
-            this.reqHandler = reqHandler;
+            this._reqHandler = reqHandler;
 
             int maxNumberOfConnections = 500;
             int excessSaeaObjectsInPool = 200;
@@ -37,11 +38,11 @@ namespace SharpConnect.WebServers
                    new IPEndPoint(localOnly ? IPAddress.Loopback : IPAddress.Any, port));//check only local host or not
 
             CreateContextPool(maxNumberOfConnections);
-            newConnListener = new NewConnectionListener(setting,
+            _newConnListener = new NewConnectionListener(setting,
                 clientSocket =>
                 {
                     //when accept new client
-                    HttpContext context = this.contextPool.Pop();
+                    HttpContext context = this._contextPool.Pop();
                     context.BindSocket(clientSocket); //*** bind to client socket 
                     context.StartReceive(); //start receive data
                 });
@@ -51,11 +52,11 @@ namespace SharpConnect.WebServers
         {
             int recvSize = 1024;
             int sendSize = 1024;
-            bufferMan = new BufferManager((recvSize + sendSize) * maxNumberOfConnnections, (recvSize + sendSize));
+            _bufferMan = new BufferManager((recvSize + sendSize) * maxNumberOfConnnections, (recvSize + sendSize));
             //Allocate memory for buffers. We are using a separate buffer space for
             //receive and send, instead of sharing the buffer space, like the Microsoft
             //example does.    
-            this.contextPool = new SharedResoucePool<HttpContext>(maxNumberOfConnnections);
+            this._contextPool = new SharedResoucePool<HttpContext>(maxNumberOfConnnections);
             //------------------------------------------------------------------
             //It is NOT mandatory that you preallocate them or reuse them. But, but it is 
             //done this way to illustrate how the API can 
@@ -68,34 +69,34 @@ namespace SharpConnect.WebServers
                     recvSize,
                    sendSize);
 
-                context.BindReqHandler(this.reqHandler); //client handler
+                context.BindReqHandler(this._reqHandler); //client handler
 
-                this.contextPool.Push(context);
+                this._contextPool.Push(context);
             }
         }
 
         internal void SetBufferFor(SocketAsyncEventArgs e)
         {
-            this.bufferMan.SetBufferFor(e);
+            this._bufferMan.SetBufferFor(e);
         }
         internal void ReleaseChildConn(HttpContext httpConn)
         {
             if (httpConn != null)
             {
                 httpConn.Reset();
-                this.contextPool.Push(httpConn);
-                newConnListener.NotifyFreeAcceptQuota();
+                this._contextPool.Push(httpConn);
+                _newConnListener.NotifyFreeAcceptQuota();
             }
         }
         public void Start()
         {
-            if (isRunning) return;
+            if (_isRunning) return;
             //------------------------------
             try
             {
                 //start web server   
-                isRunning = true;
-                newConnListener.StartListening();
+                _isRunning = true;
+                _newConnListener.StartListening();
             }
             catch (Exception ex)
             {
@@ -103,30 +104,24 @@ namespace SharpConnect.WebServers
         }
         public void Stop()
         {
-            newConnListener.DisposePool();
-            while (this.contextPool.Count > 0)
+            _newConnListener.DisposePool();
+            while (this._contextPool.Count > 0)
             {
-                contextPool.Pop().Dispose();
+                _contextPool.Pop().Dispose();
             }
         }
 
         //--------------------------------------------------
         public WebSocketServer WebSocketServer
         {
-            get { return webSocketServer; }
-            set
-            {
-                webSocketServer = value;
-            }
+            get => _webSocketServer;
+            set => _webSocketServer = value;
         }
-        public bool EnableWebSocket
-        {
-            get { return webSocketServer != null; }
-        }
+        public bool EnableWebSocket => _webSocketServer != null;
 
         internal bool CheckWebSocketUpgradeRequest(HttpContext httpConn)
         {
-            if (webSocketServer == null)
+            if (_webSocketServer == null)
             {
                 return false;
             }
@@ -146,7 +141,7 @@ namespace SharpConnect.WebServers
                 //--------------------  
                 httpConn.UnBindSocket(false);//unbind  but not close client socket  
                                              //--------------------
-                webSocketServer.RegisterNewWebSocket(clientSocket, webSocketInitUrl, sec_websocket_key);//the bind client to websocket server                 
+                _webSocketServer.RegisterNewWebSocket(clientSocket, webSocketInitUrl, sec_websocket_key);//the bind client to websocket server                 
                 return true;
             }
             return false;

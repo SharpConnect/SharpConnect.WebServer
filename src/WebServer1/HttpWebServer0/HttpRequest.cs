@@ -63,15 +63,15 @@ namespace SharpConnect.WebServers
 
     public abstract class HttpRequest : IDisposable
     {
-        protected Dictionary<string, string> headerKeyValues = new Dictionary<string, string>();
-        protected MemoryStream bodyMs;
-        protected byte[] tmpReadBuffer = new byte[512];
+        protected Dictionary<string, string> _headerKeyValues = new Dictionary<string, string>();
+        protected MemoryStream _bodyMs;
+        protected byte[] _tmpReadBuffer = new byte[512];
 
-        protected int contentByteCount;
-        protected int targetContentLength;
+        protected int _contentByteCount;
+        protected int _targetContentLength;
         internal HttpRequest()
         {
-            bodyMs = new MemoryStream();
+            _bodyMs = new MemoryStream();
         }
         public void Dispose()
         {
@@ -79,10 +79,10 @@ namespace SharpConnect.WebServers
         }
         protected virtual void OnDispose()
         {
-            if (bodyMs != null)
+            if (_bodyMs != null)
             {
-                bodyMs.Dispose();
-                bodyMs = null;
+                _bodyMs.Dispose();
+                _bodyMs = null;
             }
         }
         public string GetReqParameterValue(string key)
@@ -105,14 +105,14 @@ namespace SharpConnect.WebServers
         internal virtual void Reset()
         {
 
-            headerKeyValues.Clear();
+            _headerKeyValues.Clear();
             Url = null;
             ReqParameters = null;
             HttpMethod = HttpMethod.Get;
 
-            contentByteCount = 0;
-            bodyMs.Position = 0;
-            targetContentLength = 0;
+            _contentByteCount = 0;
+            _bodyMs.Position = 0;
+            _targetContentLength = 0;
         }
 
         public WebRequestParameter[] ReqParameters
@@ -124,18 +124,18 @@ namespace SharpConnect.WebServers
         public string GetHeaderKey(string key)
         {
             string found;
-            headerKeyValues.TryGetValue(key, out found);
+            _headerKeyValues.TryGetValue(key, out found);
             return found;
         }
         public string GetBodyContentAsString()
         {
-            if (contentByteCount > 0)
+            if (_contentByteCount > 0)
             {
-                var pos = bodyMs.Position;
-                bodyMs.Position = 0;
-                byte[] buffer = new byte[contentByteCount];
-                bodyMs.Read(buffer, 0, contentByteCount);
-                bodyMs.Position = pos;
+                var pos = _bodyMs.Position;
+                _bodyMs.Position = 0;
+                byte[] buffer = new byte[_contentByteCount];
+                _bodyMs.Read(buffer, 0, _contentByteCount);
+                _bodyMs.Position = pos;
                 return Encoding.UTF8.GetString(buffer);
             }
             else
@@ -143,21 +143,15 @@ namespace SharpConnect.WebServers
                 return "";
             }
         }
-        public string Url
-        {
-            get;
-            set;
-        }
-
+        public string Url { get; set; }
         public HttpMethod HttpMethod
         {
             get;
             internal set;
         }
-        protected int ContentLength
-        {
-            get { return targetContentLength; }
-        }
+
+        protected int ContentLength => _targetContentLength;
+
     }
 
 

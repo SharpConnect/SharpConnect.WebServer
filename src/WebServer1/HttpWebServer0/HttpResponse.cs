@@ -113,51 +113,47 @@ namespace SharpConnect.WebServers
         }
 
 
-        WriteContentState writeContentState;
+        WriteContentState _writeContentState;
         //output stream
-        MemoryStream bodyMs;
-        int contentByteCount;
-        Dictionary<string, string> headers = new Dictionary<string, string>();
-        StringBuilder headerStBuilder = new StringBuilder();
-
+        MemoryStream _bodyMs;
+        int _contentByteCount;
+        Dictionary<string, string> _headers = new Dictionary<string, string>();
+        StringBuilder _headerStBuilder = new StringBuilder();
         ISendIO _sendIO;
+
         internal HttpResponse(ISendIO sendIO)
         {
             _sendIO = sendIO;
-            bodyMs = new MemoryStream();
+            _bodyMs = new MemoryStream();
         }
         public virtual bool KeepAlive => false;
-        public CrossOriginPolicy AllowCrossOriginPolicy
-        {
-            get;
-            set;
-        }
+        public CrossOriginPolicy AllowCrossOriginPolicy { get; set; }
         internal void ResetAll()
         {
-            headerStBuilder.Length = 0;
+            _headerStBuilder.Length = 0;
             StatusCode = 200;
 
-            isSend = false;
+            _isSend = false;
             TransferEncoding = ResponseTransferEncoding.Identity;
-            writeContentState = WriteContentState.HttpHead;
+            _writeContentState = WriteContentState.HttpHead;
             ContentType = WebResponseContentType.TextPlain;//reset content type
             ContentEncoding = ContentEncoding.Plain;
             this.ContentTypeCharSet = TextCharSet.Utf8;
             AllowCrossOriginPolicy = null;
-            headers.Clear();
+            _headers.Clear();
             ResetWritingBuffer();
         }
         void ResetWritingBuffer()
         {
-            bodyMs.Position = 0;
-            contentByteCount = 0;
+            _bodyMs.Position = 0;
+            _contentByteCount = 0;
         }
         public void Dispose()
         {
-            if (bodyMs != null)
+            if (_bodyMs != null)
             {
-                bodyMs.Dispose();
-                bodyMs = null;
+                _bodyMs.Dispose();
+                _bodyMs = null;
             }
         }
 
@@ -171,23 +167,11 @@ namespace SharpConnect.WebServers
         {
             //replace exiting values
             //TODO: review custom header here
-            headers[key] = value;
+            _headers[key] = value;
         }
-        public WebResponseContentType ContentType
-        {
-            get;
-            set;
-        }
-        public ContentEncoding ContentEncoding
-        {
-            get;
-            set;
-        }
-        public TextCharSet ContentTypeCharSet
-        {
-            get;
-            set;
-        }
+        public WebResponseContentType ContentType { get; set; }
+        public ContentEncoding ContentEncoding { get; set; }
+        public TextCharSet ContentTypeCharSet { get; set; }
 
         /// <summary>
         /// write to output
@@ -198,8 +182,8 @@ namespace SharpConnect.WebServers
             //write to output stream 
             byte[] bytes = Encoding.UTF8.GetBytes(str.ToCharArray());
             //write to stream
-            bodyMs.Write(bytes, 0, bytes.Length);
-            contentByteCount += bytes.Length;
+            _bodyMs.Write(bytes, 0, bytes.Length);
+            _contentByteCount += bytes.Length;
         }
         /// <summary>
         /// write to output
@@ -207,8 +191,8 @@ namespace SharpConnect.WebServers
         /// <param name="str"></param>
         public void Write(byte[] rawBuffer)
         {
-            bodyMs.Write(rawBuffer, 0, rawBuffer.Length);
-            contentByteCount += rawBuffer.Length;
+            _bodyMs.Write(rawBuffer, 0, rawBuffer.Length);
+            _contentByteCount += rawBuffer.Length;
         }
         public void End(string str)
         {
@@ -218,30 +202,30 @@ namespace SharpConnect.WebServers
         }
         public void End(byte[] data)
         {
-            bodyMs.Write(data, 0, data.Length);
-            contentByteCount += data.Length;
+            _bodyMs.Write(data, 0, data.Length);
+            _contentByteCount += data.Length;
             End();
         }
         public void End()
         {
-            switch (writeContentState)
+            switch (_writeContentState)
             {
                 //generate head 
                 case WriteContentState.HttpHead:
                     {
-                        headerStBuilder.Length = 0;
-                        headerStBuilder.Append("HTTP/1.1 ");
-                        HeaderAppendStatusCode(headerStBuilder, StatusCode);
-                        HeaderAppendConnectionType(headerStBuilder, this.KeepAlive);
+                        _headerStBuilder.Length = 0;
+                        _headerStBuilder.Append("HTTP/1.1 ");
+                        HeaderAppendStatusCode(_headerStBuilder, StatusCode);
+                        HeaderAppendConnectionType(_headerStBuilder, this.KeepAlive);
                         //--------------------------------------------------------------------------------------------------------
-                        headerStBuilder.Append("Content-Type: " + GetContentType(this.ContentType));
+                        _headerStBuilder.Append("Content-Type: " + GetContentType(this.ContentType));
                         switch (ContentTypeCharSet)
                         {
                             case TextCharSet.Utf8:
-                                headerStBuilder.Append(" ; charset=utf-8\r\n");
+                                _headerStBuilder.Append(" ; charset=utf-8\r\n");
                                 break;
                             case TextCharSet.Ascii:
-                                headerStBuilder.Append("\r\n");
+                                _headerStBuilder.Append("\r\n");
                                 break;
                             default:
                                 throw new NotSupportedException();
@@ -253,7 +237,7 @@ namespace SharpConnect.WebServers
                                 //nothing
                                 break;
                             case ContentEncoding.Gzip:
-                                headerStBuilder.Append("Content-Encoding: gzip\r\n");
+                                _headerStBuilder.Append("Content-Encoding: gzip\r\n");
                                 break;
                             default:
                                 throw new NotSupportedException();
@@ -262,7 +246,7 @@ namespace SharpConnect.WebServers
                         //Access-Control-Allow-Origin
                         if (AllowCrossOriginPolicy != null)
                         {
-                            AllowCrossOriginPolicy.WriteHeader(headerStBuilder);
+                            AllowCrossOriginPolicy.WriteHeader(_headerStBuilder);
                         }
                         //--------------------------------------------------------------------------------------------------------
                         switch (this.TransferEncoding)
@@ -270,20 +254,20 @@ namespace SharpConnect.WebServers
                             default:
                             case ResponseTransferEncoding.Identity:
                                 {
-                                    headerStBuilder.Append("Content-Length: ");
-                                    headerStBuilder.Append(contentByteCount);
-                                    headerStBuilder.Append("\r\n");
+                                    _headerStBuilder.Append("Content-Length: ");
+                                    _headerStBuilder.Append(_contentByteCount);
+                                    _headerStBuilder.Append("\r\n");
                                     //-----------------------------------------------------------------                                    
-                                    headerStBuilder.Append("\r\n");//end header part                                     
-                                    writeContentState = WriteContentState.HttpBody;
+                                    _headerStBuilder.Append("\r\n");//end header part                                     
+                                    _writeContentState = WriteContentState.HttpBody;
                                     //-----------------------------------------------------------------
                                     //switch transfer encoding method of the body***
-                                    byte[] headBuffer = Encoding.UTF8.GetBytes(headerStBuilder.ToString().ToCharArray());
-                                    byte[] dataToSend = new byte[headBuffer.Length + contentByteCount];
+                                    byte[] headBuffer = Encoding.UTF8.GetBytes(_headerStBuilder.ToString().ToCharArray());
+                                    byte[] dataToSend = new byte[headBuffer.Length + _contentByteCount];
                                     Buffer.BlockCopy(headBuffer, 0, dataToSend, 0, headBuffer.Length);
-                                    var pos = bodyMs.Position;
-                                    bodyMs.Position = 0;
-                                    bodyMs.Read(dataToSend, headBuffer.Length, contentByteCount);
+                                    var pos = _bodyMs.Position;
+                                    _bodyMs.Position = 0;
+                                    _bodyMs.Read(dataToSend, headBuffer.Length, _contentByteCount);
                                     //----------------------------------------------------
                                     //copy data to send buffer
 
@@ -294,12 +278,12 @@ namespace SharpConnect.WebServers
                                 break;
                             case ResponseTransferEncoding.Chunked:
                                 {
-                                    headerStBuilder.Append("Transfer-Encoding: " + GetTransferEncoding(TransferEncoding) + "\r\n");
-                                    headerStBuilder.Append("\r\n");
-                                    writeContentState = WriteContentState.HttpBody;
+                                    _headerStBuilder.Append("Transfer-Encoding: " + GetTransferEncoding(TransferEncoding) + "\r\n");
+                                    _headerStBuilder.Append("\r\n");
+                                    _writeContentState = WriteContentState.HttpBody;
 
                                     //chunked transfer
-                                    byte[] headBuffer = Encoding.UTF8.GetBytes(headerStBuilder.ToString().ToCharArray());
+                                    byte[] headBuffer = Encoding.UTF8.GetBytes(_headerStBuilder.ToString().ToCharArray());
 
                                     _sendIO.EnqueueSendingData(headBuffer, headBuffer.Length);
                                     WriteContentBodyInChunkMode();
@@ -328,25 +312,25 @@ namespace SharpConnect.WebServers
 
             StartSend();
         }
-        bool isSend = false;
+        bool _isSend = false;
         void StartSend()
         {
-            if (isSend)
+            if (_isSend)
             {
                 return;
             }
-            isSend = true;
+            _isSend = true;
 
             _sendIO.SendIOStartSend();
         }
         void WriteContentBodyInChunkMode()
         {
             //---------------------------------------------------- 
-            var pos = bodyMs.Position;
-            bodyMs.Position = 0;
-            byte[] bodyLengthInHex = Encoding.UTF8.GetBytes(contentByteCount.ToString("X"));
+            var pos = _bodyMs.Position;
+            _bodyMs.Position = 0;
+            byte[] bodyLengthInHex = Encoding.UTF8.GetBytes(_contentByteCount.ToString("X"));
             int chuckedPrefixLength = bodyLengthInHex.Length;
-            byte[] bodyBuffer = new byte[chuckedPrefixLength + contentByteCount + 4];
+            byte[] bodyBuffer = new byte[chuckedPrefixLength + _contentByteCount + 4];
             int w = 0;
             Buffer.BlockCopy(bodyLengthInHex, 0, bodyBuffer, 0, chuckedPrefixLength);
             w += chuckedPrefixLength;
@@ -354,8 +338,8 @@ namespace SharpConnect.WebServers
             w++;
             bodyBuffer[w] = (byte)'\n';
             w++;
-            bodyMs.Read(bodyBuffer, w, contentByteCount);
-            w += contentByteCount;
+            _bodyMs.Read(bodyBuffer, w, _contentByteCount);
+            w += _contentByteCount;
             bodyBuffer[w] = (byte)'\r';
             w++;
             bodyBuffer[w] = (byte)'\n';
@@ -370,16 +354,8 @@ namespace SharpConnect.WebServers
             //---------------------------------------------------- 
             ResetWritingBuffer();
         }
-        public ResponseTransferEncoding TransferEncoding
-        {
-            get;
-            set;
-        }
-        internal int StatusCode
-        {
-            get;
-            set;
-        }
+        public ResponseTransferEncoding TransferEncoding { get; set; }
+        internal int StatusCode { get; set; }
 
         //-------------------------------------------------
         static string GetTransferEncoding(ResponseTransferEncoding te)
@@ -459,12 +435,6 @@ namespace SharpConnect.WebServers
                     stBuilder.Append("\r\n");
                     return;
             }
-        }
-
-
-
-    }
-
-
-
+        } 
+    } 
 }

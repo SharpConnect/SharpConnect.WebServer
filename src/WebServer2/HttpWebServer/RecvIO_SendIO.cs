@@ -55,10 +55,9 @@ namespace SharpConnect.Internal2
         readonly int _startAt;
         readonly int _len;
         int _readIndex;
-        int x_writeIndex;
+        int _writeIndex;
 
         //write then read
-
 #if DEBUG
         bool _isSendIO;
         static int dbugTotalId;
@@ -70,29 +69,17 @@ namespace SharpConnect.Internal2
 #if DEBUG
             _isSendIO = false;
             debugId = dbugTotalId++;
-            if (debugId == 2000)
-            {
-
-            }
 #endif
             _largeBuffer = largeBuffer;
             _startAt = beginAt;
             _len = len;
-            _readIndex = x_writeIndex = 0;
+            _readIndex = _writeIndex = 0;
         }
 #if DEBUG
         public bool IsSendIO => _isSendIO;
 #endif
         public int BufferStartAtIndex => _startAt;
         public int BufferLength => _len;
-        int _writeIndex
-        {
-            get => x_writeIndex;
-            set
-            {
-                x_writeIndex = value;
-            }
-        }
         public void Reset()
         {
             _readIndex = _writeIndex = 0;
@@ -463,14 +450,14 @@ namespace SharpConnect.Internal2
 
     class RecvIOBufferStream2 : IDisposable
     {
-        SharpConnect.Internal.SimpleBufferReader simpleBufferReader = new SharpConnect.Internal.SimpleBufferReader();
-        List<byte[]> otherBuffers = new List<byte[]>();
-        int currentBufferIndex;
+        SharpConnect.Internal.SimpleBufferReader _simpleBufferReader = new SharpConnect.Internal.SimpleBufferReader();
+        List<byte[]> _otherBuffers = new List<byte[]>();
+        int _currentBufferIndex;
 
-        bool multipartMode;
-        int readpos = 0;
-        int totalLen = 0;
-        int bufferCount = 0;
+        bool _multipartMode;
+        int _readpos = 0;
+        int _totalLen = 0;
+        int _bufferCount = 0;
 
         SharpConnect.Internal2.AbstractAsyncNetworkStream _networkStream;
 
@@ -479,11 +466,9 @@ namespace SharpConnect.Internal2
             _networkStream = networkStream;
             AutoClearPrevBufferBlock = true;
         }
-        public bool AutoClearPrevBufferBlock
-        {
-            get;
-            set;
-        }
+
+        public bool AutoClearPrevBufferBlock { get; set; }
+
         public void Dispose()
         {
 
@@ -491,96 +476,84 @@ namespace SharpConnect.Internal2
         public void Clear()
         {
 
-            otherBuffers.Clear();
-            multipartMode = false;
-            bufferCount = 0;
-            currentBufferIndex = 0;
-            readpos = 0;
-            totalLen = 0;
-            simpleBufferReader.SetBuffer(null, 0, 0);
+            _otherBuffers.Clear();
+            _multipartMode = false;
+            _bufferCount = 0;
+            _currentBufferIndex = 0;
+            _readpos = 0;
+            _totalLen = 0;
+            _simpleBufferReader.SetBuffer(null, 0, 0);
         }
 
         public void AppendNewRecvData()
         {
-            if (bufferCount == 0)
+            if (_bufferCount == 0)
             {
                 //single part mode   
 
-                totalLen = _networkStream.ByteReadTransfered;
-                simpleBufferReader.SetBuffer(_networkStream.UnsafeGetRecvInternalBuffer(), 0, totalLen);
-                bufferCount++;
+                _totalLen = _networkStream.ByteReadTransfered;
+                _simpleBufferReader.SetBuffer(_networkStream.UnsafeGetRecvInternalBuffer(), 0, _totalLen);
+                _bufferCount++;
             }
             else
             {
                 //more than 1 buffer
-                if (multipartMode)
+                if (_multipartMode)
                 {
                     int thisPartLen = _networkStream.ByteReadTransfered;
                     byte[] o2copy = new byte[thisPartLen];
                     Buffer.BlockCopy(_networkStream.UnsafeGetRecvInternalBuffer(), 0, o2copy, 0, thisPartLen);
-                    otherBuffers.Add(o2copy);
-                    totalLen += thisPartLen;
+                    _otherBuffers.Add(o2copy);
+                    _totalLen += thisPartLen;
                 }
                 else
                 {
                     //should not be here
                     throw new NotSupportedException();
                 }
-                bufferCount++;
+                _bufferCount++;
             }
         }
 
-        public int Length
-        {
-            get
-            {
-                return this.totalLen;
-            }
-        }
+        public bool IsEnd() => _readpos >= _totalLen;
 
+        public int Length => this._totalLen;
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="len"></param>
-        /// <returns></returns>
-        public bool Ensure(int len)
-        {
-            return readpos + len <= totalLen;
-        }
+        public bool Ensure(int len) => _readpos + len <= _totalLen;
+
         public void BackupRecvIO()
         {
-            if (bufferCount == 1 && !multipartMode)
+            if (_bufferCount == 1 && !_multipartMode)
             {
                 //only in single mode
                 int thisPartLen = _networkStream.ByteReadTransfered;
                 byte[] o2copy = new byte[thisPartLen];
                 Buffer.BlockCopy(_networkStream.UnsafeGetRecvInternalBuffer(), 0, o2copy, 0, thisPartLen);
-                otherBuffers.Add(o2copy);
-                multipartMode = true;
-                int prevIndex = simpleBufferReader.Position;
-                simpleBufferReader.SetBuffer(o2copy, 0, thisPartLen);
-                simpleBufferReader.Position = prevIndex;
+                _otherBuffers.Add(o2copy);
+                _multipartMode = true;
+                int prevIndex = _simpleBufferReader.Position;
+                _simpleBufferReader.SetBuffer(o2copy, 0, thisPartLen);
+                _simpleBufferReader.Position = prevIndex;
             }
         }
         public byte ReadByte()
         {
-            if (simpleBufferReader.Ensure(1))
+            if (_simpleBufferReader.Ensure(1))
             {
-                readpos++;
-                return simpleBufferReader.ReadByte();
+                _readpos++;
+                return _simpleBufferReader.ReadByte();
             }
             else
             {
-                if (multipartMode)
+                if (_multipartMode)
                 {
                     //this end of current buffer
                     //so we switch to the new one
-                    if (currentBufferIndex < otherBuffers.Count)
+                    if (_currentBufferIndex < _otherBuffers.Count)
                     {
                         MoveToNextBufferBlock();
-                        readpos++;
-                        return simpleBufferReader.ReadByte();
+                        _readpos++;
+                        return _simpleBufferReader.ReadByte();
                     }
                 }
             }
@@ -590,12 +563,12 @@ namespace SharpConnect.Internal2
         {
             if (AutoClearPrevBufferBlock)
             {
-                otherBuffers[currentBufferIndex] = null;
+                _otherBuffers[_currentBufferIndex] = null;
             }
 
-            currentBufferIndex++;
-            byte[] buff = otherBuffers[currentBufferIndex];
-            simpleBufferReader.SetBuffer(buff, 0, buff.Length);
+            _currentBufferIndex++;
+            byte[] buff = _otherBuffers[_currentBufferIndex];
+            _simpleBufferReader.SetBuffer(buff, 0, buff.Length);
         }
         /// <summary>
         /// copy data from current pos to output
@@ -604,43 +577,43 @@ namespace SharpConnect.Internal2
         /// <param name="len"></param>
         public void CopyBuffer(byte[] output, int len)
         {
-            if (simpleBufferReader.Ensure(len))
+            if (_simpleBufferReader.Ensure(len))
             {
-                simpleBufferReader.CopyBytes(output, 0, len);
-                readpos += len;
+                _simpleBufferReader.CopyBytes(output, 0, len);
+                _readpos += len;
             }
             else
             {
                 //need more than 1
-                int toCopyLen = simpleBufferReader.AvaialbleByteCount;
+                int toCopyLen = _simpleBufferReader.AvaialbleByteCount;
                 int remain = len;
                 int targetIndex = 0;
                 do
                 {
-                    simpleBufferReader.CopyBytes(output, targetIndex, toCopyLen);
-                    readpos += toCopyLen;
+                    _simpleBufferReader.CopyBytes(output, targetIndex, toCopyLen);
+                    _readpos += toCopyLen;
                     targetIndex += toCopyLen;
                     remain -= toCopyLen;
                     //move to another
                     if (remain > 0)
                     {
-                        if (currentBufferIndex < otherBuffers.Count - 1)
+                        if (_currentBufferIndex < _otherBuffers.Count - 1)
                         {
                             MoveToNextBufferBlock();
                             //-------------------------- 
                             //evaluate after copy
-                            if (simpleBufferReader.Ensure(remain))
+                            if (_simpleBufferReader.Ensure(remain))
                             {
                                 //end
-                                simpleBufferReader.CopyBytes(output, targetIndex, remain);
-                                readpos += remain;
+                                _simpleBufferReader.CopyBytes(output, targetIndex, remain);
+                                _readpos += remain;
                                 remain = 0;
                                 return;
                             }
                             else
                             {
                                 //not complete on this round
-                                toCopyLen = simpleBufferReader.UsedBufferDataLen;
+                                toCopyLen = _simpleBufferReader.UsedBufferDataLen;
                                 //copy all
                             }
                         }
@@ -653,10 +626,8 @@ namespace SharpConnect.Internal2
 
             }
         }
-        public bool IsEnd()
-        {
-            return readpos >= totalLen;
-        }
+
+
 
     }
 
