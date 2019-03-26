@@ -9,45 +9,6 @@ using System.IO;
 namespace SharpConnect.Internal2
 {
 
-
-    class RecvIO
-    {
-        AbstractAsyncNetworkStream _networkStream;
-        public RecvIO()
-        {
-
-        }
-        public void Bind(AbstractAsyncNetworkStream networkStream)
-        {
-            _networkStream = networkStream;
-        }
-        public byte ReadByte(int index)
-        {
-            //read one byte from specific index from stream
-            return _networkStream.GetByteFromBuffer(index);
-        }
-        public void CopyTo(int srcIndex, byte[] destBuffer, int count)
-        {
-            _networkStream.ReadBuffer(srcIndex, count, destBuffer, 0);
-        }
-
-        /// <summary>
-        /// start new receive
-        /// </summary>
-        public void StartReceive()
-        {
-            _networkStream.ClearReceiveBuffer();
-            _networkStream.StartReceive();
-        }
-        public int BytesTransferred => _networkStream.ByteReadTransfered;
-        internal byte[] UnsafeGetInternalBuffer()
-        {
-            return null;
-        }
-    }
-
-
-
     struct IOBuffer
     {
 
@@ -84,13 +45,7 @@ namespace SharpConnect.Internal2
         {
             _readIndex = _writeIndex = 0;
         }
-        public void Reset2()
-        {
-            if (_readIndex == _writeIndex)
-            {
-                _readIndex = _writeIndex = 0;
-            }
-        }
+
         public void WriteBuffer(byte[] srcBuffer, int srcIndex, int count)
         {
             //copy data from srcBuffer and place to _largeBuffer

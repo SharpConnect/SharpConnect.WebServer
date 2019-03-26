@@ -80,7 +80,7 @@ namespace SharpConnect.Internal2
 
         internal bool BeginWebsocketMode { get; set; }
     }
-
+    
 
     class SockNetworkStream : AbstractAsyncNetworkStream
     {
@@ -111,7 +111,7 @@ namespace SharpConnect.Internal2
 
         int _sendingByteTransfered = 0;
 
-        readonly RecvIO _recvIO;
+
         readonly SendIO _sendIO;
 
         public SockNetworkStream(IOBuffer recvBuffer, IOBuffer sendBuffer)
@@ -129,8 +129,7 @@ namespace SharpConnect.Internal2
             _recvAsyncEventArgs.SetBuffer(_recvBuffer._largeBuffer, _recvBuffer.BufferStartAtIndex, _recvBuffer.BufferLength);//TODO: swap  buffer for the args
             _recvAsyncEventArgs.Completed += RecvAsyncEventArgs_Completed;
 
-            _recvIO = new RecvIO();
-            _recvIO.Bind(this);
+
             _sendIO = new SendIO();
             _sendIO.Bind(this);
         }
@@ -145,11 +144,11 @@ namespace SharpConnect.Internal2
         }
         internal override void RecvCopyTo(int readpos, byte[] dstBuffer, int copyLen)
         {
-            _recvIO.CopyTo(readpos, dstBuffer, copyLen);
+            this.ReadBuffer(readpos, copyLen, dstBuffer, 0);
         }
         internal override byte RecvReadByte(int pos)
         {
-            return _recvIO.ReadByte(pos);
+            return GetByteFromBuffer(pos);
         }
         internal override void EnqueueSendData(byte[] buffer, int len)
         {
@@ -787,7 +786,7 @@ namespace SharpConnect.Internal2
         }
 
         public override int ByteReadTransfered => _recvBuffer.DataToReadLength;
-        
+
         public override byte GetByteFromBuffer(int index)
         {
             return _recvBuffer.GetByteFromBuffer(index);
