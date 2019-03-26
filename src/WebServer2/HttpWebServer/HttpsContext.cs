@@ -34,12 +34,12 @@ namespace SharpConnect.WebServers.Server2
     /// <summary>
     /// http connection session, req-resp model
     /// </summary>
-    class HttpContext : ISendIO
+    class HttpsContext : ISendIO
     {
-        Server2HttpRequest httpReq;
+        HttpsWebRequest httpReq;
         HttpResponse httpResp;
         ReqRespHandler<HttpRequest, HttpResponse> reqHandler;
-        Server2WebServer ownerServer;
+        HttpsWebServer ownerServer;
 
         SockNetworkStream _baseSockStream;
         AbstractAsyncNetworkStream _sockStream;
@@ -62,8 +62,8 @@ namespace SharpConnect.WebServers.Server2
 
 #endif
 
-        public HttpContext(
-            Server2WebServer ownerServer,
+        public HttpsContext(
+            HttpsWebServer ownerServer,
             int recvBufferSize,
             int sendBufferSize)
         {
@@ -87,8 +87,8 @@ namespace SharpConnect.WebServers.Server2
             //set buffer for newly created saArgs
             //ownerServer.SetBufferFor(this.recvSendArgs = new SocketAsyncEventArgs()); 
             //----------------------------------------------------------------------------------------------------------  
-            httpReq = new Server2HttpRequest(this);
-            httpResp = new Server2HttpResponse(this);
+            httpReq = new HttpsWebRequest(this);
+            httpResp = new HttpsWebResponse(this);
         }
 
         internal bool CreatedFromPool { get; set; }
@@ -443,7 +443,7 @@ namespace SharpConnect.WebServers.Server2
         {
             //   this.recvSendArgs.Dispose();
         }
-        internal Server2WebServer OwnerWebServer
+        internal HttpsWebServer OwnerWebServer
         {
             get { return this.ownerServer; }
         }

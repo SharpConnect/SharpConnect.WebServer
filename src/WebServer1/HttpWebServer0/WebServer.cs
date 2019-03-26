@@ -8,8 +8,8 @@ namespace SharpConnect.WebServers
 {
     public class WebServer
     {
-        SharpConnect.WebServers.Server1WebServer _server1;
-        SharpConnect.WebServers.Server2.Server2WebServer _server2;
+        SharpConnect.WebServers.HttpWebServer _server1;
+        SharpConnect.WebServers.Server2.HttpsWebServer _server2;
 
         int _port;
         bool _localOnly;
@@ -41,14 +41,14 @@ namespace SharpConnect.WebServers
 
             if (UseSsl)
             {
-                _server2 = new Server2.Server2WebServer(_port, _localOnly, _reqHandler);
+                _server2 = new Server2.HttpsWebServer(_port, _localOnly, _reqHandler);
                 _server2.LoadCertificate(_certFile, _certPsw);
                 _server2.UseSsl = true;
                 _server2.Start();
             }
             else
             {
-                _server1 = new Server1WebServer(_port, _localOnly, _reqHandler);
+                _server1 = new HttpWebServer(_port, _localOnly, _reqHandler);
                 _server1.WebSocketServer = WebSocketServer;
                 _server1.Start();
 

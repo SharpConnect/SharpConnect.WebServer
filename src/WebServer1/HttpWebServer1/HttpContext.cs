@@ -33,17 +33,7 @@ using SharpConnect.Internal;
 
 namespace SharpConnect.WebServers
 {
-    //enum ProcessReceiveBufferResult
-    //{
-    //    Error,
-    //    NeedMore,
-    //    Complete
-    //}
-    //interface ISendIO
-    //{
-    //    void StartSendAsync();
-    //    void EnqueueOutputData(byte[] dataToSend, int count);
-    //}
+
     /// <summary>
     /// http connection session, req-resp model
     /// </summary>
@@ -54,15 +44,15 @@ namespace SharpConnect.WebServers
         readonly RecvIO recvIO;
         readonly SendIO sendIO;
 
-        Server1HttpRequest httpReq;
-        Server1HttpResponse httpResp;
+        HttpWebRequest httpReq;
+        HttpWebResponse httpResp;
         ReqRespHandler<HttpRequest, HttpResponse> reqHandler;
-        Server1WebServer ownerServer;
+        HttpWebServer ownerServer;
 
         const int RECV_BUFF_SIZE = 1024;
 
         public HttpContext(
-            Server1WebServer ownerServer,
+            HttpWebServer ownerServer,
             int recvBufferSize,
             int sendBufferSize)
         {
@@ -83,8 +73,8 @@ namespace SharpConnect.WebServers
             recvIO = new RecvIO(_recv_a, _recv_a.Offset, recvBufferSize, HandleReceive);
             sendIO = new SendIO(_send_a, _send_a.Offset, sendBufferSize, HandleSend);
             //----------------------------------------------------------------------------------------------------------  
-            httpReq = new Server1HttpRequest(this);
-            httpResp = new Server1HttpResponse(this);
+            httpReq = new HttpWebRequest(this);
+            httpResp = new HttpWebResponse(this);
 
             //common(shared) event listener***
             _recv_a.Completed += (object sender, SocketAsyncEventArgs e) =>
@@ -276,7 +266,7 @@ namespace SharpConnect.WebServers
         }
 
 
-        internal Server1WebServer OwnerWebServer
+        internal HttpWebServer OwnerWebServer
         {
             get { return this.ownerServer; }
         }

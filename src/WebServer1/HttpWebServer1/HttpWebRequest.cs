@@ -2,16 +2,14 @@
 using System;
 using System.IO;
 using System.Text;
-using System.Collections.Generic;
-
 
 namespace SharpConnect.WebServers
 {
 
-    class Server1HttpRequest : HttpRequest
+    class HttpWebRequest : HttpRequest
     {
         HttpContext context;
-        internal Server1HttpRequest(HttpContext context)
+        internal HttpWebRequest(HttpContext context)
             : base()
         {
             this.context = context;

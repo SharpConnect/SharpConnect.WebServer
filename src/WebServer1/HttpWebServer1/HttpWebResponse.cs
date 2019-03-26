@@ -1,14 +1,10 @@
 ﻿//2015-2016, MIT, EngineKit
-using System;
-using System.IO;
-using System.Collections.Generic;
-using System.Text;
-using SharpConnect.Internal;
+
 
 namespace SharpConnect.WebServers
 {
-     
-    class Server1HttpResponse : HttpResponse
+
+    class HttpWebResponse : HttpResponse
     {
         enum WriteContentState : byte
         {
@@ -27,7 +23,7 @@ namespace SharpConnect.WebServers
         ISendIO sendIO;
 
 
-        internal Server1HttpResponse(HttpContext context) : base(context)
+        internal HttpWebResponse(HttpContext context) : base(context)
         {
             this.context = context;
             //bodyMs = new MemoryStream();

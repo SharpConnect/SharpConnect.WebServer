@@ -1,10 +1,10 @@
 ﻿//2015, MIT, EngineKit  
 namespace SharpConnect.WebServers.Server2
 {
-    class Server2HttpResponse : SharpConnect.WebServers.HttpResponse
+    class HttpsWebResponse : SharpConnect.WebServers.HttpResponse
     {
-        readonly HttpContext context;
-        internal Server2HttpResponse(HttpContext context)
+        readonly HttpsContext context;
+        internal HttpsWebResponse(HttpsContext context)
             : base(context)
         {
             this.context = context;

@@ -19,7 +19,7 @@ namespace SharpConnect
     {
         SendComplete,
         SocketError,
-    } 
+    }
     enum SendIOState : byte
     {
         ReadyNextSend,

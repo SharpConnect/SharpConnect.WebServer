@@ -4,7 +4,7 @@ using System.Text;
 namespace SharpConnect.WebServers.Server2
 {
 
-    class Server2HttpRequest : SharpConnect.WebServers.HttpRequest
+    class HttpsWebRequest : SharpConnect.WebServers.HttpRequest
     {
         enum HttpParsingState
         {
@@ -13,8 +13,8 @@ namespace SharpConnect.WebServers.Server2
             Complete
         }
 
-        HttpContext context;
-        internal Server2HttpRequest(HttpContext context)
+        HttpsContext context;
+        internal HttpsWebRequest(HttpsContext context)
         {
             this.context = context;
         }
@@ -251,10 +251,8 @@ namespace SharpConnect.WebServers.Server2
                     return;
                 }
             }
-            this.parseState = HttpParsingState.Complete;
-
-        }
-        //===================
+            this.parseState = HttpParsingState.Complete; 
+        } 
     }
 
 }
