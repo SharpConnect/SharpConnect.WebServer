@@ -1,4 +1,4 @@
-﻿//MIT, 2018, EngineKit
+﻿//MIT, 2018-present, EngineKit
 using System;
 using System.Collections.Generic;
 using System.IO;

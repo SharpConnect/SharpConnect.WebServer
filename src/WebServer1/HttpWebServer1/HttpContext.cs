@@ -1,4 +1,4 @@
-﻿//2015-2016, MIT, EngineKit 
+﻿//MIT, 2015-present, EngineKit 
 /*
  * ServerState.cs
  *

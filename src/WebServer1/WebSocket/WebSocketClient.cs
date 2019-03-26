@@ -1,4 +1,4 @@
-﻿//2015-2016, MIT, EngineKit
+﻿//MIT, 2015-present, EngineKit
 /* The MIT License
 *
 * Copyright (c) 2013-2015 sta.blockhead

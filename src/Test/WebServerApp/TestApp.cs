@@ -1,4 +1,4 @@
-﻿//2015, MIT, EngineKit
+﻿//MIT, 2015-present, EngineKit
 
 using SharpConnect.WebServers;
 namespace SharpConnect

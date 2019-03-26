@@ -1,4 +1,4 @@
-﻿//2015-2016, MIT, EngineKit
+﻿//MIT, 2015-present, EngineKit
 using System;
 using System.IO;
 using System.Collections.Generic;

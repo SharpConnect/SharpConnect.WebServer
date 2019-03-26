@@ -1,4 +1,4 @@
-﻿//2015, MIT, EngineKit  
+﻿//MIT, 2015-present, EngineKit 
 namespace SharpConnect.WebServers.Server2
 {
     class HttpsWebResponse : SharpConnect.WebServers.HttpResponse

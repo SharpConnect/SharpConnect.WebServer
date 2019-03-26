@@ -1,5 +1,5 @@
 ﻿//2010, CPOL, Stan Kirk
-//2015-2016, MIT, EngineKit 
+//MIT, 2015-present, EngineKit 
 using System;
 using System.Net.Sockets;
 using System.Threading;
