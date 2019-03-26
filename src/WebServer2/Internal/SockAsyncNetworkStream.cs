@@ -130,6 +130,7 @@ namespace SharpConnect.Internal2
             _sendIO = new SendIO();
             _sendIO.Bind(this);
         }
+        internal int QueueCount => _sendIO.QueueCount;//?
         public override void Reset()
         {
             _sendIO.Reset();

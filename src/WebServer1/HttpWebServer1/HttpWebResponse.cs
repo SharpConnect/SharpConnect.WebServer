@@ -10,25 +10,15 @@ namespace SharpConnect.WebServers
         {
             HttpHead,
             HttpBody,
-        }
-
-        readonly HttpContext context;
-
-        //WriteContentState writeContentState;
-        ////output stream
-        //MemoryStream bodyMs;
-        //int contentByteCount;
-        //Dictionary<string, string> headers = new Dictionary<string, string>();
-        //StringBuilder headerStBuilder = new StringBuilder();
-        ISendIO sendIO;
-
+        } 
+        readonly HttpContext context;  
 
         internal HttpWebResponse(HttpContext context) : base(context)
         {
             this.context = context;
             //bodyMs = new MemoryStream();
             StatusCode = 200; //init
-            this.sendIO = context;
+            this.context = context;
             this.ContentTypeCharSet = WebServers.TextCharSet.Utf8;
         }
         public override bool KeepAlive => context.KeepAlive;

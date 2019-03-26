@@ -106,6 +106,9 @@ namespace SharpConnect.WebServers
                 }
             };
         }
+
+        public int QueueCount => sendIO.QueueCount;
+
         void HandleReceive(RecvEventCode recvEventCode)
         {
             switch (recvEventCode)

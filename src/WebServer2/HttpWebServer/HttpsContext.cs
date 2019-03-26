@@ -91,6 +91,8 @@ namespace SharpConnect.WebServers.Server2
             httpResp = new HttpsWebResponse(this);
         }
 
+        public int QueueCount => _baseSockStream.QueueCount;
+
         internal bool CreatedFromPool { get; set; }
         internal void EnqueueSendingData(byte[] buffer, int len) => _sockStream.EnqueueSendData(buffer, len);
         void ISendIO.EnqueueSendingData(byte[] buffer, int len) => _sockStream.EnqueueSendData(buffer, len);
