@@ -60,14 +60,16 @@ namespace SharpConnect.Internal2
         protected void RaiseSendComplete()
         {
             _sendCompleted?.Invoke(null, EventArgs.Empty);
+            //_sendCompleted2?.Invoke(null, EventArgs.Empty);
         }
         protected void RaiseRecvCompleted(int byteCount)
         {
             _recvCompleted?.Invoke(this, new DataArrEventArgs() { ByteTransferedCount = byteCount });
+            //_recvCompleted2?.Invoke(this, new DataArrEventArgs() { ByteTransferedCount = byteCount });
         }
         public void ClearRecvEvent()
         {
-            _recvCompleted = null;
+            //_recvCompleted = null;
         }
         internal abstract byte RecvReadByte(int pos);
         internal abstract void EnqueueSendData(byte[] buffer, int len);
@@ -77,6 +79,27 @@ namespace SharpConnect.Internal2
         internal abstract int QueueCount { get; }
         //***
         internal abstract byte[] UnsafeGetRecvInternalBuffer();
+
+        internal bool BeginWebsocketMode { get; set; }
+        ////--------
+        //EventHandler<DataArrEventArgs> _recvCompleted2;
+        //EventHandler _sendCompleted2;
+        ////protected void RaiseSendComplete2()
+        ////{
+        ////    _sendCompleted2?.Invoke(null, EventArgs.Empty);
+        ////}
+        ////protected void RaiseRecvCompleted2(int byteCount)
+        ////{
+        ////    _recvCompleted2?.Invoke(this, new DataArrEventArgs() { ByteTransferedCount = byteCount });
+        ////}
+        //public void SetRecvCompleteEventHandler2(EventHandler<DataArrEventArgs> recvCompleted)
+        //{
+        //    _recvCompleted2 = recvCompleted;
+        //}
+        //public void SetSendCompleteEventHandler2(EventHandler sendCompleted)
+        //{
+        //    _sendCompleted2 = sendCompleted;
+        //}
     }
 
 
@@ -710,6 +733,10 @@ namespace SharpConnect.Internal2
         }
         private void SocketNetworkStream_RecvCompleted(object sender, DataArrEventArgs e)
         {
+            if (BeginWebsocketMode)
+            {
+
+            }
             if (e.ByteTransferedCount > 0)
             {
                 //.... 

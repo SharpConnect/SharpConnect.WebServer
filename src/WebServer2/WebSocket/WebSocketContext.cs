@@ -63,23 +63,29 @@ namespace SharpConnect.WebServers.Server2
 
             this.webSocketReqParser = new WebSocketProtocolParser(this.AsClientContext, new SharpConnect.Internal2.RecvIOBufferStream2(clientStream));
             _clientStream = clientStream;
-
             _upgradeRespSent = true;
-           
 
             _clientStream.SetRecvCompleteEventHandler((s, e) =>
             {
-                HandleReceivedData(RecvEventCode.HasSomeData);
+                if (e.ByteTransferedCount == 0)
+                {
+                    HandleReceivedData(RecvEventCode.NoMoreReceiveData);
+                }
+                else
+                {
+                    HandleReceivedData(RecvEventCode.HasSomeData);
+                }
 
             });
             _clientStream.SetSendCompleteEventHandler((s, e) =>
             {
                 sendIO_SendCompleted(SendIOEventCode.SendComplete);
             });
+
+
             _clientStream.StartReceive();
             SendExternalRaw(wsUpgradeResponseMsg);
 
-          
         }
         void ISendIO.EnqueueSendingData(byte[] buffer, int len) => _clientStream.EnqueueSendData(buffer, len);
         void ISendIO.SendIOStartSend() => _clientStream.StartSend();
@@ -172,6 +178,7 @@ namespace SharpConnect.WebServers.Server2
         }
         internal void SendExternalRaw(byte[] data)
         {
+            _clientStream.BeginWebsocketMode = true;
             _clientStream.EnqueueSendData(data, data.Length);
             _clientStream.StartSend();
 
