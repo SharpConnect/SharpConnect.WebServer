@@ -5,80 +5,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using SharpConnect.Internal;
 
 namespace SharpConnect.Internal2
 {
-#if DEBUG
-    static class dbugConsole
-    {
-
-        static LogWriter logWriter;
-        static dbugConsole()
-        {
-            //set
-            logWriter = new LogWriter(null);//not write anything to disk
-            //logWriter = new LogWriter("d:\\WImageTest\\log1.txt");
-        }
-        [System.Diagnostics.Conditional("DEBUG")]
-        public static void WriteLine(string str)
-        {
-            logWriter.Write(str);
-            logWriter.Write("\r\n");
-        }
-        [System.Diagnostics.Conditional("DEBUG")]
-        public static void Write(string str)
-        {
-            logWriter.Write(str);
-        }
-        class LogWriter : IDisposable
-        {
-            string filename;
-            FileStream fs;
-            StreamWriter writer;
-            public LogWriter(string logFilename)
-            {
-                filename = logFilename;
-                if (!string.IsNullOrEmpty(logFilename))
-                {
-                    fs = new FileStream(logFilename, FileMode.Create);
-                    writer = new StreamWriter(fs);
-                }
-            }
-            public void Dispose()
-            {
-                if (writer != null)
-                {
-                    writer.Flush();
-                    writer.Dispose();
-                    writer = null;
-                }
-                if (fs != null)
-                {
-                    fs.Dispose();
-                    fs = null;
-                }
-            }
-            public void Write(string data)
-            {
-                if (writer != null)
-                {
-                    writer.Write(data);
-                    writer.Flush();
-                }
-            }
-        }
-
-    }
-#endif
-    //--------------------------------------------------
-    enum RecvEventCode
-    {
-        SocketError,
-        HasSomeData,
-        NoMoreReceiveData,
-
-    }
-
+ 
 
     class RecvIO
     {
@@ -116,19 +47,7 @@ namespace SharpConnect.Internal2
         }
     }
 
-    enum SendIOEventCode
-    {
-        SendComplete,
-        SocketError,
-    }
-
-    enum SendIOState : byte
-    {
-        ReadyNextSend,
-        Sending,
-        ProcessSending,
-        Error,
-    }
+   
 
     struct IOBuffer
     {

@@ -7,6 +7,28 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
 
+namespace SharpConnect
+{
+    enum RecvEventCode
+    {
+        SocketError,
+        HasSomeData,
+        NoMoreReceiveData,
+    }
+    enum SendIOEventCode
+    {
+        SendComplete,
+        SocketError,
+    } 
+    enum SendIOState : byte
+    {
+        ReadyNextSend,
+        Sending,
+        ProcessSending,
+        Error,
+    }
+
+}
 namespace SharpConnect.Internal
 {
 #if DEBUG
@@ -72,13 +94,7 @@ namespace SharpConnect.Internal
     }
 #endif
     //--------------------------------------------------
-    enum RecvEventCode
-    {
-        SocketError,
-        HasSomeData,
-        NoMoreReceiveData,
 
-    }
     class RecvIO
     {
 
@@ -178,7 +194,7 @@ namespace SharpConnect.Internal
                 ProcessReceivedData();
             }
         }
-        
+
         public int BytesTransferred
         {
             get { return recvArgs.BytesTransferred; }
@@ -190,21 +206,6 @@ namespace SharpConnect.Internal
 
     }
 
-    enum SendIOEventCode
-    {
-        SendComplete,
-        SocketError,
-    }
-
-
-
-    enum SendIOState : byte
-    {
-        ReadyNextSend,
-        Sending,
-        ProcessSending,
-        Error,
-    }
 
 
     class SendIO
