@@ -57,12 +57,12 @@ namespace SharpConnect.WebServers
         Server1HttpRequest httpReq;
         Server1HttpResponse httpResp;
         ReqRespHandler<HttpRequest, HttpResponse> reqHandler;
-        WebServer ownerServer;
+        Server1WebServer ownerServer;
 
         const int RECV_BUFF_SIZE = 1024;
 
         public HttpContext(
-            WebServer ownerServer,
+            Server1WebServer ownerServer,
             int recvBufferSize,
             int sendBufferSize)
         {
@@ -276,7 +276,7 @@ namespace SharpConnect.WebServers
         }
 
 
-        internal WebServer OwnerWebServer
+        internal Server1WebServer OwnerWebServer
         {
             get { return this.ownerServer; }
         }

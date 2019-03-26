@@ -22,7 +22,7 @@ namespace SharpConnect
             try
             {
                 //1. create  
-                SharpConnect.WebServers.Server2.WebServer webServer = new SharpConnect.WebServers.Server2.WebServer(8080, true, testApp.HandleRequest);
+                SharpConnect.WebServers.WebServer webServer = new SharpConnect.WebServers.WebServer(8080, true, testApp.HandleRequest);
                 webServer.LoadCertificate(@"D:\WImageTest\mycert.p12", "12345");
                 webServer.UseSsl = true;
 

@@ -21,6 +21,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)General\Temp.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer0\HttpRequest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer0\HttpResponse.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer0\WebServer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer1\HttpContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer1\HttpRequest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer1\HttpResponse.cs" />

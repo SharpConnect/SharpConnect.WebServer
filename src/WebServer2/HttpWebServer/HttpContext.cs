@@ -43,7 +43,7 @@ namespace SharpConnect.WebServers.Server2
         Server2HttpRequest httpReq;
         HttpResponse httpResp;
         ReqRespHandler<HttpRequest, HttpResponse> reqHandler;
-        WebServer ownerServer;
+        Server2WebServer ownerServer;
 
         SockNetworkStream _baseSockStream;
         AbstractAsyncNetworkStream _sockStream;
@@ -67,7 +67,7 @@ namespace SharpConnect.WebServers.Server2
 #endif
 
         public HttpContext(
-            WebServer ownerServer,
+            Server2WebServer ownerServer,
             int recvBufferSize,
             int sendBufferSize)
         {
@@ -447,7 +447,7 @@ namespace SharpConnect.WebServers.Server2
         {
             //   this.recvSendArgs.Dispose();
         }
-        internal WebServer OwnerWebServer
+        internal Server2WebServer OwnerWebServer
         {
             get { return this.ownerServer; }
         }

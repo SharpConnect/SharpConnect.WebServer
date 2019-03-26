@@ -10,7 +10,7 @@ using SharpConnect.Internal;
 namespace SharpConnect.WebServers
 {
 
-    public class WebServer
+    class Server1WebServer
     {
         bool isRunning;
         ReqRespHandler<HttpRequest, HttpResponse> reqHandler;
@@ -19,7 +19,10 @@ namespace SharpConnect.WebServers
         WebSocketServer webSocketServer;
         BufferManager bufferMan;
         SharedResoucePool<HttpContext> contextPool;
-        public WebServer(int port, bool localOnly, ReqRespHandler<HttpRequest, HttpResponse> reqHandler)
+        public Server1WebServer(
+            int port,
+            bool localOnly,
+            ReqRespHandler<HttpRequest, HttpResponse> reqHandler)
         {
             this.reqHandler = reqHandler;
 

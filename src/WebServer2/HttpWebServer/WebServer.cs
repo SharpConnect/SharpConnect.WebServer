@@ -5,13 +5,11 @@ using System.IO;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using SharpConnect.Internal2;
-using SharpConnect.WebServers;
 
 namespace SharpConnect.WebServers.Server2
 {
 
-    public class WebServer
+    class Server2WebServer
     {
         bool isRunning;
         ReqRespHandler<HttpRequest, HttpResponse> reqHandler;
@@ -20,11 +18,11 @@ namespace SharpConnect.WebServers.Server2
         WebSocketServer webSocketServer;
         BufferManager bufferMan;
         SharedResoucePool<HttpContext> contextPool;
-        public WebServer(int port, bool localOnly, ReqRespHandler<HttpRequest, HttpResponse> reqHandler)
+        public Server2WebServer(int port, bool localOnly, ReqRespHandler<HttpRequest, HttpResponse> reqHandler)
         {
             this.reqHandler = reqHandler;
 
-            int maxNumberOfConnections = 1000;
+            int maxNumberOfConnections = 500;
             int excessSaeaObjectsInPool = 200;
             int backlog = 100;
             int maxSimultaneousAcceptOps = 100;
