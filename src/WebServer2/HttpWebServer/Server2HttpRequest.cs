@@ -1,13 +1,8 @@
 ﻿//2015, MIT, EngineKit 
 using System;
-using System.IO;
 using System.Text;
-using System.Collections.Generic;
-
-
 namespace SharpConnect.WebServers.Server2
 {
-
 
     class Server2HttpRequest : SharpConnect.WebServers.HttpRequest
     {

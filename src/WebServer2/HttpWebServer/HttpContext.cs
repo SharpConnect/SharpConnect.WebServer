@@ -26,12 +26,7 @@
  */
 
 using System;
-using System.Collections.Generic;
-using System.Net.Security;
 using System.Net.Sockets;
-using System.Text;
-using SharpConnect.WebServers;
-using SharpConnect.Internal;
 using SharpConnect.Internal2;
 namespace SharpConnect.WebServers.Server2
 {

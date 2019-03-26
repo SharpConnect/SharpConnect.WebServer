@@ -10,8 +10,8 @@ namespace SharpConnect
 
         static void Main(string[] args)
         {
-            Main_Http();
-            //Main_Https();
+            //Main_Http();
+            Main_Https();
         }
 
         static void Main_Https()

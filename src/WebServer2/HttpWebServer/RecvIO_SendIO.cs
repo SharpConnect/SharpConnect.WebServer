@@ -5,11 +5,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using SharpConnect.Internal;
 
 namespace SharpConnect.Internal2
 {
- 
+
 
     class RecvIO
     {
@@ -47,7 +46,7 @@ namespace SharpConnect.Internal2
         }
     }
 
-   
+
 
     struct IOBuffer
     {

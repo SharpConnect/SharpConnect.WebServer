@@ -1,10 +1,4 @@
-﻿//2015, MIT, EngineKit 
-using System;
-using System.IO;
-using System.Text;
-using System.Collections.Generic;
-
-
+﻿//2015, MIT, EngineKit  
 namespace SharpConnect.WebServers.Server2
 {
     class Server2HttpResponse : SharpConnect.WebServers.HttpResponse

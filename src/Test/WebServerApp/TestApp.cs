@@ -1,10 +1,5 @@
 ﻿//2015, MIT, EngineKit
 
-using System;
-using System.Net;
-using System.Text;
-using System.IO;
-
 using SharpConnect.WebServers;
 namespace SharpConnect
 {
@@ -116,13 +111,13 @@ namespace SharpConnect
                     {
                         resp.End("1.0");
                     }
-                    break; 
+                    break;
                 case "/cross":
                     {
                         resp.AllowCrossOriginPolicy = crossOriginPolicy;
                         resp.End("ok");
                     }
-                    break; 
+                    break;
                 default:
                     {
                         resp.End("");
