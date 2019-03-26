@@ -33,18 +33,29 @@ using SharpConnect.Internal;
 
 namespace SharpConnect.WebServers
 {
+    //enum ProcessReceiveBufferResult
+    //{
+    //    Error,
+    //    NeedMore,
+    //    Complete
+    //}
+    //interface ISendIO
+    //{
+    //    void StartSendAsync();
+    //    void EnqueueOutputData(byte[] dataToSend, int count);
+    //}
     /// <summary>
     /// http connection session, req-resp model
     /// </summary>
-    class HttpContext
+    class HttpContext : ISendIO
     {
         readonly SocketAsyncEventArgs _send_a;
         readonly SocketAsyncEventArgs _recv_a;
         readonly RecvIO recvIO;
         readonly SendIO sendIO;
 
-        HttpRequest httpReq;
-        HttpResponse httpResp;
+        Server1HttpRequest httpReq;
+        Server1HttpResponse httpResp;
         ReqRespHandler<HttpRequest, HttpResponse> reqHandler;
         WebServer ownerServer;
 
@@ -72,8 +83,8 @@ namespace SharpConnect.WebServers
             recvIO = new RecvIO(_recv_a, _recv_a.Offset, recvBufferSize, HandleReceive);
             sendIO = new SendIO(_send_a, _send_a.Offset, sendBufferSize, HandleSend);
             //----------------------------------------------------------------------------------------------------------  
-            httpReq = new HttpRequest(this);
-            httpResp = new HttpResponse(this, sendIO);
+            httpReq = new Server1HttpRequest(this);
+            httpResp = new Server1HttpResponse(this);
 
             //common(shared) event listener***
             _recv_a.Completed += (object sender, SocketAsyncEventArgs e) =>
@@ -293,6 +304,20 @@ namespace SharpConnect.WebServers
         {
             this._dbugTokenId = tokenId;
         }
+
+        public void StartSendAsync()
+        {
+            this.sendIO.StartSendAsync();
+        }
+
+        public void EnqueueOutputData(byte[] dataToSend, int count)
+        {
+            sendIO.EnqueueOutputData(dataToSend, count);
+        }
+
+        void ISendIO.EnqueueSendingData(byte[] buffer, int len) => sendIO.EnqueueOutputData(buffer, len);
+        void ISendIO.SendIOStartSend() => sendIO.StartSendAsync();
+
         public Int32 dbugTokenId
         {
             //Let's use an ID for this object during testing, just so we can see what
@@ -309,10 +334,5 @@ namespace SharpConnect.WebServers
 
     }
 
-    enum ProcessReceiveBufferResult
-    {
-        Error,
-        NeedMore,
-        Complete
-    }
+
 }

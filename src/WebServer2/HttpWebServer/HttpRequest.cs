@@ -3,9 +3,9 @@ using System;
 using System.IO;
 using System.Text;
 using System.Collections.Generic;
+using SharpConnect.WebServers;
 
-
-namespace SharpConnect.WebServers
+namespace SharpConnect.WebServers2
 {
 
     public class WebRequestParameter
@@ -44,12 +44,7 @@ namespace SharpConnect.WebServers
 
     public class HttpRequest : IDisposable
     {
-        enum HttpParsingState
-        {
-            Head,
-            Body,
-            Complete
-        }
+
 
         Dictionary<string, string> headerKeyValues = new Dictionary<string, string>();
         MemoryStream bodyMs;
@@ -186,23 +181,23 @@ namespace SharpConnect.WebServers
         /// add and parse data
         /// </summary>
         /// <param name="buffer"></param>
-        internal ProcessReceiveBufferResult LoadData(Internal.RecvIO recvIO)
+        internal ProcessReceiveBufferResult LoadData()
         {
             switch (parseState)
             {
                 case HttpParsingState.Head:
                     {
                         //find html header 
-                        int readpos = ParseHttpRequestHeader(recvIO);
+                        int readpos = ParseHttpRequestHeader();
                         //check if complete or not
                         if (parseState == HttpParsingState.Body)
                         {
-                            ProcessHtmlPostBody(readpos, recvIO);
+                            ProcessHtmlPostBody(readpos);
                         }
                     }
                     break;
                 case HttpParsingState.Body:
-                    ProcessHtmlPostBody(0, recvIO);
+                    ProcessHtmlPostBody(0);
                     break;
                 case HttpParsingState.Complete:
                     break;
@@ -295,24 +290,26 @@ namespace SharpConnect.WebServers
             }
         }
 
-        int ParseHttpRequestHeader(Internal.RecvIO recvIO)
+        int ParseHttpRequestHeader()
         {
             //start from pos0
             int readpos = 0;
-            int lim = recvIO.BytesTransferred - 1;
+            //int lim = recvIO.BytesTransferred - 1;
+            int lim = context.RecvByteTransfer - 1;
             int i = 0;
             for (; i <= lim; ++i)
             {
                 //just read 
-                if (recvIO.ReadByte(i) == '\r' &&
-                    recvIO.ReadByte(i + 1) == '\n')
+                if (context.ReadByte(i) == '\r' &&
+                    context.ReadByte(i + 1) == '\n')
                 {
                     //each line
                     //translate
                     if (i - readpos < 512)
                     {
                         //copy     
-                        recvIO.CopyTo(readpos, tmpReadBuffer, i - readpos);
+
+                        context.RecvCopyTo(readpos, tmpReadBuffer, i - readpos);
                         //translate
                         string line = Encoding.UTF8.GetString(tmpReadBuffer, 0, i - readpos);
                         readpos = i + 2;
@@ -341,10 +338,10 @@ namespace SharpConnect.WebServers
             }
             return readpos;
         }
-        void ProcessHtmlPostBody(int readpos, Internal.RecvIO recvIO)
+        void ProcessHtmlPostBody(int readpos)
         {
             //parse body
-            int transferedBytes = recvIO.BytesTransferred;
+            int transferedBytes = context.RecvByteTransfer;
             int remaining = transferedBytes - readpos;
             if (!IsMsgBodyComplete)
             {
@@ -353,7 +350,7 @@ namespace SharpConnect.WebServers
                 {
                     //complete here 
                     byte[] buff = new byte[wantBytes];
-                    recvIO.CopyTo(readpos, buff, wantBytes);
+                    context.RecvCopyTo(readpos, buff, wantBytes);
                     //add to req  
                     AddMsgBody(buff, 0, wantBytes);
                     //complete 
@@ -366,7 +363,7 @@ namespace SharpConnect.WebServers
                     if (remaining > 0)
                     {
                         byte[] buff = new byte[remaining];
-                        recvIO.CopyTo(readpos, buff, remaining);
+                        context.RecvCopyTo(readpos, buff, remaining);
                         //add to req  
                         AddMsgBody(buff, 0, remaining);
                     }
