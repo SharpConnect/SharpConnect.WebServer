@@ -30,20 +30,17 @@ using System.Collections.Generic;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Text;
-
+using SharpConnect.WebServers;
 using SharpConnect.Internal2;
-
-
-namespace SharpConnect.WebServers2
+namespace SharpConnect.WebServers.Server2
 {
+
     /// <summary>
     /// http connection session, req-resp model
     /// </summary>
-    class HttpContext
+    class HttpContext : ISendIO
     {
-
-
-        HttpRequest httpReq;
+        Server2HttpRequest httpReq;
         HttpResponse httpResp;
         ReqRespHandler<HttpRequest, HttpResponse> reqHandler;
         WebServer ownerServer;
@@ -94,12 +91,15 @@ namespace SharpConnect.WebServers2
             //set buffer for newly created saArgs
             //ownerServer.SetBufferFor(this.recvSendArgs = new SocketAsyncEventArgs()); 
             //----------------------------------------------------------------------------------------------------------  
-            httpReq = new HttpRequest(this);
-            httpResp = new HttpResponse(this);
+            httpReq = new Server2HttpRequest(this);
+            httpResp = new Server2HttpResponse(this);
         }
 
         internal bool CreatedFromPool { get; set; }
         internal void EnqueueSendingData(byte[] buffer, int len) => _sockStream.EnqueueSendData(buffer, len);
+        void ISendIO.EnqueueSendingData(byte[] buffer, int len) => _sockStream.EnqueueSendData(buffer, len);
+
+        void ISendIO.SendIOStartSend() => _sockStream.StartSend();
         internal int RecvByteTransfer => _sockStream.ByteReadTransfered;
         internal byte ReadByte(int pos) => _sockStream.RecvReadByte(pos);
         internal void RecvCopyTo(int readpos, byte[] dstBuffer, int copyLen) => _sockStream.RecvCopyTo(readpos, dstBuffer, copyLen);
@@ -282,7 +282,7 @@ namespace SharpConnect.WebServers2
                         else
                         {
                             HandleReceive(RecvEventCode.HasSomeData);
-                        } 
+                        }
                     });
                     _sockStream.SetSendCompleteEventHandler((s, e) =>
                     {
@@ -492,10 +492,5 @@ namespace SharpConnect.WebServers2
 
     }
 
-    enum ProcessReceiveBufferResult
-    {
-        Error,
-        NeedMore,
-        Complete
-    }
+
 }

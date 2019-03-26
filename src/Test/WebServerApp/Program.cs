@@ -1,7 +1,7 @@
 ﻿//2015, MIT, EngineKit
 using System;
-using System.Collections.Generic; 
-using SharpConnect.WebServers;
+using System.Collections.Generic;
+
 
 namespace SharpConnect
 {
@@ -10,23 +10,83 @@ namespace SharpConnect
 
         static void Main(string[] args)
         {
-            Main2();
+            //Main_Http();
+            Main_Https();
         }
 
-
-        static List<WebSocketContext> s_contextList = new List<WebSocketContext>();
-        static void Main2()
+        static void Main_Https()
         {
-            Console.WriteLine("Hello!, from SharpConnect");
+            Console.WriteLine("Hello!, from SharpConnect Https");
 
             TestApp testApp = new TestApp();
             try
             {
                 //1. create  
-                WebServer webServer = new WebServer(8080, true, testApp.HandleRequest);
+                SharpConnect.WebServers.Server2.WebServer webServer = new SharpConnect.WebServers.Server2.WebServer(8080, true, testApp.HandleRequest);
+                webServer.LoadCertificate(@"D:\WImageTest\mycert.p12", "12345");
+                webServer.UseSsl = true;
 
+                ////test websocket 
+                //var webSocketServer = new SharpConnect.WebServers.WebSocketServer();
+                //webSocketServer.SetOnNewConnectionContext(ctx =>
+                //{
+                //    s_contextList.Add(ctx);
+                //    ctx.SetMessageHandler(testApp.HandleWebSocket);
+                //});
+                //webServer.WebSocketServer = webSocketServer;
+                webServer.Start();
+
+                string cmd = "";
+                while (cmd != "X")
+                {
+                    cmd = Console.ReadLine();
+                    switch (cmd)
+                    {
+                        case "B":
+                            {
+                                //test broadcast
+                                int j = s_contextList.Count;
+                                for (int i = 0; i < j; ++i)
+                                {
+                                    s_contextList[i].Send("hello!");
+                                }
+                            }
+                            break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error: " + ex.Message);
+            }
+            finally
+            {
+                // close the stream for test file writing
+                try
+                {
+#if DEBUG
+
+#endif
+                }
+                catch
+                {
+                    Console.WriteLine("Could not close log properly.");
+                }
+            }
+        }
+
+        static List<SharpConnect.WebServers.WebSocketContext> s_contextList = new List<SharpConnect.WebServers.WebSocketContext>();
+        static void Main_Http()
+        {
+            Console.WriteLine("Hello!, from SharpConnect Http");
+
+            TestApp testApp = new TestApp();
+            try
+            {
+                //1. create  
+                SharpConnect.WebServers.WebServer webServer = new SharpConnect.WebServers.WebServer(8080, true, testApp.HandleRequest);
                 //test websocket 
-                var webSocketServer = new WebSocketServer();
+                var webSocketServer = new SharpConnect.WebServers.WebSocketServer();
                 webSocketServer.SetOnNewConnectionContext(ctx =>
                 {
                     s_contextList.Add(ctx);
@@ -72,6 +132,6 @@ namespace SharpConnect
                     Console.WriteLine("Could not close log properly.");
                 }
             }
-        } 
+        }
     }
 }

@@ -6,8 +6,9 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using SharpConnect.Internal2;
+using SharpConnect.WebServers;
 
-namespace SharpConnect.WebServers2
+namespace SharpConnect.WebServers.Server2
 {
 
     public class WebServer

@@ -3,147 +3,26 @@ using System;
 using System.IO;
 using System.Text;
 using System.Collections.Generic;
-using SharpConnect.WebServers;
 
-namespace SharpConnect.WebServers2
+
+namespace SharpConnect.WebServers.Server2
 {
 
-    public class WebRequestParameter
-    {
-        string name;
-        string value;
 
-        public WebRequestParameter(string name, string value)
+    class Server2HttpRequest : SharpConnect.WebServers.HttpRequest
+    {
+        enum HttpParsingState
         {
-            this.name = name;
-            this.value = value;
-        }
-        public string ParameterName
-        {
-            get
-            {
-                return this.name;
-            }
-        }
-        public string Value
-        {
-            get
-            {
-                return value;
-            }
+            Head,
+            Body,
+            Complete
         }
 
-    }
-
-    public enum HttpMethod
-    {
-        Get,
-        Post
-    }
-
-
-    public class HttpRequest : IDisposable
-    {
-
-
-        Dictionary<string, string> headerKeyValues = new Dictionary<string, string>();
-        MemoryStream bodyMs;
-        byte[] tmpReadBuffer = new byte[512];
-
-        int contentByteCount;
-        int targetContentLength;
         HttpContext context;
-
-        internal HttpRequest(HttpContext context)
+        internal Server2HttpRequest(HttpContext context)
         {
             this.context = context;
-            bodyMs = new MemoryStream();
         }
-        public void Dispose()
-        {
-            if (bodyMs != null)
-            {
-                bodyMs.Dispose();
-                bodyMs = null;
-            }
-        }
-        public WebRequestParameter[] ReqParameters
-        {
-            get;
-            internal set;
-        }
-        public string GetReqParameterValue(string key)
-        {
-            WebRequestParameter[] reqs = ReqParameters;
-            if (reqs != null)
-            {
-                int j = reqs.Length;
-                for (int i = 0; i < j; ++i)
-                {
-                    if (reqs[i].ParameterName == key)
-                    {
-                        return reqs[i].Value;
-                    }
-                }
-            }
-            return "";
-
-        }
-        internal void Reset()
-        {
-
-            headerKeyValues.Clear();
-            Url = null;
-            ReqParameters = null;
-            HttpMethod = HttpMethod.Get;
-
-            contentByteCount = 0;
-            bodyMs.Position = 0;
-            targetContentLength = 0;
-            parseState = HttpParsingState.Head;
-
-        }
-
-
-        int ContentLength
-        {
-            get { return targetContentLength; }
-        }
-
-        public string GetHeaderKey(string key)
-        {
-            string found;
-            headerKeyValues.TryGetValue(key, out found);
-            return found;
-        }
-        public string GetBodyContentAsString()
-        {
-            if (contentByteCount > 0)
-            {
-                var pos = bodyMs.Position;
-                bodyMs.Position = 0;
-                byte[] buffer = new byte[contentByteCount];
-                bodyMs.Read(buffer, 0, contentByteCount);
-                bodyMs.Position = pos;
-                return Encoding.UTF8.GetString(buffer);
-            }
-            else
-            {
-                return "";
-            }
-        }
-        public string Url
-        {
-            get;
-            set;
-        }
-
-        public HttpMethod HttpMethod
-        {
-            get;
-            internal set;
-        }
-
 
         //===================
         //parsing 
@@ -176,6 +55,12 @@ namespace SharpConnect.WebServers2
                     }
                     break;
             }
+        }
+
+        internal override void Reset()
+        {
+            base.Reset();
+            parseState = HttpParsingState.Head;
         }
         /// <summary>
         /// add and parse data

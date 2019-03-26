@@ -10,9 +10,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer\HttpContext.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer\HttpRequest.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer\HttpResponse.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer\RecvIO_SendIO.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer\Server2HttpRequest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer\Server2HttpResponse.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer\WebServer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Internal\SockAsyncNetworkStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\Flags.cs" />

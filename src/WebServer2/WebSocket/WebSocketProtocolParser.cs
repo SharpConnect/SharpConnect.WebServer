@@ -25,6 +25,8 @@ using System;
 using System.Collections.Generic;
 using SharpConnect.Internal2;
 
+using SharpConnect.WebServers;
+
 namespace SharpConnect.WebServers2
 {
 
