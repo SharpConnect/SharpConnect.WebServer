@@ -6,12 +6,11 @@ using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
 using SharpConnect.WebServers;
-
-
 namespace TestWsClient
 {
     public partial class Form1 : Form
     {
+       
         WebSocketClient _client;
         public Form1()
         {
@@ -24,7 +23,7 @@ namespace TestWsClient
             //------------------------------------------------
             _client = new WebSocketClient();
             _client.SetHandler((req, resp) =>
-            {   
+            {
                 string serverMsg = req.ReadAsString();
                 //Console.WriteLine(serverMsg);       
                 this.Invoke(new MethodInvoker(() =>

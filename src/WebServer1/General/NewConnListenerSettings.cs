@@ -4,7 +4,7 @@
 using System;
 using System.Net;
 
-namespace SharpConnect.Internal
+namespace SharpConnect
 {
     public sealed class NewConnListenerSettings
     {

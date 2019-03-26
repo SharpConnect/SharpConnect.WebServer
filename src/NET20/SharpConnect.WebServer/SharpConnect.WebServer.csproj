@@ -36,74 +36,10 @@
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\..\NETCore\General\ConnectionBase.cs">
-      <Link>General\ConnectionBase.cs</Link>
-    </Compile>
-    <Compile Include="..\..\NETCore\General\ReqRespHandler.cs">
-      <Link>General\ReqRespHandler.cs</Link>
-    </Compile>
-    <Compile Include="..\..\NETCore\General\Temp.cs">
-      <Link>General\Temp.cs</Link>
-    </Compile>
-    <Compile Include="..\..\NETCore\HttpWebServer\HttpContext.cs">
-      <Link>HttpWebServer\HttpContext.cs</Link>
-    </Compile>
-    <Compile Include="..\..\NETCore\HttpWebServer\HttpRequest.cs">
-      <Link>HttpWebServer\HttpRequest.cs</Link>
-    </Compile>
-    <Compile Include="..\..\NETCore\HttpWebServer\HttpResponse.cs">
-      <Link>HttpWebServer\HttpResponse.cs</Link>
-    </Compile>
-    <Compile Include="..\..\NETCore\HttpWebServer\RecvIO_SendIO.cs">
-      <Link>HttpWebServer\RecvIO_SendIO.cs</Link>
-    </Compile>
-    <Compile Include="..\..\NETCore\HttpWebServer\WebServer.cs">
-      <Link>HttpWebServer\WebServer.cs</Link>
-    </Compile>
-    <Compile Include="..\..\NETCore\Internal\BufferManager.cs">
-      <Link>Internal\BufferManager.cs</Link>
-    </Compile>
-    <Compile Include="..\..\NETCore\Internal\dbugAcceptOpUserToken.cs">
-      <Link>Internal\dbugAcceptOpUserToken.cs</Link>
-    </Compile>
-    <Compile Include="..\..\NETCore\Internal\dbugLOG.cs">
-      <Link>Internal\dbugLOG.cs</Link>
-    </Compile>
-    <Compile Include="..\..\NETCore\Internal\dbugTestFileWriter.cs">
-      <Link>Internal\dbugTestFileWriter.cs</Link>
-    </Compile>
-    <Compile Include="..\..\NETCore\Internal\NewConnListener.cs">
-      <Link>Internal\NewConnListener.cs</Link>
-    </Compile>
-    <Compile Include="..\..\NETCore\Internal\NewConnListenerSettings.cs">
-      <Link>Internal\NewConnListenerSettings.cs</Link>
-    </Compile>
-    <Compile Include="..\..\NETCore\Internal\SharedResoucePool.cs">
-      <Link>Internal\SharedResoucePool.cs</Link>
-    </Compile>
-    <Compile Include="..\..\NETCore\WebSocket\Flags.cs">
-      <Link>WebSocket\Flags.cs</Link>
-    </Compile>
-    <Compile Include="..\..\NETCore\WebSocket\WebSocketClient.cs">
-      <Link>WebSocket\WebSocketClient.cs</Link>
-    </Compile>
-    <Compile Include="..\..\NETCore\WebSocket\WebSocketContext.cs">
-      <Link>WebSocket\WebSocketContext.cs</Link>
-    </Compile>
-    <Compile Include="..\..\NETCore\WebSocket\WebSocketProtocolParser.cs">
-      <Link>WebSocket\WebSocketProtocolParser.cs</Link>
-    </Compile>
-    <Compile Include="..\..\NETCore\WebSocket\WebSocketRequest.cs">
-      <Link>WebSocket\WebSocketRequest.cs</Link>
-    </Compile>
-    <Compile Include="..\..\NETCore\WebSocket\WebSocketResponse.cs">
-      <Link>WebSocket\WebSocketResponse.cs</Link>
-    </Compile>
-    <Compile Include="..\..\NETCore\WebSocket\WebSocketServer.cs">
-      <Link>WebSocket\WebSocketServer.cs</Link>
-    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+  <Import Project="..\..\WebServer1\WebServer1.projitems" Label="Shared" />
+  <Import Project="..\..\WebServer2\WebServer2.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

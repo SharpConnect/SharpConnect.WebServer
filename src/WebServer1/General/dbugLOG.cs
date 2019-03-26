@@ -6,7 +6,7 @@ using System.Net;
 using System.Text;
 using System.Threading;
 
-namespace SharpConnect.Internal
+namespace SharpConnect
 {
 #if DEBUG
     static class dbugLOG

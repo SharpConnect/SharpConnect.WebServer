@@ -4,7 +4,7 @@ using System;
 using System.Net.Sockets;
 using System.Threading;
 
-namespace SharpConnect.Internal
+namespace SharpConnect
 {
     /// <summary>
     /// new connection listener

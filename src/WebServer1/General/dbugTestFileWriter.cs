@@ -7,7 +7,7 @@ using System.IO;
 using System.Text;
 using System.Reflection;
 
-namespace SharpConnect.Internal
+namespace SharpConnect
 {
 #if DEBUG
     class dbugTestFileWriter

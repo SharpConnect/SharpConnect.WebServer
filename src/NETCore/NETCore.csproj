@@ -12,12 +12,8 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Compile Remove="WebSocket\WebSocketClient.cs" />
-  </ItemGroup>
+  <Import Project="..\WebServer1\WebServer1.projitems" Label="Shared" />
 
-  <ItemGroup>
-    <None Include="WebSocket\WebSocketClient.cs" />
-  </ItemGroup>
+  <Import Project="..\WebServer2\WebServer2.projitems" Label="Shared" />
 
 </Project>

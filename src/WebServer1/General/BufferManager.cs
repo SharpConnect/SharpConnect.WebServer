@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
 
-namespace SharpConnect.Internal
+namespace SharpConnect
 {
     class BufferManager
     {
