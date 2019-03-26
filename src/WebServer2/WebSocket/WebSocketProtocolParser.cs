@@ -126,6 +126,7 @@ namespace SharpConnect.WebServers.Server2
             //----------------------------------------------------------
             // Payload Length
             byte payloadLen = (byte)(b2 & 0x7f); //is 7 bits of the b2 
+
             if (fin == Fin.More || currentOpCode == Opcode.Cont)
             {
                 //process fragment frame *** 
@@ -175,6 +176,17 @@ namespace SharpConnect.WebServers.Server2
                     }
                     break;
                 case Opcode.Ping: //control
+                    {
+                        if (fin == Fin.More)
+                        {
+                            errCode = "A control frame is fragmented.";
+                        }
+                        else if (payloadLen > 125)
+                        {
+                            errCode = "A control frame has a long payload length.";
+                        }
+                    }
+                    break;
                 case Opcode.Pong: //control
                     {
                         if (fin == Fin.More)
@@ -310,14 +322,16 @@ namespace SharpConnect.WebServers.Server2
                                 return ProcessReceiveBufferResult.NeedMore;
                             }
 
-
                             parseState = ParseState.Init;
 
-                            if (myBufferStream.IsEnd())
-                            {
-                                myBufferStream.Clear();
-                                return ProcessReceiveBufferResult.Complete;
-                            }
+                            myBufferStream.Clear();
+                            return ProcessReceiveBufferResult.Complete;
+
+                            //if (myBufferStream.IsEnd())
+                            //{
+                            //    myBufferStream.Clear();
+                            //    return ProcessReceiveBufferResult.Complete;
+                            //}
                             //more than 1 byte 
                         }
                         break;

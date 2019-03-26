@@ -471,11 +471,12 @@ namespace SharpConnect.Internal2
         int readpos = 0;
         int totalLen = 0;
         int bufferCount = 0;
-        SharpConnect.Internal2.AbstractAsyncNetworkStream _latestRecvIO;
 
-        public RecvIOBufferStream2(SharpConnect.Internal2.AbstractAsyncNetworkStream recvIO)
+        SharpConnect.Internal2.AbstractAsyncNetworkStream _networkStream;
+
+        public RecvIOBufferStream2(SharpConnect.Internal2.AbstractAsyncNetworkStream networkStream)
         {
-            this._latestRecvIO = recvIO;
+            _networkStream = networkStream;
             AutoClearPrevBufferBlock = true;
         }
         public bool AutoClearPrevBufferBlock
@@ -503,10 +504,10 @@ namespace SharpConnect.Internal2
         {
             if (bufferCount == 0)
             {
-                //single part mode                 
+                //single part mode   
 
-                totalLen = _latestRecvIO.ByteReadTransfered;
-                simpleBufferReader.SetBuffer(_latestRecvIO.UnsafeGetRecvInternalBuffer(), 0, totalLen);
+                totalLen = _networkStream.ByteReadTransfered;
+                simpleBufferReader.SetBuffer(_networkStream.UnsafeGetRecvInternalBuffer(), 0, totalLen);
                 bufferCount++;
             }
             else
@@ -514,9 +515,9 @@ namespace SharpConnect.Internal2
                 //more than 1 buffer
                 if (multipartMode)
                 {
-                    int thisPartLen = _latestRecvIO.ByteReadTransfered;
+                    int thisPartLen = _networkStream.ByteReadTransfered;
                     byte[] o2copy = new byte[thisPartLen];
-                    Buffer.BlockCopy(_latestRecvIO.UnsafeGetRecvInternalBuffer(), 0, o2copy, 0, thisPartLen);
+                    Buffer.BlockCopy(_networkStream.UnsafeGetRecvInternalBuffer(), 0, o2copy, 0, thisPartLen);
                     otherBuffers.Add(o2copy);
                     totalLen += thisPartLen;
                 }
@@ -552,9 +553,9 @@ namespace SharpConnect.Internal2
             if (bufferCount == 1 && !multipartMode)
             {
                 //only in single mode
-                int thisPartLen = _latestRecvIO.ByteReadTransfered;
+                int thisPartLen = _networkStream.ByteReadTransfered;
                 byte[] o2copy = new byte[thisPartLen];
-                Buffer.BlockCopy(_latestRecvIO.UnsafeGetRecvInternalBuffer(), 0, o2copy, 0, thisPartLen);
+                Buffer.BlockCopy(_networkStream.UnsafeGetRecvInternalBuffer(), 0, o2copy, 0, thisPartLen);
                 otherBuffers.Add(o2copy);
                 multipartMode = true;
                 int prevIndex = simpleBufferReader.Position;

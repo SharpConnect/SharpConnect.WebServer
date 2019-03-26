@@ -22,17 +22,11 @@
 * THE SOFTWARE.
 */
 using System;
-using System.Net.Sockets;
-using SharpConnect.Internal;
-using System.Text;
-using System.Net.Security;
+
 namespace SharpConnect.WebServers.Server2
 {
     public class WebSocketContext : IDisposable, ISendIO
     {
-
-        //readonly SocketAsyncEventArgs sockAsyncSender;
-        //readonly SocketAsyncEventArgs sockAsyncListener;
 
         ReqRespHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler;
         SharpConnect.Internal2.AbstractAsyncNetworkStream _clientStream;
@@ -42,8 +36,10 @@ namespace SharpConnect.WebServers.Server2
         WebSocketResponse webSocketResp;
         WebSocketProtocolParser webSocketReqParser;
 
+
         int connectionId;
         static int connectionIdTotal;
+
         bool _asClientContext;
         public WebSocketContext(bool asClient)
         {
@@ -53,17 +49,11 @@ namespace SharpConnect.WebServers.Server2
         }
         //
         public bool AsClientContext => _asClientContext;
-
-
-
-        bool _upgradeRespSent;
-
         internal void Bind(SharpConnect.Internal2.AbstractAsyncNetworkStream clientStream, byte[] wsUpgradeResponseMsg)
         {
 
             this.webSocketReqParser = new WebSocketProtocolParser(this.AsClientContext, new SharpConnect.Internal2.RecvIOBufferStream2(clientStream));
             _clientStream = clientStream;
-            _upgradeRespSent = true;
 
             _clientStream.SetRecvCompleteEventHandler((s, e) =>
             {
@@ -131,6 +121,7 @@ namespace SharpConnect.WebServers.Server2
 
                 case RecvEventCode.NoMoreReceiveData:
                     {
+                        _clientStream.StartReceive();
                     }
                     break;
                 case RecvEventCode.SocketError:
