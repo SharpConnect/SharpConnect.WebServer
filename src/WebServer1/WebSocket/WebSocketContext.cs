@@ -29,7 +29,7 @@ namespace SharpConnect.WebServers
 {
     public class WebSocketContext : IDisposable
     {
-        readonly WebSocketServer webSocketServer;
+       
         readonly SocketAsyncEventArgs sockAsyncSender;
         readonly SocketAsyncEventArgs sockAsyncListener;
 

@@ -104,90 +104,12 @@ namespace SharpConnect.WebServers.Server2
 
         internal void SendIOStartSend() => _sockStream.StartSend();
 
-        //void HandleReceive(RecvEventCode recvEventCode)
-        //{
-        //    switch (recvEventCode)
-        //    {
-        //        case RecvEventCode.SocketError:
-        //            {
-        //                UnBindSocket(true);
-        //            }
-        //            break;
-        //        case RecvEventCode.NoMoreReceiveData:
-        //            {
-        //                //no data to receive
-        //                httpResp.End();
-        //                //reqHandler(this.httpReq, httpResp);
-        //            }
-        //            break;
-        //        case RecvEventCode.HasSomeData:
-        //            {
-        //                //process some data
-        //                //there some data to process  
-        //                switch (httpReq.LoadData(recvIO))
-        //                {
-        //                    case ProcessReceiveBufferResult.Complete:
-        //                        {
-        //                            //recv and parse complete  
-        //                            //goto user action 
-        //                            if (this.EnableWebSocket &&
-        //                                this.ownerServer.CheckWebSocketUpgradeRequest(this))
-        //                            {
-        //                                return;
-        //                            }
-        //                            reqHandler(this.httpReq, httpResp);
-        //                        }
-        //                        break;
-        //                    case ProcessReceiveBufferResult.NeedMore:
-        //                        {
-        //                            recvIO.StartReceive();
-        //                        }
-        //                        break;
-        //                    case ProcessReceiveBufferResult.Error:
-        //                    default:
-        //                        throw new NotSupportedException();
-        //                }
-        //            }
-        //            break;
-        //    }
-        //}
-        //void HandleSend(SendIOEventCode sendEventCode)
-        //{
-        //    switch (sendEventCode)
-        //    {
-        //        case SendIOEventCode.SocketError:
-        //            {
-        //                UnBindSocket(true);
-        //                KeepAlive = false;
-        //            }
-        //            break;
-        //        case SendIOEventCode.SendComplete:
-        //            {
-        //                Reset();
-        //                if (KeepAlive)
-        //                {
-        //                    //next recv on the same client
-        //                    StartReceive();
-        //                }
-        //                else
-        //                {
-        //                    UnBindSocket(true);
-        //                }
-        //            }
-        //            break;
-        //    }
-        //}
 
-        //----------------------------------------------------------------------------------------------------------  
         public bool EnableWebSocket
         {
             get;
             set;
         }
-
-        //object _k_log = new object();
-        //bool _k = true;
-
         public bool KeepAlive { get; set; }
 
         internal HttpRequest HttpReq
