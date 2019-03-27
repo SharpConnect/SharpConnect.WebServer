@@ -33,7 +33,7 @@ namespace SharpConnect.WebServers
         readonly SocketAsyncEventArgs _sockAsyncSender;
         readonly SocketAsyncEventArgs _sockAsyncListener;
 
-        Socket _clientSocket; 
+        Socket _clientSocket;
         const int RECV_BUFF_SIZE = 1024;
         RecvIO _recvIO;
         SendIO _sendIO;
@@ -117,44 +117,73 @@ namespace SharpConnect.WebServers
         }
         void ISendIO.EnqueueSendingData(byte[] buffer, int len) => _sendIO.EnqueueOutputData(buffer, len);
         void ISendIO.SendIOStartSend() => _sendIO.StartSendAsync();
-     
+
+        bool _beginWebSocketMode;
         void HandleReceivedData(RecvEventCode recvCode)
         {
             switch (recvCode)
             {
                 case RecvEventCode.HasSomeData:
-
-                    //parse recv msg
-                    switch (_webSocketReqParser.ParseRecvData())
                     {
-                        //in this version all data is copy into WebSocketRequest
-                        //so we can reuse recv buffer 
-                        //TODO: review this, if we need to copy?,  
+                        if (_asClientContext && !_beginWebSocketMode)
+                        {
 
-                        case ProcessReceiveBufferResult.Complete:
+                            int recvByteCount = _recvIO.BytesTransferred;
+                            byte[] tmp1 = new byte[2048];
+                            _recvIO.CopyTo(0, tmp1, recvByteCount);
+                            //_clientStream.ReadBuffer(0, recvByteCount, tmp1, 0);
+                            string text = System.Text.Encoding.UTF8.GetString(tmp1, 0, recvByteCount);
+
+                            if (text.StartsWith("HTTP/1.1 101 Switching Protocols\r\nUpgrade"))
                             {
-                                //you can choose ...
-                                //invoke webSocketReqHandler in this thread or another thread
-                                while (_webSocketReqParser.ReqCount > 0)
+                                _beginWebSocketMode = true;
+                                _recvIO.StartReceive();
+
+                                ////*** clear prev buffer before new recv
+                                //_clientStream.ClearReceiveBuffer();
+                                //_clientStream.BeginWebsocketMode = true; //***
+                                //_clientStream.StartReceive();//***
+                                return;
+                            }
+                            else if (text.StartsWith("HTTP/1.1"))
+                            {
+                                _recvIO.StartReceive();
+                                return;
+                            }
+                            //-- 
+                        }
+
+                        //parse recv msg
+                        switch (_webSocketReqParser.ParseRecvData())
+                        {
+                            //in this version all data is copy into WebSocketRequest
+                            //so we can reuse recv buffer 
+                            //TODO: review this, if we need to copy?,  
+
+                            case ProcessReceiveBufferResult.Complete:
                                 {
-                                    WebSocketRequest req = _webSocketReqParser.Dequeue();
-                                    _webSocketReqHandler(req, _webSocketResp);
+                                    //you can choose ...
+                                    //invoke webSocketReqHandler in this thread or another thread
+                                    while (_webSocketReqParser.ReqCount > 0)
+                                    {
+                                        WebSocketRequest req = _webSocketReqParser.Dequeue();
+                                        _webSocketReqHandler(req, _webSocketResp);
+                                    }
+                                    _recvIO.StartReceive();
+                                    //***no code after StartReceive***
                                 }
-                                _recvIO.StartReceive();
-                                //***no code after StartReceive***
-                            }
-                            return;
-                        case ProcessReceiveBufferResult.NeedMore:
-                            {
-                                _recvIO.StartReceive();
-                                //***no code after StartReceive***
-                            }
-                            return;
-                        case ProcessReceiveBufferResult.Error:
-                        default:
-                            throw new NotSupportedException();
+                                return;
+                            case ProcessReceiveBufferResult.NeedMore:
+                                {
+                                    _recvIO.StartReceive();
+                                    //***no code after StartReceive***
+                                }
+                                return;
+                            case ProcessReceiveBufferResult.Error:
+                            default:
+                                throw new NotSupportedException();
+                        }
                     }
-
                 case RecvEventCode.NoMoreReceiveData:
                     {
                     }
@@ -168,10 +197,7 @@ namespace SharpConnect.WebServers
         void HandleSendCompleted(SendIOEventCode eventCode)
         {
 
-        }
-
-        //public int SendQueueCount => _webSocketResp.SendQueueCount;
-
+        } 
         public override void Close() => _clientSocket.Close();
 
 
