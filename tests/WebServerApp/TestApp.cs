@@ -23,6 +23,7 @@ namespace SharpConnect
                          
                         var wsUri=get_wsurl(); 
                         var websocket= null;
+                        var send_count=0;
                         (function init(){
 	  
 		                        //command queue 
@@ -41,7 +42,9 @@ namespace SharpConnect
 		                        };		
                          })();
                         function send_data(data){
-	                            websocket.send(data);
+                                 send_count++;
+                                //console.log('send_count='+ send_count);
+	                            websocket.send(data +' '+ send_count);
                         } 
                         function get_wsurl(){
                                
