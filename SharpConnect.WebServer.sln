@@ -3,10 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26228.9
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "WebServer1", "src\WebServer1\WebServer1.shproj", "{F39E561C-8FC9-41A7-87F8-A9B18285B653}"
-EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "WebServer2", "src\WebServer2\WebServer2.shproj", "{AA7EAF54-D1CE-46AC-98A9-B7764EFB3B21}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpConnect.WebServer", "build\NETCore\SharpConnect.WebServer\SharpConnect.WebServer.csproj", "{72A04B6A-C310-4FB4-A59F-83F4263F7088}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NETSTD", "NETSTD", "{7B52AB7D-5670-44FF-A63C-3CEC0E0270F7}"
@@ -21,16 +17,14 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "WebServerApp", "tests\WebSe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebServerApp", "build\NET20\WebServerApp\WebServerApp.csproj", "{DD90FB5E-7437-451B-9D41-6E3F2214A50B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestWsClientWinForm", "TestWsClientWinForm\TestWsClientWinForm.csproj", "{BB315DD1-5F3F-451C-923C-83DD85E0CA20}"
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "SharpConnect.WebServer", "src\SharpConnect.WebServer\SharpConnect.WebServer.shproj", "{1585F301-4ECE-462C-A9D5-49BFE1C40041}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		src\WebServer2\WebServer2.projitems*{aa7eaf54-d1ce-46ac-98a9-b7764efb3b21}*SharedItemsImports = 13
+		src\SharpConnect.WebServer\SharpConnect.WebServer.projitems*{1585f301-4ece-462c-a9d5-49bfe1c40041}*SharedItemsImports = 13
 		tests\WebServerApp\WebServerApp.projitems*{cf4bfb13-5a72-4328-9700-8f27bc1c570a}*SharedItemsImports = 13
 		tests\WebServerApp\WebServerApp.projitems*{dd90fb5e-7437-451b-9d41-6e3f2214a50b}*SharedItemsImports = 4
-		src\WebServer1\WebServer1.projitems*{e6770d15-efa9-4126-9081-677d89ca441d}*SharedItemsImports = 4
-		src\WebServer2\WebServer2.projitems*{e6770d15-efa9-4126-9081-677d89ca441d}*SharedItemsImports = 4
-		src\WebServer1\WebServer1.projitems*{f39e561c-8fc9-41a7-87f8-a9b18285b653}*SharedItemsImports = 13
+		src\SharpConnect.WebServer\SharpConnect.WebServer.projitems*{e6770d15-efa9-4126-9081-677d89ca441d}*SharedItemsImports = 4
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_Ubuntu|Any CPU = Debug_Ubuntu|Any CPU
@@ -140,36 +134,6 @@ Global
 		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Trace|x64.Build.0 = Release|Any CPU
 		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Trace|x86.ActiveCfg = Release|Any CPU
 		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Trace|x86.Build.0 = Release|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Debug_Ubuntu|Any CPU.ActiveCfg = Debug|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Debug_Ubuntu|Any CPU.Build.0 = Debug|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Debug_Ubuntu|x64.ActiveCfg = Debug|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Debug_Ubuntu|x64.Build.0 = Debug|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Debug_Ubuntu|x86.ActiveCfg = Debug|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Debug_Ubuntu|x86.Build.0 = Debug|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Debug|x64.Build.0 = Debug|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Debug|x86.Build.0 = Debug|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Release_Ubuntu|Any CPU.ActiveCfg = Release|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Release_Ubuntu|Any CPU.Build.0 = Release|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Release_Ubuntu|x64.ActiveCfg = Release|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Release_Ubuntu|x64.Build.0 = Release|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Release_Ubuntu|x86.ActiveCfg = Release|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Release_Ubuntu|x86.Build.0 = Release|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Release|Any CPU.Build.0 = Release|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Release|x64.ActiveCfg = Release|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Release|x64.Build.0 = Release|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Release|x86.ActiveCfg = Release|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Release|x86.Build.0 = Release|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Trace|Any CPU.ActiveCfg = Release|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Trace|Any CPU.Build.0 = Release|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Trace|x64.ActiveCfg = Release|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Trace|x64.Build.0 = Release|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Trace|x86.ActiveCfg = Release|Any CPU
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20}.Trace|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -179,7 +143,6 @@ Global
 		{E6770D15-EFA9-4126-9081-677D89CA441D} = {A504C555-2D0F-45F6-BE0F-ECE77E52AC54}
 		{CF4BFB13-5A72-4328-9700-8F27BC1C570A} = {A4D07531-CF2A-48C3-A5C5-0BC11FAC787D}
 		{DD90FB5E-7437-451B-9D41-6E3F2214A50B} = {A504C555-2D0F-45F6-BE0F-ECE77E52AC54}
-		{BB315DD1-5F3F-451C-923C-83DD85E0CA20} = {A504C555-2D0F-45F6-BE0F-ECE77E52AC54}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {36B24979-E88F-4B59-A2FF-19029A07E9C9}
