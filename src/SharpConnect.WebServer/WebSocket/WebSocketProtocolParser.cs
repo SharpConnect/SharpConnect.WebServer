@@ -296,6 +296,9 @@ namespace SharpConnect.WebServers
                                 case Opcode.Text:
                                 case Opcode.Close:
                                     break;
+                                case Opcode.Pong:
+                                case Opcode.Ping:
+                                    break;
                             }
 
                             if (!ReadBodyContent(_currentPacketLen))
@@ -303,13 +306,15 @@ namespace SharpConnect.WebServers
                                 return ProcessReceiveBufferResult.NeedMore;
                             }
 
-
-                            _parseState = ParseState.Init;
-
                             if (_myBufferStream.IsEnd())
                             {
+                                _parseState = ParseState.Init;
                                 _myBufferStream.Clear();
                                 return ProcessReceiveBufferResult.Complete;
+                            }
+                            else
+                            {
+
                             }
                             //more than 1 byte 
                         }

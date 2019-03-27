@@ -381,10 +381,11 @@ namespace SharpConnect
         int _readpos = 0;
         int _totalLen = 0;
         int _bufferCount = 0;
-        IRecvIO _latestRecvIO;
+
+        IRecvIO _recvIO;
         public RecvIOBufferStream(IRecvIO recvIO)
         {
-            _latestRecvIO = recvIO;
+            _recvIO = recvIO;
             AutoClearPrevBufferBlock = true;
         }
         public bool AutoClearPrevBufferBlock { get; set; }
@@ -409,8 +410,8 @@ namespace SharpConnect
             if (_bufferCount == 0)
             {
                 //single part mode                             
-                _totalLen = _latestRecvIO.BytesTransferred;
-                _simpleBufferReader.SetBuffer(_latestRecvIO.UnsafeGetInternalBuffer(), 0, _totalLen);
+                _totalLen = _recvIO.BytesTransferred;
+                _simpleBufferReader.SetBuffer(_recvIO.UnsafeGetInternalBuffer(), 0, _totalLen);
                 _bufferCount++;
             }
             else
@@ -418,9 +419,9 @@ namespace SharpConnect
                 //more than 1 buffer
                 if (_multipartMode)
                 {
-                    int thisPartLen = _latestRecvIO.BytesTransferred;
+                    int thisPartLen = _recvIO.BytesTransferred;
                     byte[] o2copy = new byte[thisPartLen];
-                    Buffer.BlockCopy(_latestRecvIO.UnsafeGetInternalBuffer(), 0, o2copy, 0, thisPartLen);
+                    Buffer.BlockCopy(_recvIO.UnsafeGetInternalBuffer(), 0, o2copy, 0, thisPartLen);
                     _otherBuffers.Add(o2copy);
                     _totalLen += thisPartLen;
                 }
@@ -447,9 +448,9 @@ namespace SharpConnect
             if (_bufferCount == 1 && !_multipartMode)
             {
                 //only in single mode
-                int thisPartLen = _latestRecvIO.BytesTransferred;
+                int thisPartLen = _recvIO.BytesTransferred;
                 byte[] o2copy = new byte[thisPartLen];
-                Buffer.BlockCopy(_latestRecvIO.UnsafeGetInternalBuffer(), 0, o2copy, 0, thisPartLen);
+                Buffer.BlockCopy(_recvIO.UnsafeGetInternalBuffer(), 0, o2copy, 0, thisPartLen);
                 _otherBuffers.Add(o2copy);
                 _multipartMode = true;
                 int prevIndex = _simpleBufferReader.Position;

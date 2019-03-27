@@ -35,7 +35,7 @@ namespace SharpConnect.WebServers
             _webSocketResp = new WebSocketResponse(_connectionId, asClient, this);
         }
 
-        public int SendQueueCount => _webSocketResp.SendQueueCount; 
+        public int SendQueueCount => _webSocketResp.SendQueueCount;
 
         public void Bind(SharpConnect.Internal2.AbstractAsyncNetworkStream clientStream, byte[] wsUpgradeResponseMsg)
         {
@@ -81,12 +81,12 @@ namespace SharpConnect.WebServers
             {
                 case RecvEventCode.HasSomeData:
                     {
-                        if (!_clientStream.BeginWebsocketMode)
+                        if (_asClientContext && !_clientStream.BeginWebsocketMode)
                         {
-                            int serverResp = _clientStream.ByteReadTransfered;
+                            int recvByteCount = _clientStream.ByteReadTransfered;
                             byte[] tmp1 = new byte[2048];
-                            _clientStream.ReadBuffer(0, serverResp, tmp1, 0);
-                            string text = System.Text.Encoding.UTF8.GetString(tmp1);
+                            _clientStream.ReadBuffer(0, recvByteCount, tmp1, 0);
+                            string text = System.Text.Encoding.UTF8.GetString(tmp1, 0, recvByteCount);
                             if (text.StartsWith("HTTP/1.1 101 Switching Protocols\r\nUpgrade"))
                             {
                                 //*** clear prev buffer before new recv
@@ -150,7 +150,7 @@ namespace SharpConnect.WebServers
         public override void Close()
         {
             System.Diagnostics.Debug.WriteLine("please impl close:");
-        } 
+        }
     }
 
 }
