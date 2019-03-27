@@ -35,10 +35,11 @@ namespace SharpConnect.WebServers.Server2
         WebSocketResponse _webSocketResp;
         WebSocketProtocolParser _webSocketReqParser;
 
-        int _connectionId;
-        static int s_connectionIdTotal;
-        bool _asClientContext;
+        readonly int _connectionId;
+        readonly bool _asClientContext;
 
+        static int s_connectionIdTotal;
+        
         public WebSocketContext(bool asClient)
         {
             _asClientContext = asClient;
@@ -114,7 +115,7 @@ namespace SharpConnect.WebServers.Server2
                         {
 
                         }
-                         
+
                         //parse recv msg
                         switch (_webSocketReqParser.ParseRecvData())
                         {

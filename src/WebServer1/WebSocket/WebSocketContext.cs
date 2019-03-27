@@ -27,7 +27,7 @@ using SharpConnect.Internal;
 
 namespace SharpConnect.WebServers
 {
-    public class WebSocketContext : IDisposable, ISendIO
+    class WebSocketContext : IDisposable, ISendIO
     {
 
         readonly SocketAsyncEventArgs _sockAsyncSender;
@@ -46,19 +46,17 @@ namespace SharpConnect.WebServers
 
         readonly bool _asClientContext;
         readonly int _connectionId;
-
-        static int connectionIdTotal;
-
+        static int s_connectionIdTotal;
 
         public WebSocketContext(bool asClient)
         {
             _asClientContext = asClient;
-            _connectionId = System.Threading.Interlocked.Increment(ref connectionIdTotal);
+            _connectionId = System.Threading.Interlocked.Increment(ref s_connectionIdTotal);
             //-------------------
             //send,resp 
             _sockAsyncSender = new SocketAsyncEventArgs();
             _sockAsyncSender.SetBuffer(new byte[RECV_BUFF_SIZE], 0, RECV_BUFF_SIZE);
-            _sendIO = new SendIO(_sockAsyncSender, 0, RECV_BUFF_SIZE, sendIO_SendCompleted);
+            _sendIO = new SendIO(_sockAsyncSender, 0, RECV_BUFF_SIZE, HandleSendCompleted);
             _sockAsyncSender.Completed += new EventHandler<SocketAsyncEventArgs>((s, e) =>
             {
                 switch (e.LastOperation)
@@ -173,54 +171,41 @@ namespace SharpConnect.WebServers
                     break;
             }
         }
-        void sendIO_SendCompleted(SendIOEventCode eventCode)
+        void HandleSendCompleted(SendIOEventCode eventCode)
         {
 
         }
-        public string Name
-        {
-            get;
-            set;
-        }
+        public string Name { get; set; }
+
+        public string InitClientRequestUrl { get; set; }
+
         public void Dispose()
         {
 
-        }
 
-        public int ConnectionId
-        {
-            get { return _connectionId; }
         }
+        public int ConnectionId => _connectionId;
+
         public void SetMessageHandler(ReqRespHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler)
         {
             _webSocketReqHandler = webSocketReqHandler;
         }
 
+        public void Close() => _clientSocket.Close();
 
-        public void Close()
-        {
-            _clientSocket.Close();
-        }
         public void Send(string dataToSend)
         {
             //send data to server
             //and wait for result 
             _webSocketResp.Write(dataToSend);
         }
-        public int SendQueueCount
-        {
-            get { return _webSocketResp.SendQueueCount; }
-        }
+
+        public int SendQueueCount => _webSocketResp.SendQueueCount;
+
         internal void SendExternalRaw(byte[] data)
         {
             _sendIO.EnqueueOutputData(data, data.Length);
             _sendIO.StartSendAsync();
-        }
-        //---------------------------------------------
-        public string InitClientRequestUrl
-        {
-            get;
-            set;
         }
     }
 
