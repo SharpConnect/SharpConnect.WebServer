@@ -664,7 +664,7 @@ namespace SharpConnect.Internal2
         System.Security.Cryptography.X509Certificates.X509Certificate2 _cert;
 
         System.IO.MemoryStream _enqueueOutputData = new MemoryStream();
-        bool _sending;
+
         object _sendingStateLock = new object();
 
         public SecureSockNetworkStream(SockNetworkStream socketNetworkStream,
@@ -684,15 +684,16 @@ namespace SharpConnect.Internal2
         }
 
         public override byte[] UnsafeGetInternalBuffer() => _recvBuffer._largeBuffer;
-        internal override int QueueCount => _socketNetworkStream.QueueCount;// sending queue count
+       
         internal override void RecvCopyTo(int readpos, byte[] dstBuffer, int copyLen)
         {
             _recvBuffer.CopyBuffer(readpos, dstBuffer, 0, copyLen);
         }
-
+       
         internal override byte RecvReadByte(int pos) => _recvBuffer.CopyByte(pos);
         ////read byte from recv buffer at specific position          
-
+        ///
+        internal override int QueueCount => _socketNetworkStream.QueueCount;// sending queue count
         internal override void EnqueueSendData(byte[] buffer, int len)
         {
             _enqueueOutputData.Write(buffer, 0, len);
@@ -717,7 +718,6 @@ namespace SharpConnect.Internal2
             byte[] buffer = _enqueueOutputData.ToArray();
 
 #if DEBUG
-
             System.Diagnostics.Debug.WriteLine(System.Text.Encoding.UTF8.GetString(buffer));
 #endif
 
@@ -725,7 +725,6 @@ namespace SharpConnect.Internal2
 
             lock (_sendingStateLock)
             {
-                _sending = true;
                 _sslStream.Write(buffer);
             }
         }
@@ -778,19 +777,18 @@ namespace SharpConnect.Internal2
             lock (_startSendLock)
             {
                 _startSending = false;
-            }
-            lock (_sendingStateLock)
-            {
-                _sending = false;
-            }
+            } 
+           
             RaiseSendComplete();
         }
         private void SocketNetworkStream_RecvCompleted(object sender, DataArrEventArgs e)
         {
+#if  DEBUG
             if (BeginWebsocketMode)
             {
 
             }
+#endif
             if (e.ByteTransferedCount > 0)
             {
                 //.... 

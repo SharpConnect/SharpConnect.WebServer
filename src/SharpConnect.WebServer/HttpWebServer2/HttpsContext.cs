@@ -89,19 +89,20 @@ namespace SharpConnect.WebServers
             _httpResp = new HttpResponseImpl(this);
         }
 
-        public int QueueCount => _baseSockStream.QueueCount;
+      
         internal AbstractAsyncNetworkStream BaseStream => _sockStream;
 
         internal bool CreatedFromPool { get; set; }
-        internal void EnqueueSendingData(byte[] buffer, int len) => _sockStream.EnqueueSendData(buffer, len);
-        void ISendIO.EnqueueSendingData(byte[] buffer, int len) => _sockStream.EnqueueSendData(buffer, len);
 
-        void ISendIO.SendIOStartSend() => _sockStream.StartSend();
+        public int QueueCount => _baseSockStream.QueueCount;
+        public void EnqueueSendingData(byte[] buffer, int len) => _sockStream.EnqueueSendData(buffer, len);
+        
+
         public int RecvByteTransfer => _sockStream.ByteReadTransfered;
         public byte ReadByte(int pos) => _sockStream.RecvReadByte(pos);
         public void RecvCopyTo(int readpos, byte[] dstBuffer, int copyLen) => _sockStream.RecvCopyTo(readpos, dstBuffer, copyLen);
 
-        internal void SendIOStartSend() => _sockStream.StartSend();
+        public void SendIOStartSend() => _sockStream.StartSend();
 
 
         public bool EnableWebSocket { get; set; }
@@ -131,7 +132,6 @@ namespace SharpConnect.WebServers
         {
             //cut connection from current socket
             _baseSockStream.UnbindSocket();
-
             //
             if (closeClientSocket)
             {

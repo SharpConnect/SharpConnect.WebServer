@@ -97,10 +97,7 @@ namespace SharpConnect.WebServers
                             }
                             //-- 
                         }
-                        else
-                        {
-
-                        }
+                        //------
 
                         //parse recv msg
                         switch (_webSocketReqParser.ParseRecvData())
