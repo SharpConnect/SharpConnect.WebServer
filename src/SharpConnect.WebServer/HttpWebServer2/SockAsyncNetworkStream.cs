@@ -150,7 +150,6 @@ namespace SharpConnect.Internal2
             _sendIO.EnqueueOutputData(buffer, len);
         }
 
-        public bool UsedBySslStream { get; set; }
         public void Bind(Socket socket)
         {
 
@@ -201,24 +200,10 @@ namespace SharpConnect.Internal2
         }
         public override bool WriteBuffer(byte[] srcBuffer, int srcIndex, int count)
         {
-            //if (this.UsedBySslStream)
-            //{
-
-            //}
             //write data to _sendAsyncEventArgs
             _sendBuffer.WriteBuffer(srcBuffer, srcIndex, count);
             //then send***
             return _socket.SendAsync(_sendAsyncEventArgs);
-
-            //if (!_socket.SendAsync(_sendAsyncEventArgs))
-            //{
-            //    //sync 
-            //    return false;
-            //}
-            //else
-            //{
-            //    return true;
-            //}
         }
 
         void RecvAsyncEventArgs_Completed(object sender, SocketAsyncEventArgs e)
@@ -235,28 +220,15 @@ namespace SharpConnect.Internal2
                         //----------------------------------------
                         int bytesTransferred = e.BytesTransferred;
                         byte[] data = e.Buffer;
-                        //----------------------------------------  
+                        //----------------------------------------   
 
-
-                        if (this.UsedBySslStream)
+                        if (bytesTransferred == 0)
                         {
-                            if (bytesTransferred == 0)
+                            lock (_recvLock)
                             {
-                                lock (_recvLock)
-                                {
-                                    _recvBuffer.Reset();
-                                    //since we use share data
-                                    e.SetBuffer(_recvBuffer.WriteIndex, _recvBuffer.RemainingWriteSpace);
-                                }
-                            }
-                            else
-                            {
-                                lock (_recvLock)
-                                {
-                                    _recvBuffer.AppendWriteByteCount(bytesTransferred);
-                                    //since we use share data
-                                    e.SetBuffer(_recvBuffer.WriteIndex, _recvBuffer.RemainingWriteSpace);
-                                }
+                                _recvBuffer.Reset();
+                                //since we use share data
+                                e.SetBuffer(_recvBuffer.WriteIndex, _recvBuffer.RemainingWriteSpace);
                             }
                         }
                         else
@@ -270,20 +242,17 @@ namespace SharpConnect.Internal2
                         }
 
 
+
                         //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
                         lock (_recvWaitLock)                 // Let's now wake up the thread by
                         {                              // setting _go=true and pulsing.
                             _recvComplete = true;
                             Monitor.Pulse(_recvWaitLock);
                         }
+                        //
                         if (_passHandshake)
                         {
-                            if (UsedBySslStream)
-                            {
-
-                            }
                             RaiseRecvCompleted(bytesTransferred);
-
                         }
                     }
                     break;
@@ -309,23 +278,20 @@ namespace SharpConnect.Internal2
                 case SocketAsyncOperation.Send:
                     {
                         ////send complete 
-                        if (UsedBySslStream)
-                        {
-                            if (_passHandshake)
-                            {
 
-                                RaiseSendComplete();
-                            }
-                            else
+                        if (_passHandshake)
+                        {
+
+                            RaiseSendComplete();
+                        }
+                        else
+                        {
+                            lock (_sendWaitLock)
                             {
-                                lock (_sendWaitLock)
-                                {
-                                    _sendComplete = true;
-                                    Monitor.Pulse(_sendWaitLock);
-                                }
+                                _sendComplete = true;
+                                Monitor.Pulse(_sendWaitLock);
                             }
                         }
-
                     }
                     break;
             }
@@ -351,37 +317,32 @@ namespace SharpConnect.Internal2
                     //true if the I/O operation is pending.
                     //The Completed event on the e parameter will be raised upon completion of the operation. 
 
-                    if (UsedBySslStream)
+
+                    //receive async,
+                    //but in this method => convert to sync
+                    //SYNC, we need to WAIT for data ... 
+                    //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
+                    //--------------------------------
+                    lock (_recvWaitLock)
+                        while (!_recvComplete)
+                            Monitor.Wait(_recvWaitLock); //? 
+
+                    if (_passHandshake)
                     {
-                        //receive async,
-                        //but in this method => convert to sync
-                        //SYNC, we need to WAIT for data ... 
-                        //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
-                        //--------------------------------
-                        lock (_recvWaitLock)
-                            while (!_recvComplete)
-                                Monitor.Wait(_recvWaitLock); //? 
-
-                        if (_passHandshake)
+                        lock (_recvLock)
                         {
-                            lock (_recvLock)
-                            {
-                                readByteCount = _recvAsyncEventArgs.BytesTransferred;
-                                //--------------
-                                //write 'encrypted' data from socket to memory stream
-                                //the ssl stream that wrap this stream will decode the data later***
-                                //--------------
-                                _recvBuffer.AppendWriteByteCount(readByteCount);
-                                _recvAsyncEventArgs.SetBuffer(_recvBuffer.WriteIndex, _recvBuffer.RemainingWriteSpace);
+                            readByteCount = _recvAsyncEventArgs.BytesTransferred;
+                            //--------------
+                            //write 'encrypted' data from socket to memory stream
+                            //the ssl stream that wrap this stream will decode the data later***
+                            //--------------
+                            _recvBuffer.AppendWriteByteCount(readByteCount);
+                            _recvAsyncEventArgs.SetBuffer(_recvBuffer.WriteIndex, _recvBuffer.RemainingWriteSpace);
 
-                                //_recvBuffer.WriteBuffer(_recvAsyncEventArgs.Buffer, _recvAsyncEventArgs.Offset, readByteCount);
-                            }
+                            //_recvBuffer.WriteBuffer(_recvAsyncEventArgs.Buffer, _recvAsyncEventArgs.Offset, readByteCount);
                         }
                     }
-                    else
-                    {
 
-                    }
                 }
                 else
                 {
@@ -403,14 +364,7 @@ namespace SharpConnect.Internal2
                         {
                             if (_passHandshake)
                             {
-                                if (UsedBySslStream)
-                                {
-                                    RaiseRecvCompleted(readByteCount);
-                                }
-                                else
-                                {
-
-                                }
+                                RaiseRecvCompleted(readByteCount);
                             }
                             return 0;
                         }
@@ -465,19 +419,13 @@ namespace SharpConnect.Internal2
         }
         public override void Write(byte[] buffer, int offset, int count)
         {
-            if (this.UsedBySslStream)
-            {
-                if (_passHandshake)
-                {
-                    //
-                }
-            }
+
             //buffer contains 'Encrypted' data frorm ssl stream 
             //are write to socket  
             //copy data to buffer and start send
 
 
-            if (count > 2048)
+            if (count > _recvBuffer._len)
             {
                 //TODO: review this again
 
@@ -568,10 +516,6 @@ namespace SharpConnect.Internal2
             //{
 
             //}
-            if (UsedBySslStream)
-            {
-
-            }
 
             if (!_socket.ReceiveAsync(_recvAsyncEventArgs))
             {
@@ -646,8 +590,6 @@ namespace SharpConnect.Internal2
             System.Net.Security.RemoteCertificateValidationCallback remoteCertValidationCb = null)
         {
             _sslStream = new SslStream(socketNetworkStream, true, remoteCertValidationCb, null);
-            socketNetworkStream.UsedBySslStream = true;
-
             _cert = cert;
 
             _socketNetworkStream = socketNetworkStream;
