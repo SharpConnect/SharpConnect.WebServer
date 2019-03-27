@@ -159,8 +159,9 @@ namespace SharpConnect.WebServers
         {
             //_asyncStream.StartReceive();
             //recvIO.StartReceive();
+#if DEBUG
             int debugId = this.dbugId;
-
+#endif
             _sockStream.StartReceive();
         }
 
@@ -232,7 +233,7 @@ namespace SharpConnect.WebServers
                 try
                 {
                     //we encapsulate ssl inside the secure socket stream 
-                    secureStream.AuthenAsServer(() => _sockStream.StartReceive());                      
+                    secureStream.AuthenAsServer(() => _sockStream.StartReceive());
 
                 }
                 catch (System.IO.IOException ex)

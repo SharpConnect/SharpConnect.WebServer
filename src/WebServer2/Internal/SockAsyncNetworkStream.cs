@@ -559,7 +559,9 @@ namespace SharpConnect.Internal2
             }
             //----------------------
 
+#if DEBUG
             dbugStartRecvCount++;
+#endif
             //if (dbugStartRecvCount > 100)
             //{
 

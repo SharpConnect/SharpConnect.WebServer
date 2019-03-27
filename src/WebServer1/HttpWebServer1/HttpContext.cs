@@ -261,6 +261,18 @@ namespace SharpConnect.WebServers
 
         internal HttpWebServer OwnerWebServer => _ownerServer;
 
+        public void StartSendAsync() => _sendIO.StartSendAsync();
+
+        public void EnqueueOutputData(byte[] dataToSend, int count)
+        {
+            _sendIO.EnqueueOutputData(dataToSend, count);
+        }
+
+        void ISendIO.EnqueueSendingData(byte[] buffer, int len) => _sendIO.EnqueueOutputData(buffer, len);
+        void ISendIO.SendIOStartSend() => _sendIO.StartSendAsync();
+
+
+
 #if DEBUG
 
         internal static int dbug_s_mainSessionId = 1000000000;
@@ -280,16 +292,6 @@ namespace SharpConnect.WebServers
             _dbugTokenId = tokenId;
         }
 
-        public void StartSendAsync() => _sendIO.StartSendAsync();
-
-        public void EnqueueOutputData(byte[] dataToSend, int count)
-        {
-            _sendIO.EnqueueOutputData(dataToSend, count);
-        }
-
-        void ISendIO.EnqueueSendingData(byte[] buffer, int len) => _sendIO.EnqueueOutputData(buffer, len);
-        void ISendIO.SendIOStartSend() => _sendIO.StartSendAsync();
-
         public Int32 dbugTokenId
         {
             //Let's use an ID for this object during testing, just so we can see what
@@ -302,7 +304,7 @@ namespace SharpConnect.WebServers
         int _dbugTokenId; //for testing only    
 
 #endif
-
+      
     }
 
 
