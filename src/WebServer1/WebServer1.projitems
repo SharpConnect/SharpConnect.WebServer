@@ -29,11 +29,12 @@
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer1\HttpWebServer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\Flags.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\PlainWebSocketClient.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketContext.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)WebSocket\PlainWebSocketContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketProtocolParser.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketRequest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketResponse.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketServer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketContext.cs" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketClient.cs" />

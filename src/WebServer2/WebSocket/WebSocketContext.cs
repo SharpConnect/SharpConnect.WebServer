@@ -25,7 +25,9 @@ using System;
 
 namespace SharpConnect.WebServers.Server2
 {
-    public class WebSocketContext : IDisposable, ISendIO
+
+
+    class SecuredWebSocketContext : IDisposable, ISendIO
     {
         const int RECV_BUFF_SIZE = 1024;
 
@@ -39,8 +41,8 @@ namespace SharpConnect.WebServers.Server2
         readonly bool _asClientContext;
 
         static int s_connectionIdTotal;
-        
-        public WebSocketContext(bool asClient)
+
+        public SecuredWebSocketContext(bool asClient)
         {
             _asClientContext = asClient;
             _connectionId = System.Threading.Interlocked.Increment(ref s_connectionIdTotal);
