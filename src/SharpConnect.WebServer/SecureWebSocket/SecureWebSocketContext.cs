@@ -133,6 +133,7 @@ namespace SharpConnect.WebServers
                                         WebSocketRequest req = _webSocketReqParser.Dequeue();
                                         _webSocketReqHandler(req, _webSocketResp);
                                     }
+                                    _clientStream.ClearReceiveBuffer();
                                     _clientStream.StartReceive();
                                     //***no code after StartReceive***
                                 }
