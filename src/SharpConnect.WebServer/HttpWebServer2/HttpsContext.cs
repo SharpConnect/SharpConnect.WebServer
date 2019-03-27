@@ -86,7 +86,7 @@ namespace SharpConnect.WebServers
             //ownerServer.SetBufferFor(this.recvSendArgs = new SocketAsyncEventArgs()); 
             //----------------------------------------------------------------------------------------------------------  
             _httpReq = new HttpRequestImpl(this);
-            _httpResp = new HttpsWebResponse(this);
+            _httpResp = new HttpResponseImpl(this);
         }
 
         public int QueueCount => _baseSockStream.QueueCount;

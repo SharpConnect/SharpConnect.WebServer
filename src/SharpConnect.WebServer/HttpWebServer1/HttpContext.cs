@@ -47,7 +47,7 @@ namespace SharpConnect.WebServers
         readonly SendIO _sendIO;
 
         HttpRequestImpl _httpReq;
-        HttpWebResponse _httpResp;
+        HttpResponseImpl _httpResp;
         ReqRespHandler<HttpRequest, HttpResponse> _reqHandler;
         HttpWebServer _ownerServer;
 
@@ -76,7 +76,7 @@ namespace SharpConnect.WebServers
             _sendIO = new SendIO(_send_a, _send_a.Offset, sendBufferSize, HandleSend);
             //----------------------------------------------------------------------------------------------------------  
             _httpReq = new HttpRequestImpl(this);
-            _httpResp = new HttpWebResponse(this);
+            _httpResp = new HttpResponseImpl(this);
 
             //common(shared) event listener***
             _recv_a.Completed += (object sender, SocketAsyncEventArgs e) =>

@@ -21,14 +21,12 @@
     <Compile Include="$(MSBuildThisFileDirectory)General\Temp.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer0\SendIO_RecvIO_Code.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer2\HttpsContext.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer2\HttpsWebResponse.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer2\HttpsWebServer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer2\RecvIO_SendIO_2.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer0\HttpRequest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer0\HttpResponse.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer0\WebServer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer1\HttpContext.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer1\HttpWebResponse.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer1\HttpWebServer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer1\RecvIO_SendIO.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer2\SockAsyncNetworkStream.cs" />

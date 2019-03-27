@@ -14,14 +14,12 @@ namespace SharpConnect.WebServers
         Complete
     }
 
-    interface IHttpContext
+    interface IHttpContext : ISendIO
     {
         bool KeepAlive { get; set; }
         int RecvByteTransfer { get; }
         byte ReadByte(int pos);
         void RecvCopyTo(int readpos, byte[] dstBuffer, int copyLen);
-
-
     }
     interface ISendIO
     {
