@@ -126,6 +126,7 @@ namespace SharpConnect.Internal
         SendIOState _sendingState = SendIOState.ReadyNextSend;
 #if DEBUG && !NETSTANDARD1_6
         readonly int dbugThradId = System.Threading.Thread.CurrentThread.ManagedThreadId;
+        int dbugSendingTheadId;
 #endif
 
         //-----------
@@ -147,12 +148,6 @@ namespace SharpConnect.Internal
             _notify = notify;
         }
 
-        void ResetBuffer()
-        {
-            _currentSendingData = null;
-            _sendingTransferredBytes = 0;
-            _sendingTargetBytes = 0;
-        }
         public void Reset()
         {
 
@@ -172,7 +167,7 @@ namespace SharpConnect.Internal
         {
             lock (_stateLock)
             {
-                SendIOState snap1 = this._sendingState;
+                SendIOState snap1 = _sendingState;
 #if DEBUG && !NETSTANDARD1_6
                 int currentThread = System.Threading.Thread.CurrentThread.ManagedThreadId;
                 if (snap1 != SendIOState.ReadyNextSend)
@@ -189,9 +184,7 @@ namespace SharpConnect.Internal
 
         public int QueueCount => _sendingQueue.Count;
 
-#if DEBUG
-        int dbugSendingTheadId;
-#endif
+ 
         public void StartSendAsync()
         {
             lock (_stateLock)
@@ -287,7 +280,7 @@ namespace SharpConnect.Internal
                     {
                         //error, socket error
 
-                        ResetBuffer();
+                        Reset();
                         _sendingState = SendIOState.Error;
                         _notify(SendIOEventCode.SocketError);
                         //manage socket errors here
@@ -334,7 +327,7 @@ namespace SharpConnect.Internal
                             else
                             {
                                 //no data
-                                ResetBuffer();
+                                Reset();
                                 //notify no more data
                                 //****
                                 _sendingState = SendIOState.ReadyNextSend;

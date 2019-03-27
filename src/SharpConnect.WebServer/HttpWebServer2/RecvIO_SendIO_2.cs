@@ -172,6 +172,7 @@ namespace SharpConnect.Internal2
         SendIOState _sendingState;
 #if DEBUG && !NETSTANDARD1_6
         readonly int dbugThradId = System.Threading.Thread.CurrentThread.ManagedThreadId;
+        int dbugSendingTheadId;
 #endif
         //-----------
         AbstractAsyncNetworkStream _networkStream;
@@ -185,13 +186,6 @@ namespace SharpConnect.Internal2
         }
         public void Reset()
         {
-            lock (_stateLock)
-            {
-                if (_sendingState != SendIOState.ReadyNextSend)
-                {
-                }
-            }
-
             _sendingTargetBytes = _sendingTransferredBytes = 0;
             _currentSendingData = null;
             lock (_queueLock)
@@ -207,7 +201,7 @@ namespace SharpConnect.Internal2
         {
             lock (_stateLock)
             {
-                SendIOState snap1 = this._sendingState;
+                SendIOState snap1 = _sendingState;
 #if DEBUG && !NETSTANDARD1_6
                 int currentThread = System.Threading.Thread.CurrentThread.ManagedThreadId;
                 if (snap1 != SendIOState.ReadyNextSend)
@@ -222,9 +216,6 @@ namespace SharpConnect.Internal2
             }
         }
         public int QueueCount => _sendingQueue.Count;
-#if DEBUG
-        int dbugSendingTheadId;
-#endif
 
         public void StartSendAsync()
         {
