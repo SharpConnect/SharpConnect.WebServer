@@ -232,11 +232,7 @@ namespace SharpConnect.WebServers.Server2
                 try
                 {
                     //we encapsulate ssl inside the secure socket stream 
-                    secureStream.AuthenAsServer(
-                        () =>
-                        {
-                            _sockStream.StartReceive();
-                        });
+                    secureStream.AuthenAsServer(() => _sockStream.StartReceive());                      
 
                 }
                 catch (System.IO.IOException ex)

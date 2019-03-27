@@ -93,39 +93,60 @@ namespace SharpConnect.WebServers.Server2
             switch (recvCode)
             {
                 case RecvEventCode.HasSomeData:
-
-                    //parse recv msg
-                    switch (_webSocketReqParser.ParseRecvData())
                     {
-                        //in this version all data is copy into WebSocketRequest
-                        //so we can reuse recv buffer 
-                        //TODO: review this, if we need to copy?,  
-
-                        case ProcessReceiveBufferResult.Complete:
+                        if (!_clientStream.BeginWebsocketMode)
+                        {
+                            int serverResp = _clientStream.ByteReadTransfered;
+                            byte[] tmp1 = new byte[2048];
+                            _clientStream.ReadBuffer(0, serverResp, tmp1, 0);
+                            string text = System.Text.Encoding.UTF8.GetString(tmp1);
+                            if (text.StartsWith("HTTP/1.1 101 Switching Protocols\r\nUpgrade"))
                             {
-                                //you can choose ...
-                                //invoke webSocketReqHandler in this thread or another thread
-                                while (_webSocketReqParser.ReqCount > 0)
+                                //*** clear prev buffer before new recv
+                                _clientStream.ClearReceiveBuffer();
+                                _clientStream.BeginWebsocketMode = true; //***
+                                _clientStream.StartReceive();//***
+                                return;
+                            }
+                            //-- 
+                        }
+                        else
+                        {
+
+                        }
+                         
+                        //parse recv msg
+                        switch (_webSocketReqParser.ParseRecvData())
+                        {
+                            //in this version all data is copy into WebSocketRequest
+                            //so we can reuse recv buffer 
+                            //TODO: review this, if we need to copy?,  
+
+                            case ProcessReceiveBufferResult.Complete:
                                 {
-                                    WebSocketRequest req = _webSocketReqParser.Dequeue();
-                                    _webSocketReqHandler(req, _webSocketResp);
+                                    //you can choose ...
+                                    //invoke webSocketReqHandler in this thread or another thread
+                                    while (_webSocketReqParser.ReqCount > 0)
+                                    {
+                                        WebSocketRequest req = _webSocketReqParser.Dequeue();
+                                        _webSocketReqHandler(req, _webSocketResp);
+                                    }
+                                    _clientStream.StartReceive();
+                                    //***no code after StartReceive***
                                 }
-                                _clientStream.StartReceive();
-                                //***no code after StartReceive***
-                            }
-                            return;
-                        case ProcessReceiveBufferResult.NeedMore:
-                            {
-                                _clientStream.StartReceive();
-                                //recvIO.StartReceive();
-                                //***no code after StartReceive***
-                            }
-                            return;
-                        case ProcessReceiveBufferResult.Error:
-                        default:
-                            throw new NotSupportedException();
+                                return;
+                            case ProcessReceiveBufferResult.NeedMore:
+                                {
+                                    _clientStream.StartReceive();
+                                    //recvIO.StartReceive();
+                                    //***no code after StartReceive***
+                                }
+                                return;
+                            case ProcessReceiveBufferResult.Error:
+                            default:
+                                throw new NotSupportedException();
+                        }
                     }
-
                 case RecvEventCode.NoMoreReceiveData:
                     {
                         _clientStream.StartReceive();
@@ -161,7 +182,7 @@ namespace SharpConnect.WebServers.Server2
 
         internal void SendExternalRaw(byte[] data)
         {
-            _clientStream.BeginWebsocketMode = true;
+
             _clientStream.EnqueueSendData(data, data.Length);
             _clientStream.StartSend();
 

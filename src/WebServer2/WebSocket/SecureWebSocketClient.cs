@@ -6,6 +6,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
+using SharpConnect.Internal2;
+
 namespace SharpConnect.WebServers.Server2
 {
     /// <summary>
@@ -15,6 +17,9 @@ namespace SharpConnect.WebServers.Server2
     {
         Socket _clientSocket;
         WebSocketContext _wbContext;
+        SockNetworkStream _sockNetworkStream;
+        SecureSockNetworkStream _secureStream;
+
         public SecureWebSocketClient()
         {
             _wbContext = new WebSocketContext(true);
@@ -23,12 +28,10 @@ namespace SharpConnect.WebServers.Server2
                 //default
             });
         }
-
-        public void Connect(string url)
+        public void Connect(string url, System.Security.Cryptography.X509Certificates.X509Certificate2 cert)
         {
             Uri uri = new Uri(url);
-            //1. send websocket request upgrade protocol
-            //2. 
+
             _clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IP);
             IPAddress ipAddress = IPAddress.Loopback;
             if (uri.Host != "localhost")
@@ -36,26 +39,29 @@ namespace SharpConnect.WebServers.Server2
                 ipAddress = IPAddress.Parse(uri.Host);
             }
 
+            //_clientSocket.Connect(ipAddress, uri.Port);
+            //
+
+            byte[] buffer1 = new byte[2048];
+            byte[] buffer2 = new byte[2048];
+            IOBuffer recvBuffer = new IOBuffer(buffer1, 0, buffer1.Length);
+            IOBuffer sendBuffer = new IOBuffer(buffer2, 0, buffer2.Length);
+
+            _sockNetworkStream = new SockNetworkStream(recvBuffer, sendBuffer);
+            _secureStream = new SecureSockNetworkStream(_sockNetworkStream, cert, delegate { return true; }); //***
+            _sockNetworkStream.Bind(_clientSocket);
             _clientSocket.Connect(ipAddress, uri.Port);
-            //create http webreq  
-
-            StringBuilder stbuilder = CreateWebSocketUpgradeReq(uri.AbsolutePath, uri.AbsolutePath + ":" + uri.Port);
-            byte[] dataToSend = Encoding.ASCII.GetBytes(stbuilder.ToString());
-            int totalCount = dataToSend.Length;
-            int sendByteCount = _clientSocket.Send(dataToSend);
-
-            if (sendByteCount != totalCount)
+            //_secureStream.AuthenAsClient(uri.Host);
+            _secureStream.AuthenAsClient(uri.Host, () =>
             {
+                //--------------
+                StringBuilder stbuilder = CreateWebSocketUpgradeReq(uri.AbsolutePath, uri.AbsolutePath + ":" + uri.Port);
+                byte[] dataToSend = Encoding.ASCII.GetBytes(stbuilder.ToString());
+                //int totalCount = dataToSend.Length;
+                //int sendByteCount = _clientSocket.Send(dataToSend);
+                _wbContext.Bind(_secureStream, dataToSend);
+            });
 
-            }
-
-            //get first confirm server upgrade resp from server
-            byte[] firstRespBuffer = new byte[1024];
-            int firstMsg = _clientSocket.Receive(firstRespBuffer, 1024, SocketFlags.None);
-
-            //****
-            //add event listener to our socket  
-            _wbContext.Bind(_clientSocket);
         }
         public void SetHandler(ReqRespHandler<WebSocketRequest, WebSocketResponse> websocketHandler)
         {

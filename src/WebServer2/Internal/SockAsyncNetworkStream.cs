@@ -4,7 +4,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
 using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
+
 namespace SharpConnect.Internal2
 {
     public class DataArrEventArgs : EventArgs
@@ -21,6 +23,7 @@ namespace SharpConnect.Internal2
         static int s_dbugTotalId;
         public readonly int dbugId = s_dbugTotalId++;
 #endif
+
         //---------------------
         public override bool CanRead => true;
         public override bool CanSeek => false;
@@ -80,7 +83,7 @@ namespace SharpConnect.Internal2
 
         internal bool BeginWebsocketMode { get; set; }
     }
-    
+
 
     class SockNetworkStream : AbstractAsyncNetworkStream
     {
@@ -228,6 +231,10 @@ namespace SharpConnect.Internal2
 
         void RecvAsyncEventArgs_Completed(object sender, SocketAsyncEventArgs e)
         {
+            lock (_startRecvLock)
+            {
+                _startRecv = false;
+            }
 
             switch (e.LastOperation)
             {
@@ -518,7 +525,14 @@ namespace SharpConnect.Internal2
             _sendIO.StartSendAsync();///***
         }
 
+#if DEBUG
         int dbugStartRecvCount = 0;
+#endif
+
+
+        object _startRecvLock = new object();
+        bool _startRecv = false;
+
         public override void StartReceive()
         {
             _passHandshake = true; //start recv data from client 
@@ -532,9 +546,25 @@ namespace SharpConnect.Internal2
             //    _recvAsyncStarting = true;
             //}
             //
+            lock (_startRecvLock)
+            {
+                if (_startRecv)
+                {
+                    return;
+                }
+                else
+                {
+
+                }
+                _startRecv = true;
+            }
+            //----------------------
 
             dbugStartRecvCount++;
+            //if (dbugStartRecvCount > 100)
+            //{
 
+            //}
             if (UsedBySslStream)
             {
 
@@ -594,6 +624,8 @@ namespace SharpConnect.Internal2
     delegate void AuthenCallbackDelegate();
 
 
+
+
     class SecureSockNetworkStream : AbstractAsyncNetworkStream
     {
         IOBuffer _recvBuffer;
@@ -606,10 +638,11 @@ namespace SharpConnect.Internal2
         bool _sending;
         object _sendingStateLock = new object();
 
-        public SecureSockNetworkStream(SockNetworkStream socketNetworkStream, System.Security.Cryptography.X509Certificates.X509Certificate2 cert)
+        public SecureSockNetworkStream(SockNetworkStream socketNetworkStream,
+            System.Security.Cryptography.X509Certificates.X509Certificate2 cert,
+            System.Net.Security.RemoteCertificateValidationCallback remoteCertValidationCb = null)
         {
-
-            _sslStream = new SslStream(socketNetworkStream, true);
+            _sslStream = new SslStream(socketNetworkStream, true, remoteCertValidationCb, null);
             socketNetworkStream.UsedBySslStream = true;
 
             _cert = cert;
@@ -622,6 +655,7 @@ namespace SharpConnect.Internal2
             byte[] tmpIOBuffer = new byte[2048];//TODO: alloc this from external 
             _recvBuffer = new IOBuffer(tmpIOBuffer, 0, tmpIOBuffer.Length);
         }
+
         internal override byte[] UnsafeGetRecvInternalBuffer() => _recvBuffer._largeBuffer;
         internal override int QueueCount => _socketNetworkStream.QueueCount;// sending queue count
         internal override void RecvCopyTo(int readpos, byte[] dstBuffer, int copyLen)
@@ -662,9 +696,6 @@ namespace SharpConnect.Internal2
                 _sending = true;
                 _sslStream.Write(buffer);
             }
-
-
-
         }
         public override void Reset()
         {
@@ -686,16 +717,30 @@ namespace SharpConnect.Internal2
         }
         public void AuthenAsServer(AuthenCallbackDelegate whenFinish)
         {
-            _sslStream.BeginAuthenticateAsServer(_cert,
+            _sslStream.BeginAuthenticateAsServer(_cert, false, System.Security.Authentication.SslProtocols.Default, false,
                 state =>
                 {
                     _sslStream.EndAuthenticateAsServer(state);
-
                     whenFinish();
-
                 }, new object());
-            //_sslStream.AuthenticateAsServer(_cert);
         }
+        public void AuthenAsClient(string targetHost)
+        {
+            //targetHost must match with cert => eg. localhost
+
+            _sslStream.AuthenticateAsClient(targetHost);
+        }
+        public void AuthenAsClient(string targetHost, AuthenCallbackDelegate whenFinish)
+        {
+            //targetHost must match with cert => eg. localhost
+            _sslStream.BeginAuthenticateAsClient(targetHost,
+                state =>
+                {
+                    _sslStream.EndAuthenticateAsClient(state);
+                    whenFinish();
+                }, new object());
+        }
+
         void SocketNetworkStream_SendCompleted(object sender, EventArgs e)
         {
             lock (_startSendLock)
