@@ -117,7 +117,7 @@ namespace SharpConnect.WebServers
         }
         void ISendIO.EnqueueSendingData(byte[] buffer, int len) => _sendIO.EnqueueOutputData(buffer, len);
         void ISendIO.SendIOStartSend() => _sendIO.StartSendAsync();
-        int ISendIO.QueueCount => _sendIO.QueueCount;
+     
         void HandleReceivedData(RecvEventCode recvCode)
         {
             switch (recvCode)
@@ -170,7 +170,7 @@ namespace SharpConnect.WebServers
 
         }
 
-        public int SendQueueCount => _webSocketResp.SendQueueCount;
+        //public int SendQueueCount => _webSocketResp.SendQueueCount;
 
         public override void Close() => _clientSocket.Close();
 

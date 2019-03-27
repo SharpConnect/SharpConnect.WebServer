@@ -25,7 +25,6 @@ namespace SharpConnect.WebServers
     {
         void EnqueueSendingData(byte[] buffer, int len);
         void SendIOStartSend();
-        int QueueCount { get; }
     }
     public class WebRequestParameter
     {

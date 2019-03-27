@@ -70,13 +70,7 @@ namespace SharpConnect.WebServers
             _sendIO.EnqueueSendingData(dataToSend, dataToSend.Length);
             _sendIO.SendIOStartSend();
         }
-        public int SendQueueCount
-        {
-            get
-            {
-                return _sendIO.QueueCount;
-            }
-        }
+        
         static void MaskAgain(byte[] data, byte[] key)
         {
             for (int i = data.Length - 1; i >= 0; --i)

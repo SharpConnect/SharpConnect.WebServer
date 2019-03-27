@@ -35,8 +35,7 @@ namespace SharpConnect.WebServers
             _webSocketResp = new WebSocketResponse(_connectionId, asClient, this);
         }
 
-        public int SendQueueCount => _webSocketResp.SendQueueCount;
-
+     
         public void Bind(SharpConnect.Internal2.AbstractAsyncNetworkStream clientStream, byte[] wsUpgradeResponseMsg)
         {
 
@@ -73,7 +72,7 @@ namespace SharpConnect.WebServers
         }
         void ISendIO.EnqueueSendingData(byte[] buffer, int len) => _clientStream.EnqueueSendData(buffer, len);
         void ISendIO.SendIOStartSend() => _clientStream.StartSend();
-        int ISendIO.QueueCount => _clientStream.QueueCount;
+        
 
         void HandleReceivedData(RecvEventCode recvCode)
         {

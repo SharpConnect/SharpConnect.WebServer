@@ -261,15 +261,10 @@ namespace SharpConnect.WebServers
 
         internal HttpWebServer OwnerWebServer => _ownerServer;
 
-        public void StartSendAsync() => _sendIO.StartSendAsync();
+        public void SendIOStartSend() => _sendIO.StartSendAsync();
 
-        public void EnqueueOutputData(byte[] dataToSend, int count)
-        {
-            _sendIO.EnqueueOutputData(dataToSend, count);
-        }
-
-        void ISendIO.EnqueueSendingData(byte[] buffer, int len) => _sendIO.EnqueueOutputData(buffer, len);
-        void ISendIO.SendIOStartSend() => _sendIO.StartSendAsync();
+        public void EnqueueSendingData(byte[] dataToSend, int count) => _sendIO.EnqueueOutputData(dataToSend, count); 
+      
 
         public int RecvByteTransfer => _recvIO.BytesTransferred;
         public byte ReadByte(int pos) => _recvIO.ReadByte(pos);

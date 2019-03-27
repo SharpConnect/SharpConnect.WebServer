@@ -93,10 +93,8 @@ namespace SharpConnect.WebServers
         internal AbstractAsyncNetworkStream BaseStream => _sockStream;
 
         internal bool CreatedFromPool { get; set; }
-
-        public int QueueCount => _baseSockStream.QueueCount;
-        public void EnqueueSendingData(byte[] buffer, int len) => _sockStream.EnqueueSendData(buffer, len);
-        
+       
+        public void EnqueueSendingData(byte[] buffer, int len) => _sockStream.EnqueueSendData(buffer, len);        
 
         public int RecvByteTransfer => _sockStream.ByteReadTransfered;
         public byte ReadByte(int pos) => _sockStream.RecvReadByte(pos);
