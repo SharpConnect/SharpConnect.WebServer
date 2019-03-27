@@ -125,7 +125,8 @@ namespace SharpConnect.Internal
         Action<SendIOEventCode> _notify;
         object _stateLock = new object();
         object _queueLock = new object();
-        SendIOState _sendingState = SendIOState.ReadyNextSend;
+        //SendIOState _sendingState = SendIOState.ReadyNextSend;
+        SendIOState sendingState;
 
 #if DEBUG && !NETSTANDARD1_6
         readonly int dbugThradId = System.Threading.Thread.CurrentThread.ManagedThreadId;
@@ -140,54 +141,57 @@ namespace SharpConnect.Internal
             _sendBufferSize = sendBufferSize;
             _notify = notify;
         }
-        SendIOState sendingState
-        {
-            get { return _sendingState; }
-            set
-            {
-                switch (_sendingState)
-                {
-                    case SendIOState.Error:
-                        {
-                        }
-                        break;
-                    case SendIOState.ProcessSending:
-                        {
-                            if (value != SendIOState.ReadyNextSend)
-                            {
 
-                            }
-                            else
-                            {
-                            }
-                        }
-                        break;
-                    case SendIOState.ReadyNextSend:
-                        {
-                            if (value != SendIOState.Sending)
-                            {
 
-                            }
-                            else
-                            {
-                            }
-                        }
-                        break;
-                    case SendIOState.Sending:
-                        {
-                            if (value != SendIOState.ProcessSending)
-                            {
-                            }
-                            else
-                            {
-                            }
-                        }
-                        break;
+        //        {
+        //            get => _sendingState;
+        //            set
+        //            {
+        //#if DEBUG
+        //                switch (_sendingState)
+        //                {
+        //                    case SendIOState.Error:
+        //                        {
+        //                        }
+        //                        break;
+        //                    case SendIOState.ProcessSending:
+        //                        {
+        //                            if (value != SendIOState.ReadyNextSend)
+        //                            {
 
-                }
-                _sendingState = value;
-            }
-        }
+        //                            }
+        //                            else
+        //                            {
+        //                            }
+        //                        }
+        //                        break;
+        //                    case SendIOState.ReadyNextSend:
+        //                        {
+        //                            if (value != SendIOState.Sending)
+        //                            {
+
+        //                            }
+        //                            else
+        //                            {
+        //                            }
+        //                        }
+        //                        break;
+        //                    case SendIOState.Sending:
+        //                        {
+        //                            if (value != SendIOState.ProcessSending)
+        //                            {
+        //                            }
+        //                            else
+        //                            {
+        //                            }
+        //                        }
+        //                        break;
+
+        //                }
+        //#endif
+        //                _sendingState = value;
+        //            }
+        //        }
         void ResetBuffer()
         {
             _currentSendingData = null;

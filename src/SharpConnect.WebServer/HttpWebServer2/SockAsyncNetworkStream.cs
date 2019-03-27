@@ -136,10 +136,9 @@ namespace SharpConnect.Internal2
             _sendIO.Bind(this);
         }
         internal override int QueueCount => _sendIO.QueueCount;
-        internal override byte[] UnsafeGetRecvInternalBuffer()
-        {
-            return _recvBuffer._largeBuffer;
-        }
+
+        internal override byte[] UnsafeGetRecvInternalBuffer() => _recvBuffer._largeBuffer;
+
         public override void Reset()
         {
             _sendIO.Reset();
@@ -816,13 +815,7 @@ namespace SharpConnect.Internal2
         bool _startRecv;
         public override void StartReceive()
         {
-            lock (_sendingStateLock)
-            {
-                if (_sending)
-                {
-
-                }
-            }
+             
             if (_startRecv)
             {
                 return;

@@ -186,7 +186,7 @@ namespace SharpConnect.Internal2
         }
         SendIOState sendingState
         {
-            get { return _sendingState; }
+            get => _sendingState;
             set
             {
 #if DEBUG
@@ -273,13 +273,7 @@ namespace SharpConnect.Internal2
                 sendingQueue.Enqueue(dataToSend);
             }
         }
-        public int QueueCount
-        {
-            get
-            {
-                return sendingQueue.Count;
-            }
-        }
+        public int QueueCount => sendingQueue.Count;
 #if DEBUG
         int dbugSendingTheadId;
 #endif
@@ -578,13 +572,7 @@ namespace SharpConnect.Internal2
                         }
                     }
                 } while (remain > 0);
-
             }
         }
-
-
-
     }
-
-
 }

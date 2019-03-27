@@ -39,9 +39,7 @@ namespace SharpConnect.WebServers
                 ipAddress = IPAddress.Parse(uri.Host);
             }
 
-            //_clientSocket.Connect(ipAddress, uri.Port);
-            //
-
+            //TODO: review buffer management here***
             byte[] buffer1 = new byte[2048];
             byte[] buffer2 = new byte[2048];
             IOBuffer recvBuffer = new IOBuffer(buffer1, 0, buffer1.Length);
@@ -51,6 +49,7 @@ namespace SharpConnect.WebServers
             _secureStream = new SecureSockNetworkStream(_sockNetworkStream, cert, delegate { return true; }); //***
             _sockNetworkStream.Bind(_clientSocket);
             _clientSocket.Connect(ipAddress, uri.Port);
+
             //_secureStream.AuthenAsClient(uri.Host);
             _secureStream.AuthenAsClient(uri.Host, () =>
             {

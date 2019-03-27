@@ -36,7 +36,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer2\SockAsyncNetworkStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SecureWebSocket\SecureWebSocketClient.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SecureWebSocket\SecureWebSocketContext.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)SecureWebSocket\WebSocketProtocolParser.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SecureWebSocket\WebSocketProtocolParser2.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\Flags.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\PlainWebSocketClient.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\PlainWebSocketContext.cs" />
