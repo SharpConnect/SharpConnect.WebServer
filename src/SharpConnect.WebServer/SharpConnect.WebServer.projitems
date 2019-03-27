@@ -21,7 +21,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)General\Temp.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer0\SendIO_RecvIO_Code.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer2\HttpsContext.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer2\HttpsRequest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer2\HttpsWebRequest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer2\HttpsWebResponse.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer2\HttpsWebServer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer2\RecvIO_SendIO_2.cs" />
