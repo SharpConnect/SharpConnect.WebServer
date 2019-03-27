@@ -8,7 +8,7 @@ using System.Text;
 
 using SharpConnect.Internal2;
 
-namespace SharpConnect.WebServers.Server2
+namespace SharpConnect.WebServers
 {
     /// <summary>
     /// web socket over secure protocol (ssl/tls)

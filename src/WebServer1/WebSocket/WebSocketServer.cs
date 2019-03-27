@@ -63,7 +63,7 @@ namespace SharpConnect.WebServers
             string initUrl,
             string sec_websocket_key)
         {
-            var wbcontext = new Server2.SecureWebSocketContext(false);
+            var wbcontext = new SecureWebSocketContext(false);
             var wbCtx = new WebSocketContext(wbcontext);
             _workingWebSocketConns.Add(wbcontext.ConnectionId, wbCtx);//add to working socket 
 

@@ -1,14 +1,12 @@
 ﻿//MIT, 2018-present, EngineKit and contributors
-using System;
-using System.Net;
-using System.Net.Sockets;
+
 namespace SharpConnect.WebServers
 {
 
     public class WebSocketClient
     {
         PlainWebSocketClient _plainWebSocketClient;
-        SharpConnect.WebServers.Server2.SecureWebSocketClient _secureWebSocketClient;
+        SecureWebSocketClient _secureWebSocketClient;
         ReqRespHandler<WebSocketRequest, WebSocketResponse> _websocketHandler;
         System.Security.Cryptography.X509Certificates.X509Certificate2 _serverCert;
 
@@ -21,7 +19,7 @@ namespace SharpConnect.WebServers
         {
             _websocketHandler = websocketHandler;
         }
-       
+
         public void LoadCertificate(string certFile, string psw)
         {
             _serverCert = new System.Security.Cryptography.X509Certificates.X509Certificate2(certFile, psw);
@@ -31,7 +29,7 @@ namespace SharpConnect.WebServers
         {
             if (UseSsl)
             {
-                _secureWebSocketClient = new Server2.SecureWebSocketClient();
+                _secureWebSocketClient = new SecureWebSocketClient();
                 _secureWebSocketClient.SetHandler(_websocketHandler);
                 _secureWebSocketClient.Connect(url, _serverCert);
             }

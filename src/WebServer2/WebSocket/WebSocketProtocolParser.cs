@@ -23,8 +23,9 @@
 */
 using System;
 using System.Collections.Generic;
+using SharpConnect.WebServers;
 
-namespace SharpConnect.WebServers.Server2
+namespace SharpConnect.Internal2
 {
     class WebSocketProtocolParser
     {

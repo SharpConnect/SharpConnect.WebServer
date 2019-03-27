@@ -23,9 +23,8 @@
 */
 using System;
 
-namespace SharpConnect.WebServers.Server2
+namespace SharpConnect.WebServers
 {
-
 
     class SecureWebSocketContext : IDisposable, ISendIO
     {
@@ -35,7 +34,7 @@ namespace SharpConnect.WebServers.Server2
         SharpConnect.Internal2.AbstractAsyncNetworkStream _clientStream;
 
         WebSocketResponse _webSocketResp;
-        WebSocketProtocolParser _webSocketReqParser;
+        SharpConnect.Internal2.WebSocketProtocolParser _webSocketReqParser;
 
         readonly int _connectionId;
         readonly bool _asClientContext;
@@ -62,7 +61,7 @@ namespace SharpConnect.WebServers.Server2
         internal void Bind(SharpConnect.Internal2.AbstractAsyncNetworkStream clientStream, byte[] wsUpgradeResponseMsg)
         {
 
-            _webSocketReqParser = new WebSocketProtocolParser(this.AsClientContext, new SharpConnect.Internal2.RecvIOBufferStream2(clientStream));
+            _webSocketReqParser = new SharpConnect.Internal2.WebSocketProtocolParser(this.AsClientContext, new SharpConnect.Internal2.RecvIOBufferStream2(clientStream));
             _clientStream = clientStream;
 
             _clientStream.SetRecvCompleteEventHandler((s, e) =>

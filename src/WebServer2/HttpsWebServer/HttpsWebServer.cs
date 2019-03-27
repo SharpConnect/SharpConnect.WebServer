@@ -4,7 +4,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 
-namespace SharpConnect.WebServers.Server2
+namespace SharpConnect.WebServers
 {
 
     class HttpsWebServer

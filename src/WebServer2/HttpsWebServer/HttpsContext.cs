@@ -28,7 +28,7 @@
 using System;
 using System.Net.Sockets;
 using SharpConnect.Internal2;
-namespace SharpConnect.WebServers.Server2
+namespace SharpConnect.WebServers
 {
 
     /// <summary>

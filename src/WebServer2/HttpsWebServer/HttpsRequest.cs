@@ -1,7 +1,7 @@
 ﻿//MIT, 2015-present, EngineKit
 using System;
 using System.Text;
-namespace SharpConnect.WebServers.Server2
+namespace SharpConnect.WebServers
 {
 
     class HttpsWebRequest : SharpConnect.WebServers.HttpRequest
