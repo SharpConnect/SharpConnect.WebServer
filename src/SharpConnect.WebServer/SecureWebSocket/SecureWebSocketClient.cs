@@ -16,13 +16,13 @@ namespace SharpConnect.WebServers
     class SecureWebSocketClient
     {
         Socket _clientSocket;
-        SecureWebSocketContext _wbContext;
+        SecureWebSocketConn _wbContext;
         SockNetworkStream _sockNetworkStream;
         SecureSockNetworkStream _secureStream;
 
         public SecureWebSocketClient()
         {
-            _wbContext = new SecureWebSocketContext(true);
+            _wbContext = new SecureWebSocketConn(true);
             _wbContext.SetMessageHandler((req, resp) =>
             {
                 //default

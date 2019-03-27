@@ -26,39 +26,18 @@ using System;
 namespace SharpConnect.WebServers
 {
 
-    class SecureWebSocketContext : IDisposable, ISendIO
+    sealed class SecureWebSocketConn : WebSocketConnectionBase, ISendIO
     {
-        const int RECV_BUFF_SIZE = 1024;
-
-        ReqRespHandler<WebSocketRequest, WebSocketResponse> _webSocketReqHandler;
         SharpConnect.Internal2.AbstractAsyncNetworkStream _clientStream;
-
-        WebSocketResponse _webSocketResp;
-        WebSocketProtocolParser _webSocketReqParser;
-
-        readonly int _connectionId;
-        readonly bool _asClientContext;
-
-        static int s_connectionIdTotal;
-
-        public SecureWebSocketContext(bool asClient)
+        public SecureWebSocketConn(bool asClient)
+            : base(asClient)
         {
-            _asClientContext = asClient;
-            _connectionId = System.Threading.Interlocked.Increment(ref s_connectionIdTotal);
             _webSocketResp = new WebSocketResponse(_connectionId, asClient, this);
         }
 
-        public bool AsClientContext => _asClientContext;
+        public int SendQueueCount => _webSocketResp.SendQueueCount; 
 
-        public int ConnectionId => _connectionId;
-
-        public string Name { get; set; }
-
-        public int SendQueueCount => _webSocketResp.SendQueueCount;
-
-        public string InitClientRequestUrl { get; set; }
-
-        internal void Bind(SharpConnect.Internal2.AbstractAsyncNetworkStream clientStream, byte[] wsUpgradeResponseMsg)
+        public void Bind(SharpConnect.Internal2.AbstractAsyncNetworkStream clientStream, byte[] wsUpgradeResponseMsg)
         {
 
             _webSocketReqParser = new WebSocketProtocolParser(this.AsClientContext, new RecvIOBufferStream(clientStream));
@@ -83,7 +62,13 @@ namespace SharpConnect.WebServers
 
 
             _clientStream.StartReceive();
-            SendExternalRaw(wsUpgradeResponseMsg);
+
+
+            //--------
+            //send websocket reply
+            _clientStream.EnqueueSendData(wsUpgradeResponseMsg, wsUpgradeResponseMsg.Length);
+            _clientStream.StartSend();
+            //--------
 
         }
         void ISendIO.EnqueueSendingData(byte[] buffer, int len) => _clientStream.EnqueueSendData(buffer, len);
@@ -161,39 +146,16 @@ namespace SharpConnect.WebServers
                     break;
             }
         }
-        public void Dispose()
+
+        public override void Close()
         {
-
-
+            System.Diagnostics.Debug.WriteLine("please impl close:");
         }
 
-        public void SetMessageHandler(ReqRespHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler)
+        public override void Send(string data)
         {
-            _webSocketReqHandler = webSocketReqHandler;
+            _webSocketResp.Write(data);
         }
-        public void Close()
-        {
-            System.Diagnostics.Debug.WriteLine("write line:");
-            //clientSocket.Close();
-        }
-        public void Send(string dataToSend)
-        {
-            //send data to server
-            //and wait for result 
-            _webSocketResp.Write(dataToSend);
-        }
-
-        internal void SendExternalRaw(byte[] data)
-        {
-
-            _clientStream.EnqueueSendData(data, data.Length);
-            _clientStream.StartSend();
-
-            //sendIO.EnqueueOutputData(data, data.Length);
-            //sendIO.StartSendAsync();
-        }
-        //---------------------------------------------
-
     }
 
 }
