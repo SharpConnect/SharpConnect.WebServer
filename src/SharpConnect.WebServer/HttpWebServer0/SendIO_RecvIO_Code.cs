@@ -549,4 +549,5 @@ namespace SharpConnect
         }
         public bool IsEnd() => _readpos >= _totalLen;
     }
+          
 }

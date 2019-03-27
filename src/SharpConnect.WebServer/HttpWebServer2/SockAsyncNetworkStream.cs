@@ -94,17 +94,12 @@ namespace SharpConnect.Internal2
         SocketAsyncEventArgs _sendAsyncEventArgs;
         SocketAsyncEventArgs _recvAsyncEventArgs;
 
-        const int BUFFER_SIZE = 2048;
-
 
         IOBuffer _recvBuffer;
         IOBuffer _sendBuffer;
 
         object _recvLock = new object();
         bool _passHandshake;
-        readonly int _recvStartOffset = 0;
-        readonly int _recvBufferSize = BUFFER_SIZE;
-
         object _recvWaitLock = new object();
         bool _recvComplete = false;
 
@@ -123,11 +118,11 @@ namespace SharpConnect.Internal2
 
             //
             _sendAsyncEventArgs = new SocketAsyncEventArgs();
-            _sendAsyncEventArgs.SetBuffer(_sendBuffer._largeBuffer, _sendBuffer.BufferStartAtIndex, _sendBuffer.BufferLength);
+            _sendAsyncEventArgs.SetBuffer(_sendBuffer._largeBuffer, _sendBuffer._startAt, _sendBuffer._len);
             _sendAsyncEventArgs.Completed += SendAsyncEventArgs_Completed;
             //
             _recvAsyncEventArgs = new SocketAsyncEventArgs();
-            _recvAsyncEventArgs.SetBuffer(_recvBuffer._largeBuffer, _recvBuffer.BufferStartAtIndex, _recvBuffer.BufferLength);//TODO: swap  buffer for the args
+            _recvAsyncEventArgs.SetBuffer(_recvBuffer._largeBuffer, _recvBuffer._startAt, _recvBuffer._len);//TODO: swap  buffer for the args
             _recvAsyncEventArgs.Completed += RecvAsyncEventArgs_Completed;
 
 
@@ -190,7 +185,7 @@ namespace SharpConnect.Internal2
         }
         public override void ClearReceiveBuffer()
         {
-            _recvAsyncEventArgs.SetBuffer(_recvStartOffset, _recvBufferSize);
+            _recvAsyncEventArgs.SetBuffer(_recvBuffer._startAt, _recvBuffer._len);
         }
 
         public override int ByteReadTransfered => _recvAsyncEventArgs.BytesTransferred;
@@ -516,7 +511,7 @@ namespace SharpConnect.Internal2
                 //since we share the buffer between _recvAsyncEventArgs and
                 //recvBuffer so=> we need to set this together
                 _recvBuffer.Reset();
-                _recvAsyncEventArgs.SetBuffer(_recvBuffer.BufferStartAtIndex, _recvBufferSize);
+                _recvAsyncEventArgs.SetBuffer(_recvBuffer._startAt, _recvBuffer._len);
 
             }
         }

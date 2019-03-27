@@ -13,8 +13,8 @@ namespace SharpConnect.Internal2
     {
 
         internal readonly byte[] _largeBuffer;
-        readonly int _startAt;
-        readonly int _len;
+        internal readonly int _startAt;
+        internal readonly int _len;
         int _readIndex;
         int _writeIndex;
 
@@ -169,13 +169,12 @@ namespace SharpConnect.Internal2
 
         object _stateLock = new object();
         object _queueLock = new object();
-        SendIOState _sendingState = SendIOState.ReadyNextSend;
-        AbstractAsyncNetworkStream _networkStream;
-
-
+        SendIOState _sendingState;
 #if DEBUG && !NETSTANDARD1_6
         readonly int dbugThradId = System.Threading.Thread.CurrentThread.ManagedThreadId;
 #endif
+        //-----------
+        AbstractAsyncNetworkStream _networkStream;
 
         public SendIO()
         {
@@ -184,62 +183,11 @@ namespace SharpConnect.Internal2
         {
             _networkStream = networkStream;
         }
-        SendIOState sendingState
-        {
-            get => _sendingState;
-            set
-            {
-#if DEBUG
-                switch (_sendingState)
-                {
-                    case SendIOState.Error:
-                        {
-                        }
-                        break;
-                    case SendIOState.ProcessSending:
-                        {
-                            if (value != SendIOState.ReadyNextSend)
-                            {
-
-                            }
-                            else
-                            {
-                            }
-                        }
-                        break;
-                    case SendIOState.ReadyNextSend:
-                        {
-                            if (value != SendIOState.Sending)
-                            {
-
-                            }
-                            else
-                            {
-                            }
-                        }
-                        break;
-                    case SendIOState.Sending:
-                        {
-                            if (value != SendIOState.ProcessSending)
-                            {
-                            }
-                            else
-                            {
-                            }
-                        }
-                        break;
-
-                }
-#endif
-                _sendingState = value;
-            }
-        }
-
         public void Reset()
         {
             lock (_stateLock)
             {
-                if (sendingState != SendIOState.ReadyNextSend)
+                if (_sendingState != SendIOState.ReadyNextSend)
                 {
                 }
             }
@@ -259,7 +207,7 @@ namespace SharpConnect.Internal2
         {
             lock (_stateLock)
             {
-                SendIOState snap1 = this.sendingState;
+                SendIOState snap1 = this._sendingState;
 #if DEBUG && !NETSTANDARD1_6
                 int currentThread = System.Threading.Thread.CurrentThread.ManagedThreadId;
                 if (snap1 != SendIOState.ReadyNextSend)
@@ -282,7 +230,7 @@ namespace SharpConnect.Internal2
         {
             lock (_stateLock)
             {
-                if (sendingState != SendIOState.ReadyNextSend)
+                if (_sendingState != SendIOState.ReadyNextSend)
                 {
                     //if in other state then return
                     return;
@@ -292,7 +240,7 @@ namespace SharpConnect.Internal2
 #if DEBUG && !NETSTANDARD1_6
                 dbugSendingTheadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
 #endif
-                sendingState = SendIOState.Sending;
+                _sendingState = SendIOState.Sending;
             }
 
             //------------------------------------------------------------------------
@@ -314,7 +262,7 @@ namespace SharpConnect.Internal2
                 if (!hasSomeData)
                 {
                     //no data to send ?
-                    sendingState = SendIOState.ReadyNextSend;
+                    _sendingState = SendIOState.ReadyNextSend;
                     return;
                 }
             }
@@ -323,13 +271,9 @@ namespace SharpConnect.Internal2
                 //?
                 throw new NotSupportedException();
             }
-
-
-            //-----------------------------------------------------------
-
+            //----------------------------------------------------------- 
             //send to network stream
-            //....
-
+            //.... 
             byte[] sendingData = null;// CreateTestHtmlRespMsg("hello!");
             using (MemoryStream ms1 = new MemoryStream())
             {
@@ -352,48 +296,9 @@ namespace SharpConnect.Internal2
                 //some data pending ...
 
             }
-
-            //
-            //_networkStream.WriteBuffer(currentSendingData, 0, remaining);
-            //ProcessWaitingData();
-
-            ////-----------------------------------------------------------
-            //if (remaining <= _sendBufferSize)
-            //{
-            //    _sendArgs.SetBuffer(_sendStartOffset, remaining); //set position to send data
-            //    //*** copy from src to dest
-            //    if (currentSendingData != null)
-            //    {
-            //        Buffer.BlockCopy(this.currentSendingData, //src
-            //            this.sendingTransferredBytes,
-            //            _sendArgs.Buffer, //dest
-            //            _sendStartOffset,
-            //            remaining);
-            //    }
-            //}
-            //else
-            //{
-            //    //We cannot try to set the buffer any larger than its size.
-            //    //So since receiveSendToken.sendBytesRemainingCount > BufferSize, we just
-            //    //set it to the maximum size, to send the most data possible.
-            //    _sendArgs.SetBuffer(_sendStartOffset, _sendBufferSize);
-            //    //Copy the bytes to the buffer associated with this SAEA object.
-            //    Buffer.BlockCopy(this.currentSendingData,
-            //        this.sendingTransferredBytes,
-            //        _sendArgs.Buffer,
-            //        _sendStartOffset,
-            //        _sendBufferSize);
-            //}
-
-            //if (!_sendArgs.AcceptSocket.SendAsync(_sendArgs))
-            //{
-            //    //when SendAsync return false 
-            //    //Returns false if the I/O operation completed synchronously.                 
-            //    ProcessWaitingData();
-            //}
         }
 
     }
 
-     
+
 }

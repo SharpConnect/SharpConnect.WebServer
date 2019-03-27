@@ -115,22 +115,27 @@ namespace SharpConnect.Internal
     {
         //send,
         //resp 
-        readonly int _sendStartOffset;
-        readonly int _sendBufferSize;
-        readonly SocketAsyncEventArgs _sendArgs;
+
         int _sendingTargetBytes; //target to send
         int _sendingTransferredBytes; //has transfered bytes
         byte[] _currentSendingData = null;
         Queue<byte[]> _sendingQueue = new Queue<byte[]>();
-        Action<SendIOEventCode> _notify;
+
         object _stateLock = new object();
         object _queueLock = new object();
-        //SendIOState _sendingState = SendIOState.ReadyNextSend;
-        SendIOState sendingState;
-
+        SendIOState _sendingState = SendIOState.ReadyNextSend;
 #if DEBUG && !NETSTANDARD1_6
         readonly int dbugThradId = System.Threading.Thread.CurrentThread.ManagedThreadId;
 #endif
+
+        //-----------
+        Action<SendIOEventCode> _notify;
+
+        readonly int _sendStartOffset;
+        readonly int _sendBufferSize;
+        readonly SocketAsyncEventArgs _sendArgs;
+
+
         public SendIO(SocketAsyncEventArgs sendArgs,
             int sendStartOffset,
             int sendBufferSize,
@@ -142,56 +147,6 @@ namespace SharpConnect.Internal
             _notify = notify;
         }
 
-
-        //        {
-        //            get => _sendingState;
-        //            set
-        //            {
-        //#if DEBUG
-        //                switch (_sendingState)
-        //                {
-        //                    case SendIOState.Error:
-        //                        {
-        //                        }
-        //                        break;
-        //                    case SendIOState.ProcessSending:
-        //                        {
-        //                            if (value != SendIOState.ReadyNextSend)
-        //                            {
-
-        //                            }
-        //                            else
-        //                            {
-        //                            }
-        //                        }
-        //                        break;
-        //                    case SendIOState.ReadyNextSend:
-        //                        {
-        //                            if (value != SendIOState.Sending)
-        //                            {
-
-        //                            }
-        //                            else
-        //                            {
-        //                            }
-        //                        }
-        //                        break;
-        //                    case SendIOState.Sending:
-        //                        {
-        //                            if (value != SendIOState.ProcessSending)
-        //                            {
-        //                            }
-        //                            else
-        //                            {
-        //                            }
-        //                        }
-        //                        break;
-
-        //                }
-        //#endif
-        //                _sendingState = value;
-        //            }
-        //        }
         void ResetBuffer()
         {
             _currentSendingData = null;
@@ -200,27 +155,10 @@ namespace SharpConnect.Internal
         }
         public void Reset()
         {
-            lock (_stateLock)
-            {
-                if (sendingState != SendIOState.ReadyNextSend)
-                {
-                }
-            }
-            //#if DEBUG
 
-            //            int currentTheadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
-            //            if (currentTheadId != this.dbugThradId)
-            //            { 
-            //            }
-            //#endif
-            //TODO: review reset
             _sendingTargetBytes = _sendingTransferredBytes = 0;
             _currentSendingData = null;
-            //#if DEBUG
-            //            if (sendingQueue.Count > 0)
-            //            { 
-            //            }
-            //#endif
+
             lock (_queueLock)
             {
                 if (_sendingQueue.Count > 0)
@@ -234,7 +172,7 @@ namespace SharpConnect.Internal
         {
             lock (_stateLock)
             {
-                SendIOState snap1 = this.sendingState;
+                SendIOState snap1 = this._sendingState;
 #if DEBUG && !NETSTANDARD1_6
                 int currentThread = System.Threading.Thread.CurrentThread.ManagedThreadId;
                 if (snap1 != SendIOState.ReadyNextSend)
@@ -258,7 +196,7 @@ namespace SharpConnect.Internal
         {
             lock (_stateLock)
             {
-                if (sendingState != SendIOState.ReadyNextSend)
+                if (_sendingState != SendIOState.ReadyNextSend)
                 {
                     //if in other state then return
                     return;
@@ -266,7 +204,7 @@ namespace SharpConnect.Internal
 #if DEBUG && !NETSTANDARD1_6
                 dbugSendingTheadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
 #endif
-                sendingState = SendIOState.Sending;
+                _sendingState = SendIOState.Sending;
             }
 
             //------------------------------------------------------------------------
@@ -288,7 +226,7 @@ namespace SharpConnect.Internal
                 if (!hasSomeData)
                 {
                     //no data to send ?
-                    sendingState = SendIOState.ReadyNextSend;
+                    _sendingState = SendIOState.ReadyNextSend;
                     return;
                 }
 
@@ -342,7 +280,7 @@ namespace SharpConnect.Internal
         {
             // This method is called by I/O Completed() when an asynchronous send completes.   
             //after IO completed, what to do next.... 
-            sendingState = SendIOState.ProcessSending;
+            _sendingState = SendIOState.ProcessSending;
             switch (_sendArgs.SocketError)
             {
                 default:
@@ -350,7 +288,7 @@ namespace SharpConnect.Internal
                         //error, socket error
 
                         ResetBuffer();
-                        sendingState = SendIOState.Error;
+                        _sendingState = SendIOState.Error;
                         _notify(SendIOEventCode.SocketError);
                         //manage socket errors here
                     }
@@ -364,7 +302,7 @@ namespace SharpConnect.Internal
                             //no complete!, 
                             //start next send ...
                             //****
-                            sendingState = SendIOState.ReadyNextSend;
+                            _sendingState = SendIOState.ReadyNextSend;
                             StartSendAsync();
                             //****
                         }
@@ -389,7 +327,7 @@ namespace SharpConnect.Internal
                                 _sendingTargetBytes = _currentSendingData.Length;
                                 _sendingTransferredBytes = 0;
                                 //****
-                                sendingState = SendIOState.ReadyNextSend;
+                                _sendingState = SendIOState.ReadyNextSend;
                                 StartSendAsync();
                                 //****
                             }
@@ -399,7 +337,7 @@ namespace SharpConnect.Internal
                                 ResetBuffer();
                                 //notify no more data
                                 //****
-                                sendingState = SendIOState.ReadyNextSend;
+                                _sendingState = SendIOState.ReadyNextSend;
                                 _notify(SendIOEventCode.SendComplete);
                                 //****   
                             }
@@ -416,5 +354,5 @@ namespace SharpConnect.Internal
     }
 
 
-  
+
 }
