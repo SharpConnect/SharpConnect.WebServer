@@ -34,9 +34,9 @@ namespace SharpConnect.WebServers
     /// <summary>
     /// http connection session, req-resp model
     /// </summary>
-    class HttpsContext : ISendIO
+    class HttpsContext : IHttpContext, ISendIO
     {
-        HttpsWebRequest _httpReq;
+        HttpRequestImpl _httpReq;
         HttpResponse _httpResp;
         ReqRespHandler<HttpRequest, HttpResponse> _reqHandler;
         HttpsWebServer _ownerServer;
@@ -67,9 +67,7 @@ namespace SharpConnect.WebServers
             int recvBufferSize,
             int sendBufferSize)
         {
-            //we create http context with default IO buffer
-
-
+            //we create http context with default IO buffer 
             this.EnableWebSocket = true;
             _ownerServer = ownerServer;
 
@@ -87,7 +85,7 @@ namespace SharpConnect.WebServers
             //set buffer for newly created saArgs
             //ownerServer.SetBufferFor(this.recvSendArgs = new SocketAsyncEventArgs()); 
             //----------------------------------------------------------------------------------------------------------  
-            _httpReq = new HttpsWebRequest(this);
+            _httpReq = new HttpRequestImpl(this);
             _httpResp = new HttpsWebResponse(this);
         }
 
@@ -99,9 +97,9 @@ namespace SharpConnect.WebServers
         void ISendIO.EnqueueSendingData(byte[] buffer, int len) => _sockStream.EnqueueSendData(buffer, len);
 
         void ISendIO.SendIOStartSend() => _sockStream.StartSend();
-        internal int RecvByteTransfer => _sockStream.ByteReadTransfered;
-        internal byte ReadByte(int pos) => _sockStream.RecvReadByte(pos);
-        internal void RecvCopyTo(int readpos, byte[] dstBuffer, int copyLen) => _sockStream.RecvCopyTo(readpos, dstBuffer, copyLen);
+        public int RecvByteTransfer => _sockStream.ByteReadTransfered;
+        public byte ReadByte(int pos) => _sockStream.RecvReadByte(pos);
+        public void RecvCopyTo(int readpos, byte[] dstBuffer, int copyLen) => _sockStream.RecvCopyTo(readpos, dstBuffer, copyLen);
 
         internal void SendIOStartSend() => _sockStream.StartSend();
 
@@ -133,7 +131,7 @@ namespace SharpConnect.WebServers
         {
             //cut connection from current socket
             _baseSockStream.UnbindSocket();
-            _baseSockStream.ClearRecvEvent();
+
             //
             if (closeClientSocket)
             {
@@ -284,7 +282,10 @@ namespace SharpConnect.WebServers
                         }
                         else
                         {
-                            UnBindSocket(true);
+                            Reset();
+                            //next recv on the same client
+                            StartReceive();
+                            //UnBindSocket(true);
                         }
                     }
                     break;
@@ -351,8 +352,8 @@ namespace SharpConnect.WebServers
         public void Dispose()
         {
             //   this.recvSendArgs.Dispose();
-        } 
-        
+        }
+
 #if DEBUG
 
         internal static int dbug_s_mainSessionId = 1000000000;
@@ -364,7 +365,7 @@ namespace SharpConnect.WebServers
             //new session id
             _dbugSessionId = System.Threading.Interlocked.Increment(ref dbug_s_mainSessionId);
         }
-        public Int32 dbugSessionId => _dbugSessionId; 
+        public Int32 dbugSessionId => _dbugSessionId;
 
         int _dbugSessionId;
         public void dbugSetInfo(int tokenId)
