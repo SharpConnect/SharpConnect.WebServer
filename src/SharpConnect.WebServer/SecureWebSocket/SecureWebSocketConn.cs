@@ -150,12 +150,7 @@ namespace SharpConnect.WebServers
         public override void Close()
         {
             System.Diagnostics.Debug.WriteLine("please impl close:");
-        }
-
-        public override void Send(string data)
-        {
-            _webSocketResp.Write(data);
-        }
+        } 
     }
 
 }

@@ -26,7 +26,7 @@ using System;
 namespace SharpConnect.WebServers
 {
 
-    abstract class WebSocketConnectionBase : IDisposable
+    class WebSocketConnectionBase : IDisposable
     {
         protected WebSocketResponse _webSocketResp;
         protected WebSocketProtocolParser _webSocketReqParser;
@@ -34,7 +34,7 @@ namespace SharpConnect.WebServers
         protected readonly int _connectionId;
         static int s_connectionIdTotal;
         readonly bool _asClientContext;
-        public WebSocketConnectionBase(bool asClient)
+        protected WebSocketConnectionBase(bool asClient)
         {
             _asClientContext = asClient;
             _connectionId = System.Threading.Interlocked.Increment(ref s_connectionIdTotal);
@@ -42,18 +42,22 @@ namespace SharpConnect.WebServers
         public string Name { get; set; }
         public int ConnectionId => _connectionId;
         public bool AsClientContext => _asClientContext;
+        public string InitClientRequestUrl { get; set; }
 
         public virtual void Dispose()
         {
-
         }
-
+        public virtual void Close() { }
         public void SetMessageHandler(ReqRespHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler)
         {
             _webSocketReqHandler = webSocketReqHandler;
+        } 
+
+        public void Send(string data)
+        {
+            //send data to server
+            //and wait for result 
+            _webSocketResp.Write(data);
         }
-        public string InitClientRequestUrl { get; set; }
-        public abstract void Close();
-        public abstract void Send(string data);
     }
 }

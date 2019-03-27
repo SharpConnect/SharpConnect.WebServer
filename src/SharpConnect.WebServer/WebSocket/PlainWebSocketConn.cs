@@ -27,17 +27,14 @@ using SharpConnect.Internal;
 
 namespace SharpConnect.WebServers
 {
-
-
     sealed class PlainWebSocketConn : WebSocketConnectionBase, ISendIO
     {
 
         readonly SocketAsyncEventArgs _sockAsyncSender;
         readonly SocketAsyncEventArgs _sockAsyncListener;
 
-        Socket _clientSocket;
-
-        const int RECV_BUFF_SIZE = 1024; 
+        Socket _clientSocket; 
+        const int RECV_BUFF_SIZE = 1024;
         RecvIO _recvIO;
         SendIO _sendIO;
 
@@ -177,12 +174,7 @@ namespace SharpConnect.WebServers
 
         public override void Close() => _clientSocket.Close();
 
-        public override void Send(string data)
-        {
-            //send data to server
-            //and wait for result 
-            _webSocketResp.Write(data);
-        } 
+
     }
 
 }
