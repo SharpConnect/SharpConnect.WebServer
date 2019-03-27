@@ -13,8 +13,8 @@ namespace SharpConnect.Internal2
     {
 
         internal readonly byte[] _largeBuffer;
-        readonly int _startAt;
-        readonly int _len;
+        internal readonly int _startAt;
+        internal readonly int _len;
         int _readIndex;
         int _writeIndex;
 
@@ -162,20 +162,20 @@ namespace SharpConnect.Internal2
         //send,
         //resp 
 
-        int sendingTargetBytes; //target to send
-        int sendingTransferredBytes; //has transfered bytes
-        byte[] currentSendingData = null;
-        Queue<byte[]> sendingQueue = new Queue<byte[]>();
+        int _sendingTargetBytes; //target to send
+        int _sendingTransferredBytes; //has transfered bytes
+        byte[] _currentSendingData = null;
+        Queue<byte[]> _sendingQueue = new Queue<byte[]>();
 
-        object stateLock = new object();
-        object queueLock = new object();
-        SendIOState _sendingState = SendIOState.ReadyNextSend;
-        AbstractAsyncNetworkStream _networkStream;
-
-
+        object _stateLock = new object();
+        object _queueLock = new object();
+        SendIOState _sendingState;
 #if DEBUG && !NETSTANDARD1_6
         readonly int dbugThradId = System.Threading.Thread.CurrentThread.ManagedThreadId;
+        int dbugSendingTheadId;
 #endif
+        //-----------
+        AbstractAsyncNetworkStream _networkStream;
 
         public SendIO()
         {
@@ -184,82 +184,24 @@ namespace SharpConnect.Internal2
         {
             _networkStream = networkStream;
         }
-        SendIOState sendingState
-        {
-            get => _sendingState;
-            set
-            {
-#if DEBUG
-                switch (_sendingState)
-                {
-                    case SendIOState.Error:
-                        {
-                        }
-                        break;
-                    case SendIOState.ProcessSending:
-                        {
-                            if (value != SendIOState.ReadyNextSend)
-                            {
-
-                            }
-                            else
-                            {
-                            }
-                        }
-                        break;
-                    case SendIOState.ReadyNextSend:
-                        {
-                            if (value != SendIOState.Sending)
-                            {
-
-                            }
-                            else
-                            {
-                            }
-                        }
-                        break;
-                    case SendIOState.Sending:
-                        {
-                            if (value != SendIOState.ProcessSending)
-                            {
-                            }
-                            else
-                            {
-                            }
-                        }
-                        break;
-
-                }
-#endif
-                _sendingState = value;
-            }
-        }
-
         public void Reset()
         {
-            lock (stateLock)
+            _sendingTargetBytes = _sendingTransferredBytes = 0;
+            _currentSendingData = null;
+            lock (_queueLock)
             {
-                if (sendingState != SendIOState.ReadyNextSend)
-                {
-                }
-            }
-
-            sendingTargetBytes = sendingTransferredBytes = 0;
-            currentSendingData = null;
-            lock (queueLock)
-            {
-                if (sendingQueue.Count > 0)
+                if (_sendingQueue.Count > 0)
                 {
 
                 }
-                sendingQueue.Clear();
+                _sendingQueue.Clear();
             }
         }
         public void EnqueueOutputData(byte[] dataToSend, int count)
         {
-            lock (stateLock)
+            lock (_stateLock)
             {
-                SendIOState snap1 = this.sendingState;
+                SendIOState snap1 = _sendingState;
 #if DEBUG && !NETSTANDARD1_6
                 int currentThread = System.Threading.Thread.CurrentThread.ManagedThreadId;
                 if (snap1 != SendIOState.ReadyNextSend)
@@ -268,21 +210,18 @@ namespace SharpConnect.Internal2
                 }
 #endif
             }
-            lock (queueLock)
+            lock (_queueLock)
             {
-                sendingQueue.Enqueue(dataToSend);
+                _sendingQueue.Enqueue(dataToSend);
             }
         }
-        public int QueueCount => sendingQueue.Count;
-#if DEBUG
-        int dbugSendingTheadId;
-#endif
+        public int QueueCount => _sendingQueue.Count;
 
         public void StartSendAsync()
         {
-            lock (stateLock)
+            lock (_stateLock)
             {
-                if (sendingState != SendIOState.ReadyNextSend)
+                if (_sendingState != SendIOState.ReadyNextSend)
                 {
                     //if in other state then return
                     return;
@@ -292,29 +231,29 @@ namespace SharpConnect.Internal2
 #if DEBUG && !NETSTANDARD1_6
                 dbugSendingTheadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
 #endif
-                sendingState = SendIOState.Sending;
+                _sendingState = SendIOState.Sending;
             }
 
             //------------------------------------------------------------------------
             //send this data first 
-            int remaining = this.sendingTargetBytes - this.sendingTransferredBytes;
+            int remaining = _sendingTargetBytes - _sendingTransferredBytes;
             if (remaining == 0)
             {
                 bool hasSomeData = false;
-                lock (queueLock)
+                lock (_queueLock)
                 {
-                    if (this.sendingQueue.Count > 0)
+                    if (_sendingQueue.Count > 0)
                     {
-                        this.currentSendingData = sendingQueue.Dequeue();
-                        remaining = this.sendingTargetBytes = currentSendingData.Length;
-                        this.sendingTransferredBytes = 0;
+                        _currentSendingData = _sendingQueue.Dequeue();
+                        remaining = _sendingTargetBytes = _currentSendingData.Length;
+                        _sendingTransferredBytes = 0;
                         hasSomeData = true;
                     }
                 }
                 if (!hasSomeData)
                 {
                     //no data to send ?
-                    sendingState = SendIOState.ReadyNextSend;
+                    _sendingState = SendIOState.ReadyNextSend;
                     return;
                 }
             }
@@ -323,20 +262,16 @@ namespace SharpConnect.Internal2
                 //?
                 throw new NotSupportedException();
             }
-
-
-            //-----------------------------------------------------------
-
+            //----------------------------------------------------------- 
             //send to network stream
-            //....
-
+            //.... 
             byte[] sendingData = null;// CreateTestHtmlRespMsg("hello!");
             using (MemoryStream ms1 = new MemoryStream())
             {
-                ms1.Write(currentSendingData, 0, currentSendingData.Length);
-                while (sendingQueue.Count > 0)
+                ms1.Write(_currentSendingData, 0, _currentSendingData.Length);
+                while (_sendingQueue.Count > 0)
                 {
-                    byte[] anotherBuffer = sendingQueue.Dequeue();
+                    byte[] anotherBuffer = _sendingQueue.Dequeue();
                     ms1.Write(anotherBuffer, 0, anotherBuffer.Length);
                 }
                 sendingData = ms1.ToArray();
@@ -345,234 +280,16 @@ namespace SharpConnect.Internal2
             if (!_networkStream.WriteBuffer(sendingData, 0, sendingData.Length))
             {
                 remaining = 0;
-                sendingTargetBytes = sendingTransferredBytes;
+                _sendingTargetBytes = _sendingTransferredBytes;
             }
             else
             {
                 //some data pending ...
 
             }
-
-            //
-            //_networkStream.WriteBuffer(currentSendingData, 0, remaining);
-            //ProcessWaitingData();
-
-            ////-----------------------------------------------------------
-            //if (remaining <= _sendBufferSize)
-            //{
-            //    _sendArgs.SetBuffer(_sendStartOffset, remaining); //set position to send data
-            //    //*** copy from src to dest
-            //    if (currentSendingData != null)
-            //    {
-            //        Buffer.BlockCopy(this.currentSendingData, //src
-            //            this.sendingTransferredBytes,
-            //            _sendArgs.Buffer, //dest
-            //            _sendStartOffset,
-            //            remaining);
-            //    }
-            //}
-            //else
-            //{
-            //    //We cannot try to set the buffer any larger than its size.
-            //    //So since receiveSendToken.sendBytesRemainingCount > BufferSize, we just
-            //    //set it to the maximum size, to send the most data possible.
-            //    _sendArgs.SetBuffer(_sendStartOffset, _sendBufferSize);
-            //    //Copy the bytes to the buffer associated with this SAEA object.
-            //    Buffer.BlockCopy(this.currentSendingData,
-            //        this.sendingTransferredBytes,
-            //        _sendArgs.Buffer,
-            //        _sendStartOffset,
-            //        _sendBufferSize);
-            //}
-
-            //if (!_sendArgs.AcceptSocket.SendAsync(_sendArgs))
-            //{
-            //    //when SendAsync return false 
-            //    //Returns false if the I/O operation completed synchronously.                 
-            //    ProcessWaitingData();
-            //}
         }
 
     }
 
 
-
-    class RecvIOBufferStream2 : IDisposable
-    {
-        SimpleBufferReader _simpleBufferReader = new SimpleBufferReader();
-        List<byte[]> _otherBuffers = new List<byte[]>();
-        int _currentBufferIndex;
-
-        bool _multipartMode;
-        int _readpos = 0;
-        int _totalLen = 0;
-        int _bufferCount = 0;
-
-        SharpConnect.Internal2.AbstractAsyncNetworkStream _networkStream;
-
-        public RecvIOBufferStream2(SharpConnect.Internal2.AbstractAsyncNetworkStream networkStream)
-        {
-            _networkStream = networkStream;
-            AutoClearPrevBufferBlock = true;
-        }
-
-        public bool AutoClearPrevBufferBlock { get; set; }
-
-        public void Dispose()
-        {
-
-        }
-        public void Clear()
-        {
-
-            _otherBuffers.Clear();
-            _multipartMode = false;
-            _bufferCount = 0;
-            _currentBufferIndex = 0;
-            _readpos = 0;
-            _totalLen = 0;
-            _simpleBufferReader.SetBuffer(null, 0, 0);
-        }
-
-        public void AppendNewRecvData()
-        {
-            if (_bufferCount == 0)
-            {
-                //single part mode   
-
-                _totalLen = _networkStream.ByteReadTransfered;
-                _simpleBufferReader.SetBuffer(_networkStream.UnsafeGetRecvInternalBuffer(), 0, _totalLen);
-                _bufferCount++;
-            }
-            else
-            {
-                //more than 1 buffer
-                if (_multipartMode)
-                {
-                    int thisPartLen = _networkStream.ByteReadTransfered;
-                    byte[] o2copy = new byte[thisPartLen];
-                    Buffer.BlockCopy(_networkStream.UnsafeGetRecvInternalBuffer(), 0, o2copy, 0, thisPartLen);
-                    _otherBuffers.Add(o2copy);
-                    _totalLen += thisPartLen;
-                }
-                else
-                {
-                    //should not be here
-                    throw new NotSupportedException();
-                }
-                _bufferCount++;
-            }
-        }
-
-        public bool IsEnd() => _readpos >= _totalLen;
-
-        public int Length => _totalLen;
-
-        public bool Ensure(int len) => _readpos + len <= _totalLen;
-
-        public void BackupRecvIO()
-        {
-            if (_bufferCount == 1 && !_multipartMode)
-            {
-                //only in single mode
-                int thisPartLen = _networkStream.ByteReadTransfered;
-                byte[] o2copy = new byte[thisPartLen];
-                Buffer.BlockCopy(_networkStream.UnsafeGetRecvInternalBuffer(), 0, o2copy, 0, thisPartLen);
-                _otherBuffers.Add(o2copy);
-                _multipartMode = true;
-                int prevIndex = _simpleBufferReader.Position;
-                _simpleBufferReader.SetBuffer(o2copy, 0, thisPartLen);
-                _simpleBufferReader.Position = prevIndex;
-            }
-        }
-        public byte ReadByte()
-        {
-            if (_simpleBufferReader.Ensure(1))
-            {
-                _readpos++;
-                return _simpleBufferReader.ReadByte();
-            }
-            else
-            {
-                if (_multipartMode)
-                {
-                    //this end of current buffer
-                    //so we switch to the new one
-                    if (_currentBufferIndex < _otherBuffers.Count)
-                    {
-                        MoveToNextBufferBlock();
-                        _readpos++;
-                        return _simpleBufferReader.ReadByte();
-                    }
-                }
-            }
-            throw new Exception();
-        }
-        void MoveToNextBufferBlock()
-        {
-            if (AutoClearPrevBufferBlock)
-            {
-                _otherBuffers[_currentBufferIndex] = null;
-            }
-
-            _currentBufferIndex++;
-            byte[] buff = _otherBuffers[_currentBufferIndex];
-            _simpleBufferReader.SetBuffer(buff, 0, buff.Length);
-        }
-        /// <summary>
-        /// copy data from current pos to output
-        /// </summary>
-        /// <param name="output"></param>
-        /// <param name="len"></param>
-        public void CopyBuffer(byte[] output, int len)
-        {
-            if (_simpleBufferReader.Ensure(len))
-            {
-                _simpleBufferReader.CopyBytes(output, 0, len);
-                _readpos += len;
-            }
-            else
-            {
-                //need more than 1
-                int toCopyLen = _simpleBufferReader.AvaialbleByteCount;
-                int remain = len;
-                int targetIndex = 0;
-                do
-                {
-                    _simpleBufferReader.CopyBytes(output, targetIndex, toCopyLen);
-                    _readpos += toCopyLen;
-                    targetIndex += toCopyLen;
-                    remain -= toCopyLen;
-                    //move to another
-                    if (remain > 0)
-                    {
-                        if (_currentBufferIndex < _otherBuffers.Count - 1)
-                        {
-                            MoveToNextBufferBlock();
-                            //-------------------------- 
-                            //evaluate after copy
-                            if (_simpleBufferReader.Ensure(remain))
-                            {
-                                //end
-                                _simpleBufferReader.CopyBytes(output, targetIndex, remain);
-                                _readpos += remain;
-                                remain = 0;
-                                return;
-                            }
-                            else
-                            {
-                                //not complete on this round
-                                toCopyLen = _simpleBufferReader.UsedBufferDataLen;
-                                //copy all
-                            }
-                        }
-                        else
-                        {
-                            throw new NotSupportedException();
-                        }
-                    }
-                } while (remain > 0);
-            }
-        }
-    }
 }

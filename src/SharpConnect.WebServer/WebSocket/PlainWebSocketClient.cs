@@ -12,10 +12,10 @@ namespace SharpConnect.WebServers
     class PlainWebSocketClient
     {
         Socket _clientSocket;
-        PlainWebSocketContext _wbContext;
+        PlainWebSocketConn _wbContext;
         public PlainWebSocketClient()
         {
-            _wbContext = new PlainWebSocketContext(true);
+            _wbContext = new PlainWebSocketConn(true);
             _wbContext.SetMessageHandler((req, resp) =>
             {
                 //default
@@ -39,13 +39,8 @@ namespace SharpConnect.WebServers
 
             StringBuilder stbuilder = CreateWebSocketUpgradeReq(uri.AbsolutePath, uri.AbsolutePath + ":" + uri.Port);
             byte[] dataToSend = Encoding.ASCII.GetBytes(stbuilder.ToString());
-            int totalCount = dataToSend.Length;
-            int sendByteCount = _clientSocket.Send(dataToSend);
 
-            if (sendByteCount != totalCount)
-            {
 
-            }
 
             //get first confirm server upgrade resp from server
             byte[] firstRespBuffer = new byte[1024];
@@ -53,7 +48,7 @@ namespace SharpConnect.WebServers
 
             //****
             //add event listener to our socket  
-            _wbContext.Bind(_clientSocket);
+            _wbContext.Bind(_clientSocket, dataToSend);
         }
         public void SetHandler(ReqRespHandler<WebSocketRequest, WebSocketResponse> websocketHandler)
         {

@@ -16,7 +16,7 @@ namespace SharpConnect.Internal2
     /// <summary>
     /// abstract socket network stream
     /// </summary>
-    abstract class AbstractAsyncNetworkStream : Stream
+    abstract class AbstractAsyncNetworkStream : Stream, IRecvIO
     {
 #if DEBUG
         static int s_dbugTotalId;
@@ -66,11 +66,7 @@ namespace SharpConnect.Internal2
         {
             _recvCompleted?.Invoke(this, new DataArrEventArgs() { ByteTransferedCount = byteCount });
         }
-        public void ClearRecvEvent()
-        {
-            //TODO:
-            //_recvCompleted = null;
-        }
+        
         internal abstract byte RecvReadByte(int pos);
         internal abstract void EnqueueSendData(byte[] buffer, int len);
         internal abstract void RecvCopyTo(int readpos, byte[] dstBuffer, int copyLen);
@@ -78,7 +74,8 @@ namespace SharpConnect.Internal2
         internal abstract void UnbindSocket();
         internal abstract int QueueCount { get; }
         //***
-        internal abstract byte[] UnsafeGetRecvInternalBuffer();
+        public abstract byte[] UnsafeGetInternalBuffer();
+        public int BytesTransferred => ByteReadTransfered;
 
         internal bool BeginWebsocketMode { get; set; }
     }
@@ -93,28 +90,21 @@ namespace SharpConnect.Internal2
         SocketAsyncEventArgs _sendAsyncEventArgs;
         SocketAsyncEventArgs _recvAsyncEventArgs;
 
-        const int BUFFER_SIZE = 2048;
-
 
         IOBuffer _recvBuffer;
         IOBuffer _sendBuffer;
 
         object _recvLock = new object();
         bool _passHandshake;
-        readonly int _recvStartOffset = 0;
-        readonly int _recvBufferSize = BUFFER_SIZE;
-
         object _recvWaitLock = new object();
         bool _recvComplete = false;
 
         object _recvWaitLock2 = new object();
         object _sendWaitLock = new object();
         bool _sendComplete = false;
-
         int _sendingByteTransfered = 0;
-
-
         readonly SendIO _sendIO;
+
 
         public SockNetworkStream(IOBuffer recvBuffer, IOBuffer sendBuffer)
         {
@@ -124,11 +114,11 @@ namespace SharpConnect.Internal2
 
             //
             _sendAsyncEventArgs = new SocketAsyncEventArgs();
-            _sendAsyncEventArgs.SetBuffer(_sendBuffer._largeBuffer, _sendBuffer.BufferStartAtIndex, _sendBuffer.BufferLength);
+            _sendAsyncEventArgs.SetBuffer(_sendBuffer._largeBuffer, _sendBuffer._startAt, _sendBuffer._len);
             _sendAsyncEventArgs.Completed += SendAsyncEventArgs_Completed;
             //
             _recvAsyncEventArgs = new SocketAsyncEventArgs();
-            _recvAsyncEventArgs.SetBuffer(_recvBuffer._largeBuffer, _recvBuffer.BufferStartAtIndex, _recvBuffer.BufferLength);//TODO: swap  buffer for the args
+            _recvAsyncEventArgs.SetBuffer(_recvBuffer._largeBuffer, _recvBuffer._startAt, _recvBuffer._len);//TODO: swap  buffer for the args
             _recvAsyncEventArgs.Completed += RecvAsyncEventArgs_Completed;
 
 
@@ -137,7 +127,7 @@ namespace SharpConnect.Internal2
         }
         internal override int QueueCount => _sendIO.QueueCount;
 
-        internal override byte[] UnsafeGetRecvInternalBuffer() => _recvBuffer._largeBuffer;
+        public override byte[] UnsafeGetInternalBuffer() => _recvBuffer._largeBuffer;
 
         public override void Reset()
         {
@@ -156,7 +146,6 @@ namespace SharpConnect.Internal2
             _sendIO.EnqueueOutputData(buffer, len);
         }
 
-        public bool UsedBySslStream { get; set; }
         public void Bind(Socket socket)
         {
 
@@ -191,7 +180,7 @@ namespace SharpConnect.Internal2
         }
         public override void ClearReceiveBuffer()
         {
-            _recvAsyncEventArgs.SetBuffer(_recvStartOffset, _recvBufferSize);
+            _recvAsyncEventArgs.SetBuffer(_recvBuffer._startAt, _recvBuffer._len);
         }
 
         public override int ByteReadTransfered => _recvAsyncEventArgs.BytesTransferred;
@@ -207,24 +196,10 @@ namespace SharpConnect.Internal2
         }
         public override bool WriteBuffer(byte[] srcBuffer, int srcIndex, int count)
         {
-            //if (this.UsedBySslStream)
-            //{
-
-            //}
             //write data to _sendAsyncEventArgs
             _sendBuffer.WriteBuffer(srcBuffer, srcIndex, count);
             //then send***
             return _socket.SendAsync(_sendAsyncEventArgs);
-
-            //if (!_socket.SendAsync(_sendAsyncEventArgs))
-            //{
-            //    //sync 
-            //    return false;
-            //}
-            //else
-            //{
-            //    return true;
-            //}
         }
 
         void RecvAsyncEventArgs_Completed(object sender, SocketAsyncEventArgs e)
@@ -241,28 +216,15 @@ namespace SharpConnect.Internal2
                         //----------------------------------------
                         int bytesTransferred = e.BytesTransferred;
                         byte[] data = e.Buffer;
-                        //----------------------------------------  
+                        //----------------------------------------   
 
-
-                        if (this.UsedBySslStream)
+                        if (bytesTransferred == 0)
                         {
-                            if (bytesTransferred == 0)
+                            lock (_recvLock)
                             {
-                                lock (_recvLock)
-                                {
-                                    _recvBuffer.Reset();
-                                    //since we use share data
-                                    e.SetBuffer(_recvBuffer.WriteIndex, _recvBuffer.RemainingWriteSpace);
-                                }
-                            }
-                            else
-                            {
-                                lock (_recvLock)
-                                {
-                                    _recvBuffer.AppendWriteByteCount(bytesTransferred);
-                                    //since we use share data
-                                    e.SetBuffer(_recvBuffer.WriteIndex, _recvBuffer.RemainingWriteSpace);
-                                }
+                                _recvBuffer.Reset();
+                                //since we use share data
+                                e.SetBuffer(_recvBuffer.WriteIndex, _recvBuffer.RemainingWriteSpace);
                             }
                         }
                         else
@@ -276,20 +238,17 @@ namespace SharpConnect.Internal2
                         }
 
 
+
                         //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
                         lock (_recvWaitLock)                 // Let's now wake up the thread by
                         {                              // setting _go=true and pulsing.
                             _recvComplete = true;
                             Monitor.Pulse(_recvWaitLock);
                         }
+                        //
                         if (_passHandshake)
                         {
-                            if (UsedBySslStream)
-                            {
-
-                            }
                             RaiseRecvCompleted(bytesTransferred);
-
                         }
                     }
                     break;
@@ -315,22 +274,20 @@ namespace SharpConnect.Internal2
                 case SocketAsyncOperation.Send:
                     {
                         ////send complete 
-                        if (UsedBySslStream)
+
+                        if (_passHandshake)
                         {
-                            if (_passHandshake)
+
+                            RaiseSendComplete();
+                        }
+                        else
+                        {
+                            lock (_sendWaitLock)
                             {
-                                RaiseSendComplete();
-                            }
-                            else
-                            {
-                                lock (_sendWaitLock)
-                                {
-                                    _sendComplete = true;
-                                    Monitor.Pulse(_sendWaitLock);
-                                }
+                                _sendComplete = true;
+                                Monitor.Pulse(_sendWaitLock);
                             }
                         }
-
                     }
                     break;
             }
@@ -356,37 +313,32 @@ namespace SharpConnect.Internal2
                     //true if the I/O operation is pending.
                     //The Completed event on the e parameter will be raised upon completion of the operation. 
 
-                    if (UsedBySslStream)
+
+                    //receive async,
+                    //but in this method => convert to sync
+                    //SYNC, we need to WAIT for data ... 
+                    //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
+                    //--------------------------------
+                    lock (_recvWaitLock)
+                        while (!_recvComplete)
+                            Monitor.Wait(_recvWaitLock); //? 
+
+                    if (_passHandshake)
                     {
-                        //receive async,
-                        //but in this method => convert to sync
-                        //SYNC, we need to WAIT for data ... 
-                        //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
-                        //--------------------------------
-                        lock (_recvWaitLock)
-                            while (!_recvComplete)
-                                Monitor.Wait(_recvWaitLock); //? 
-
-                        if (_passHandshake)
+                        lock (_recvLock)
                         {
-                            lock (_recvLock)
-                            {
-                                readByteCount = _recvAsyncEventArgs.BytesTransferred;
-                                //--------------
-                                //write 'encrypted' data from socket to memory stream
-                                //the ssl stream that wrap this stream will decode the data later***
-                                //--------------
-                                _recvBuffer.AppendWriteByteCount(readByteCount);
-                                _recvAsyncEventArgs.SetBuffer(_recvBuffer.WriteIndex, _recvBuffer.RemainingWriteSpace);
+                            readByteCount = _recvAsyncEventArgs.BytesTransferred;
+                            //--------------
+                            //write 'encrypted' data from socket to memory stream
+                            //the ssl stream that wrap this stream will decode the data later***
+                            //--------------
+                            _recvBuffer.AppendWriteByteCount(readByteCount);
+                            _recvAsyncEventArgs.SetBuffer(_recvBuffer.WriteIndex, _recvBuffer.RemainingWriteSpace);
 
-                                //_recvBuffer.WriteBuffer(_recvAsyncEventArgs.Buffer, _recvAsyncEventArgs.Offset, readByteCount);
-                            }
+                            //_recvBuffer.WriteBuffer(_recvAsyncEventArgs.Buffer, _recvAsyncEventArgs.Offset, readByteCount);
                         }
                     }
-                    else
-                    {
 
-                    }
                 }
                 else
                 {
@@ -408,14 +360,7 @@ namespace SharpConnect.Internal2
                         {
                             if (_passHandshake)
                             {
-                                if (UsedBySslStream)
-                                {
-                                    RaiseRecvCompleted(readByteCount);
-                                }
-                                else
-                                {
-
-                                }
+                                RaiseRecvCompleted(readByteCount);
                             }
                             return 0;
                         }
@@ -470,16 +415,18 @@ namespace SharpConnect.Internal2
         }
         public override void Write(byte[] buffer, int offset, int count)
         {
-            if (this.UsedBySslStream)
-            {
-                if (_passHandshake)
-                {
-                    //
-                }
-            }
+
             //buffer contains 'Encrypted' data frorm ssl stream 
             //are write to socket  
             //copy data to buffer and start send
+
+
+            if (count > _recvBuffer._len)
+            {
+                //TODO: review this again
+
+            }
+
             _sendAsyncEventArgs.SetBuffer(0, count);
             Buffer.BlockCopy(buffer, offset, _sendAsyncEventArgs.Buffer, 0, count);
 
@@ -508,7 +455,7 @@ namespace SharpConnect.Internal2
                 //since we share the buffer between _recvAsyncEventArgs and
                 //recvBuffer so=> we need to set this together
                 _recvBuffer.Reset();
-                _recvAsyncEventArgs.SetBuffer(_recvBuffer.BufferStartAtIndex, _recvBufferSize);
+                _recvAsyncEventArgs.SetBuffer(_recvBuffer._startAt, _recvBuffer._len);
 
             }
         }
@@ -565,10 +512,6 @@ namespace SharpConnect.Internal2
             //{
 
             //}
-            if (UsedBySslStream)
-            {
-
-            }
 
             if (!_socket.ReceiveAsync(_recvAsyncEventArgs))
             {
@@ -643,8 +586,6 @@ namespace SharpConnect.Internal2
             System.Net.Security.RemoteCertificateValidationCallback remoteCertValidationCb = null)
         {
             _sslStream = new SslStream(socketNetworkStream, true, remoteCertValidationCb, null);
-            socketNetworkStream.UsedBySslStream = true;
-
             _cert = cert;
 
             _socketNetworkStream = socketNetworkStream;
@@ -656,7 +597,7 @@ namespace SharpConnect.Internal2
             _recvBuffer = new IOBuffer(tmpIOBuffer, 0, tmpIOBuffer.Length);
         }
 
-        internal override byte[] UnsafeGetRecvInternalBuffer() => _recvBuffer._largeBuffer;
+        public override byte[] UnsafeGetInternalBuffer() => _recvBuffer._largeBuffer;
         internal override int QueueCount => _socketNetworkStream.QueueCount;// sending queue count
         internal override void RecvCopyTo(int readpos, byte[] dstBuffer, int copyLen)
         {
@@ -689,6 +630,12 @@ namespace SharpConnect.Internal2
             //upper layer call this 
             //: check waiting data and send it 
             byte[] buffer = _enqueueOutputData.ToArray();
+
+#if DEBUG
+
+            System.Diagnostics.Debug.WriteLine(System.Text.Encoding.UTF8.GetString(buffer));
+#endif
+
             _enqueueOutputData.SetLength(0);
 
             lock (_sendingStateLock)
@@ -815,7 +762,7 @@ namespace SharpConnect.Internal2
         bool _startRecv;
         public override void StartReceive()
         {
-             
+
             if (_startRecv)
             {
                 return;

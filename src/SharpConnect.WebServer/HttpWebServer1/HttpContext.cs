@@ -37,7 +37,7 @@ namespace SharpConnect.WebServers
     /// <summary>
     /// http connection session, req-resp model
     /// </summary>
-    class HttpContext : ISendIO
+    class HttpContext : IHttpContext, ISendIO
     {
         const int RECV_BUFF_SIZE = 1024;
 
@@ -46,8 +46,8 @@ namespace SharpConnect.WebServers
         readonly RecvIO _recvIO;
         readonly SendIO _sendIO;
 
-        HttpWebRequest _httpReq;
-        HttpWebResponse _httpResp;
+        HttpRequestImpl _httpReq;
+        HttpResponseImpl _httpResp;
         ReqRespHandler<HttpRequest, HttpResponse> _reqHandler;
         HttpWebServer _ownerServer;
 
@@ -75,8 +75,8 @@ namespace SharpConnect.WebServers
             _recvIO = new RecvIO(_recv_a, _recv_a.Offset, recvBufferSize, HandleReceive);
             _sendIO = new SendIO(_send_a, _send_a.Offset, sendBufferSize, HandleSend);
             //----------------------------------------------------------------------------------------------------------  
-            _httpReq = new HttpWebRequest(this);
-            _httpResp = new HttpWebResponse(this);
+            _httpReq = new HttpRequestImpl(this);
+            _httpResp = new HttpResponseImpl(this);
 
             //common(shared) event listener***
             _recv_a.Completed += (object sender, SocketAsyncEventArgs e) =>
@@ -131,7 +131,7 @@ namespace SharpConnect.WebServers
                     {
                         //process some data
                         //there some data to process  
-                        switch (_httpReq.LoadData(_recvIO))
+                        switch (_httpReq.LoadData())
                         {
                             case ProcessReceiveBufferResult.Complete:
                                 {
@@ -271,7 +271,9 @@ namespace SharpConnect.WebServers
         void ISendIO.EnqueueSendingData(byte[] buffer, int len) => _sendIO.EnqueueOutputData(buffer, len);
         void ISendIO.SendIOStartSend() => _sendIO.StartSendAsync();
 
-
+        public int RecvByteTransfer => _recvIO.BytesTransferred;
+        public byte ReadByte(int pos) => _recvIO.ReadByte(pos);
+        public void RecvCopyTo(int readpos, byte[] dstBuffer, int copyLen) => _recvIO.CopyTo(readpos, dstBuffer, copyLen);
 
 #if DEBUG
 
@@ -304,7 +306,7 @@ namespace SharpConnect.WebServers
         int _dbugTokenId; //for testing only    
 
 #endif
-      
+
     }
 
 

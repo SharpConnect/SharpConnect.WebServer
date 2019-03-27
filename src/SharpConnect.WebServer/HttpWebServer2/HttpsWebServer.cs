@@ -12,10 +12,9 @@ namespace SharpConnect.WebServers
         bool _isRunning;
         ReqRespHandler<HttpRequest, HttpResponse> _reqHandler;
         NewConnectionListener _newConnListener; //listen to a new connection
-
-
         BufferManager _bufferMan;
         SharedResoucePool<HttpsContext> _contextPool;
+
         public HttpsWebServer(int port, bool localOnly, ReqRespHandler<HttpRequest, HttpResponse> reqHandler)
         {
             _reqHandler = reqHandler;

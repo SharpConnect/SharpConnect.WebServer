@@ -46,13 +46,13 @@ namespace SharpConnect.WebServers
             string sec_websocket_key)
         {
 
-            PlainWebSocketContext wbcontext = new PlainWebSocketContext(false);
+            PlainWebSocketConn wbcontext = new PlainWebSocketConn(false);
 
             var wbCtx = new WebSocketContext(wbcontext);
             _workingWebSocketConns.Add(wbcontext.ConnectionId, wbCtx);//add to working socket 
-            wbcontext.Bind(clientSocket); //move client socket to webSocketConn    
-            wbcontext.SendExternalRaw(MakeWebSocketUpgradeResponse(MakeResponseMagicCode(sec_websocket_key)));
             wbcontext.InitClientRequestUrl = initUrl;
+            wbcontext.Bind(clientSocket, MakeWebSocketUpgradeResponse(MakeResponseMagicCode(sec_websocket_key))); //move client socket to webSocketConn    
+
 
             _newContextConnected?.Invoke(wbCtx);
 
@@ -63,14 +63,11 @@ namespace SharpConnect.WebServers
             string initUrl,
             string sec_websocket_key)
         {
-            var wbcontext = new SecureWebSocketContext(false);
+            var wbcontext = new SecureWebSocketConn(false);
             var wbCtx = new WebSocketContext(wbcontext);
             _workingWebSocketConns.Add(wbcontext.ConnectionId, wbCtx);//add to working socket 
-
-            wbcontext.Bind(clientNetworkStream, MakeWebSocketUpgradeResponse(MakeResponseMagicCode(sec_websocket_key))); //move client socket to webSocketConn    
-
             wbcontext.InitClientRequestUrl = initUrl;
-
+            wbcontext.Bind(clientNetworkStream, MakeWebSocketUpgradeResponse(MakeResponseMagicCode(sec_websocket_key))); //move client socket to webSocketConn    
             _newContextConnected?.Invoke(wbCtx);
             return wbCtx;
         }
