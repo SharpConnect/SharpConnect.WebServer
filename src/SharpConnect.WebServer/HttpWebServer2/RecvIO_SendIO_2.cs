@@ -130,10 +130,12 @@ namespace SharpConnect.Internal2
         /// <param name="inputStream"></param>
         public void WriteBufferFromStream(Stream inputStream)
         {
+#if DEBUG
             if (_writeIndex >= _len)
             {
 
             }
+#endif
             //try read max data from the stream
             _writeIndex += inputStream.Read(_largeBuffer, _writeIndex, _len - _writeIndex);
 #if DEBUG

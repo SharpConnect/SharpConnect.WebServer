@@ -152,9 +152,7 @@ namespace SharpConnect.WebServers
             _isFirstTime = true;
         }
         void StartReceive()
-        {
-            //_asyncStream.StartReceive();
-            //recvIO.StartReceive();
+        { 
 #if DEBUG
             int debugId = this.dbugId;
 #endif
@@ -173,6 +171,7 @@ namespace SharpConnect.WebServers
                 //if no cert then just start recv                
                 //JustBypassSocketNetworkStream bypass = new JustBypassSocketNetworkStream(_baseSockStream, cert);
                 _sockStream = _baseSockStream;
+                
 
                 ////-----------------------------
                 //recvIO.Bind(_sockStream);
