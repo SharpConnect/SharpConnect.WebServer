@@ -33,7 +33,7 @@ namespace SharpConnect.WebServers
         protected ReqRespHandler<WebSocketRequest, WebSocketResponse> _webSocketReqHandler;
         protected readonly int _connectionId;
         static int s_connectionIdTotal;
-        readonly bool _asClientContext;
+        protected readonly bool _asClientContext;
         protected WebSocketConnectionBase(bool asClient)
         {
             _asClientContext = asClient;
@@ -51,7 +51,7 @@ namespace SharpConnect.WebServers
         public void SetMessageHandler(ReqRespHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler)
         {
             _webSocketReqHandler = webSocketReqHandler;
-        } 
+        }
 
         public void Send(string data)
         {

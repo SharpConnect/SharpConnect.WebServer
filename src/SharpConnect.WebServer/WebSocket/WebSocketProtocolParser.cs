@@ -306,20 +306,16 @@ namespace SharpConnect.WebServers
                                 return ProcessReceiveBufferResult.NeedMore;
                             }
 
-                            if (!_myBufferStream.IsEnd())
+                            if (_myBufferStream.IsEnd())
                             {
-                                
+                                _parseState = ParseState.Init;
+                                _myBufferStream.Clear();
+                                return ProcessReceiveBufferResult.Complete;
                             }
+                            else
+                            {
 
-                            _parseState = ParseState.Init;
-                            _myBufferStream.Clear();
-                            return ProcessReceiveBufferResult.Complete;
-
-                            //if (_myBufferStream.IsEnd())
-                            //{
-                            //    _myBufferStream.Clear();
-                            //    return ProcessReceiveBufferResult.Complete;
-                            //}
+                            }
                             //more than 1 byte 
                         }
                         break;
