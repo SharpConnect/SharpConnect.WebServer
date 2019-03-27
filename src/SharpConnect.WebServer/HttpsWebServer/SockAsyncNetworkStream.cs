@@ -8,7 +8,7 @@ using System.Threading;
 
 namespace SharpConnect.Internal2
 {
-    public class DataArrEventArgs : EventArgs
+    class DataArrEventArgs : EventArgs
     {
         public int ByteTransferedCount { get; set; }
     }

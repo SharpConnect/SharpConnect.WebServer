@@ -483,28 +483,6 @@ namespace SharpConnect.Internal
                                 _notify(SendIOEventCode.SendComplete);
                                 //****   
                             }
-                            //if (sendingQueue.Count > 0)
-                            //{
-                            //    //move new chunck to current Sending data
-                            //    this.currentSendingData = sendingQueue.Dequeue()
-                            //    this.sendingTargetBytes = currentSendingData.Length;
-                            //    this.sendingTransferredBytes = 0;
-
-                            //    //****
-                            //    sendingState = SendIOState.ReadyNextSend;
-                            //    StartSendAsync();
-                            //    //****
-                            //}
-                            //else
-                            //{
-                            //    //no data
-                            //    ResetBuffer();
-                            //    //notify no more data
-                            //    //****
-                            //    sendingState = SendIOState.ReadyNextSend;
-                            //    notify(SendIOEventCode.SendComplete);
-                            //    //****   
-                            //}
                         }
                         else
                         {   //< 0 ????
@@ -516,8 +494,6 @@ namespace SharpConnect.Internal
 
         }
     }
-
-
 
     class SimpleBufferReader
     {
