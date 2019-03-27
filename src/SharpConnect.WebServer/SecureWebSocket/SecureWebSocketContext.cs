@@ -34,7 +34,7 @@ namespace SharpConnect.WebServers
         SharpConnect.Internal2.AbstractAsyncNetworkStream _clientStream;
 
         WebSocketResponse _webSocketResp;
-        SharpConnect.Internal2.WebSocketProtocolParser2 _webSocketReqParser;
+        WebSocketProtocolParser _webSocketReqParser;
 
         readonly int _connectionId;
         readonly bool _asClientContext;
@@ -61,7 +61,7 @@ namespace SharpConnect.WebServers
         internal void Bind(SharpConnect.Internal2.AbstractAsyncNetworkStream clientStream, byte[] wsUpgradeResponseMsg)
         {
 
-            _webSocketReqParser = new SharpConnect.Internal2.WebSocketProtocolParser2(this.AsClientContext, new SharpConnect.Internal2.RecvIOBufferStream2(clientStream));
+            _webSocketReqParser = new WebSocketProtocolParser(this.AsClientContext, new RecvIOBufferStream(clientStream));
             _clientStream = clientStream;
 
             _clientStream.SetRecvCompleteEventHandler((s, e) =>

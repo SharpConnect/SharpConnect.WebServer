@@ -16,7 +16,7 @@ namespace SharpConnect.Internal2
     /// <summary>
     /// abstract socket network stream
     /// </summary>
-    abstract class AbstractAsyncNetworkStream : Stream
+    abstract class AbstractAsyncNetworkStream : Stream, IRecvIO
     {
 #if DEBUG
         static int s_dbugTotalId;
@@ -78,7 +78,8 @@ namespace SharpConnect.Internal2
         internal abstract void UnbindSocket();
         internal abstract int QueueCount { get; }
         //***
-        internal abstract byte[] UnsafeGetRecvInternalBuffer();
+        public abstract byte[] UnsafeGetInternalBuffer();
+        public int BytesTransferred => ByteReadTransfered;
 
         internal bool BeginWebsocketMode { get; set; }
     }
@@ -109,8 +110,8 @@ namespace SharpConnect.Internal2
 
         object _recvWaitLock2 = new object();
         object _sendWaitLock = new object();
-        bool _sendComplete = false; 
-        int _sendingByteTransfered = 0; 
+        bool _sendComplete = false;
+        int _sendingByteTransfered = 0;
         readonly SendIO _sendIO;
 
 
@@ -135,7 +136,7 @@ namespace SharpConnect.Internal2
         }
         internal override int QueueCount => _sendIO.QueueCount;
 
-        internal override byte[] UnsafeGetRecvInternalBuffer() => _recvBuffer._largeBuffer;
+        public override byte[] UnsafeGetInternalBuffer() => _recvBuffer._largeBuffer;
 
         public override void Reset()
         {
@@ -484,7 +485,7 @@ namespace SharpConnect.Internal2
             if (count > 2048)
             {
                 //TODO: review this again
-                
+
             }
 
             _sendAsyncEventArgs.SetBuffer(0, count);
@@ -663,7 +664,7 @@ namespace SharpConnect.Internal2
             _recvBuffer = new IOBuffer(tmpIOBuffer, 0, tmpIOBuffer.Length);
         }
 
-        internal override byte[] UnsafeGetRecvInternalBuffer() => _recvBuffer._largeBuffer;
+        public override byte[] UnsafeGetInternalBuffer() => _recvBuffer._largeBuffer;
         internal override int QueueCount => _socketNetworkStream.QueueCount;// sending queue count
         internal override void RecvCopyTo(int readpos, byte[] dstBuffer, int copyLen)
         {
