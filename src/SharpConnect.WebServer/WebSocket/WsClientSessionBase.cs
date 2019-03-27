@@ -13,6 +13,8 @@ namespace SharpConnect.WebServers
     /// </summary>
     abstract class WsClientSessionBase
     {
+        protected Socket _clientSocket;
+        protected IPAddress _hostIP;
         protected WebSocketConnectionBase _wbsocketConn;
         protected ReqRespHandler<WebSocketRequest, WebSocketResponse> _websocketHandler;
         public void SetHandler(ReqRespHandler<WebSocketRequest, WebSocketResponse> websocketHandler)
@@ -46,6 +48,16 @@ namespace SharpConnect.WebServers
         public void SendData(string data)
         {
             _wbsocketConn.Send(data);
+        }
+        protected void InitClientSocket(Uri uri)
+        {
+           
+            _clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IP);
+            _hostIP = IPAddress.Loopback;
+            if (uri.Host != "localhost")
+            {
+                _hostIP = IPAddress.Parse(uri.Host);
+            }
         }
     }
 }

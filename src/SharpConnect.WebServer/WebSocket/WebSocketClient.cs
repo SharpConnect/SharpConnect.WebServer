@@ -13,7 +13,7 @@ namespace SharpConnect.WebServers
 
     public class WebSocketClient
     {
- 
+
         ReqRespHandler<WebSocketRequest, WebSocketResponse> _websocketHandler;
         System.Security.Cryptography.X509Certificates.X509Certificate2 _serverCert;
         WsClientSessionBase _clientBase;
@@ -57,9 +57,6 @@ namespace SharpConnect.WebServers
             _clientBase.SendData(data);
         }
 
-
-
-
         //--------------
         class PlainWsSession : WsClientSessionBase
         {
@@ -74,16 +71,9 @@ namespace SharpConnect.WebServers
                 _wbsocketConn = plainWsConn;
 
                 Uri uri = new Uri(url);
-                //1. send websocket request upgrade protocol
-                //2. 
-                var _clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IP);
-                IPAddress ipAddress = IPAddress.Loopback;
-                if (uri.Host != "localhost")
-                {
-                    ipAddress = IPAddress.Parse(uri.Host);
-                }
+                InitClientSocket(uri);
 
-                _clientSocket.Connect(ipAddress, uri.Port);
+                _clientSocket.Connect(_hostIP, uri.Port);
                 //create http webreq  
 
                 StringBuilder stbuilder = CreateWebSocketUpgradeReq(uri.AbsolutePath, uri.AbsolutePath + ":" + uri.Port);
@@ -115,14 +105,7 @@ namespace SharpConnect.WebServers
                 secureWsConn.SetMessageHandler(_websocketHandler);
                 _wbsocketConn = secureWsConn;
 
-                Uri uri = new Uri(url);
-
-                var clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IP);
-                IPAddress ipAddress = IPAddress.Loopback;
-                if (uri.Host != "localhost")
-                {
-                    ipAddress = IPAddress.Parse(uri.Host);
-                }
+                
 
                 //TODO: review buffer management here***
                 byte[] buffer1 = new byte[2048];
@@ -132,8 +115,13 @@ namespace SharpConnect.WebServers
 
                 var sockNetworkStream = new SockNetworkStream(recvBuffer, sendBuffer);
                 var secureStream = new SecureSockNetworkStream(sockNetworkStream, cert, delegate { return true; }); //***
-                sockNetworkStream.Bind(clientSocket);
-                clientSocket.Connect(ipAddress, uri.Port);
+
+
+                Uri uri = new Uri(url);
+                InitClientSocket(uri);
+
+                sockNetworkStream.Bind(_clientSocket);
+                _clientSocket.Connect(_hostIP, uri.Port);
 
                 //_secureStream.AuthenAsClient(uri.Host);
                 secureStream.AuthenAsClient(uri.Host, () =>
