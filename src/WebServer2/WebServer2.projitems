@@ -15,7 +15,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)HttpsWebServer\HttpsWebResponse.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpsWebServer\HttpsWebServer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Internal\SockAsyncNetworkStream.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketContext.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)WebSocket\SecureWebSocketContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketProtocolParser.cs" />
   </ItemGroup>
   <ItemGroup>

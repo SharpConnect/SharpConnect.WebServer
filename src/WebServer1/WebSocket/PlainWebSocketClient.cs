@@ -12,10 +12,10 @@ namespace SharpConnect.WebServers
     class PlainWebSocketClient
     {
         Socket _clientSocket;
-        WebSocketContext _wbContext;
+        PlainWebSocketContext _wbContext;
         public PlainWebSocketClient()
         {
-            _wbContext = new WebSocketContext(true);
+            _wbContext = new PlainWebSocketContext(true);
             _wbContext.SetMessageHandler((req, resp) =>
             {
                 //default

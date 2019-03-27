@@ -13,7 +13,7 @@ namespace SharpConnect
             Main_Https();
         }
 
-        static List<SharpConnect.WebServers.WebSocketSession> s_contextList = new List<WebServers.WebSocketSession>();
+        static List<SharpConnect.WebServers.WebSocketContext> s_contextList = new List<WebServers.WebSocketContext>();
 
         static void Main_Http()
         {
@@ -89,9 +89,9 @@ namespace SharpConnect
 
                 //test websocket 
                 var webSocketServer = new SharpConnect.WebServers.WebSocketServer();
-                webSocketServer.SetOnNewConnectionContext((SharpConnect.WebServers.Server2.WebSocketContext ctx) =>
+                webSocketServer.SetOnNewConnectionContext(ctx =>
                 {
-                    s_contextList1.Add(ctx);
+                    s_contextList.Add(ctx);
                     ctx.SetMessageHandler(testApp.HandleWebSocket);
                 });
                 webServer.WebSocketServer = webSocketServer;
