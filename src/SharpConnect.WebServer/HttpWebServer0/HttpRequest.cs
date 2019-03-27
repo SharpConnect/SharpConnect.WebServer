@@ -23,29 +23,15 @@ namespace SharpConnect.WebServers
     }
     public class WebRequestParameter
     {
-        string name;
-        string value;
-
+        string _name;
+        string _value;
         public WebRequestParameter(string name, string value)
         {
-            this.name = name;
-            this.value = value;
+            this._name = name;
+            this._value = value;
         }
-        public string ParameterName
-        {
-            get
-            {
-                return this.name;
-            }
-        }
-        public string Value
-        {
-            get
-            {
-                return value;
-            }
-        }
-
+        public string ParameterName => _name;
+        public string Value => _value;
     }
 
     public enum HttpMethod

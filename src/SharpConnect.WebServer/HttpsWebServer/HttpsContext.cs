@@ -256,7 +256,9 @@ namespace SharpConnect.WebServers
             _sockStream.Reset();
         }
 
-        int _sendCompleted = 0;
+#if DEBUG
+        int dbugSendComplete = 0;
+#endif
         void HandleSend(SendIOEventCode sendEventCode)
         {
             switch (sendEventCode)
@@ -269,26 +271,21 @@ namespace SharpConnect.WebServers
                     break;
                 case SendIOEventCode.SendComplete:
                     {
-                        //KeepAlive = false;
-                        //Reset();
-                        //UnBindSocket(true);
-                        Reset();
-                        //next recv on the same client
-                        _sendCompleted++;
 
-                        StartReceive();
+#if DEBUG
+                        dbugSendComplete++;
+#endif
 
-
-                        //if (KeepAlive)
-                        //{
-                        //    Reset();
-                        //    //next recv on the same client
-                        //    StartReceive();
-                        //}
-                        //else
-                        //{
-                        //    UnBindSocket(true);
-                        //}
+                        if (KeepAlive)
+                        {
+                            Reset();
+                            //next recv on the same client
+                            StartReceive();
+                        }
+                        else
+                        {
+                            UnBindSocket(true);
+                        }
                     }
                     break;
             }
@@ -354,10 +351,8 @@ namespace SharpConnect.WebServers
         public void Dispose()
         {
             //   this.recvSendArgs.Dispose();
-        }
-
-        internal HttpsWebServer OwnerWebServer => _ownerServer;
-
+        } 
+        
 #if DEBUG
 
         internal static int dbug_s_mainSessionId = 1000000000;
@@ -369,8 +364,7 @@ namespace SharpConnect.WebServers
             //new session id
             _dbugSessionId = System.Threading.Interlocked.Increment(ref dbug_s_mainSessionId);
         }
-        public Int32 dbugSessionId => _dbugSessionId;
-
+        public Int32 dbugSessionId => _dbugSessionId; 
 
         int _dbugSessionId;
         public void dbugSetInfo(int tokenId)

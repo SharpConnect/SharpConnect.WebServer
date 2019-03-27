@@ -23,7 +23,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)HttpsWebServer\HttpsRequest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpsWebServer\HttpsWebResponse.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpsWebServer\HttpsWebServer.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)HttpsWebServer\RecvIO_SendIO.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpsWebServer\RecvIO_SendIO_2.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer0\HttpRequest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer0\HttpResponse.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer0\WebServer.cs" />
@@ -32,7 +32,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer1\HttpWebResponse.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer1\HttpWebServer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer1\RecvIO_SendIO.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Internal\SockAsyncNetworkStream.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpsWebServer\SockAsyncNetworkStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SecureWebSocket\SecureWebSocketClient.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SecureWebSocket\SecureWebSocketContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SecureWebSocket\WebSocketProtocolParser.cs" />

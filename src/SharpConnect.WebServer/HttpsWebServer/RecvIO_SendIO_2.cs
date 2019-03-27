@@ -405,7 +405,7 @@ namespace SharpConnect.Internal2
 
     class RecvIOBufferStream2 : IDisposable
     {
-        SharpConnect.Internal.SimpleBufferReader _simpleBufferReader = new SharpConnect.Internal.SimpleBufferReader();
+        SimpleBufferReader _simpleBufferReader = new SimpleBufferReader();
         List<byte[]> _otherBuffers = new List<byte[]>();
         int _currentBufferIndex;
 

@@ -6,24 +6,15 @@ namespace SharpConnect.WebServers
 
     class HttpsWebRequest : SharpConnect.WebServers.HttpRequest
     {
-        enum HttpParsingState
-        {
-            Head,
-            Body,
-            Complete
-        }
-
+        HttpParsingState _parseState;
         HttpsContext _context;
         internal HttpsWebRequest(HttpsContext context)
         {
             _context = context;
         }
 
-        //===================
-        //parsing 
-        HttpParsingState _parseState;
+        //parsing  
         bool IsMsgBodyComplete => _contentByteCount >= _targetContentLength;
-
         void AddMsgBody(byte[] buffer, int start, int count)
         {
             _bodyMs.Write(buffer, start, count);
