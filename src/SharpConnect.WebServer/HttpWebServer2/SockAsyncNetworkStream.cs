@@ -66,11 +66,7 @@ namespace SharpConnect.Internal2
         {
             _recvCompleted?.Invoke(this, new DataArrEventArgs() { ByteTransferedCount = byteCount });
         }
-        public void ClearRecvEvent()
-        {
-            //TODO:
-            //_recvCompleted = null;
-        }
+        
         internal abstract byte RecvReadByte(int pos);
         internal abstract void EnqueueSendData(byte[] buffer, int len);
         internal abstract void RecvCopyTo(int readpos, byte[] dstBuffer, int copyLen);
