@@ -27,8 +27,8 @@ namespace SharpConnect.WebServers
         string _value;
         public WebRequestParameter(string name, string value)
         {
-            this._name = name;
-            this._value = value;
+            _name = name;
+            _value = value;
         }
         public string ParameterName => _name;
         public string Value => _value;

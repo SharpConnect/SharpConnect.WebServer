@@ -109,12 +109,10 @@ namespace SharpConnect.Internal2
 
         object _recvWaitLock2 = new object();
         object _sendWaitLock = new object();
-        bool _sendComplete = false;
-
-        int _sendingByteTransfered = 0;
-
-
+        bool _sendComplete = false; 
+        int _sendingByteTransfered = 0; 
         readonly SendIO _sendIO;
+
 
         public SockNetworkStream(IOBuffer recvBuffer, IOBuffer sendBuffer)
         {
@@ -319,6 +317,7 @@ namespace SharpConnect.Internal2
                         {
                             if (_passHandshake)
                             {
+
                                 RaiseSendComplete();
                             }
                             else
@@ -480,6 +479,14 @@ namespace SharpConnect.Internal2
             //buffer contains 'Encrypted' data frorm ssl stream 
             //are write to socket  
             //copy data to buffer and start send
+
+
+            if (count > 2048)
+            {
+                //TODO: review this again
+                
+            }
+
             _sendAsyncEventArgs.SetBuffer(0, count);
             Buffer.BlockCopy(buffer, offset, _sendAsyncEventArgs.Buffer, 0, count);
 
@@ -689,6 +696,12 @@ namespace SharpConnect.Internal2
             //upper layer call this 
             //: check waiting data and send it 
             byte[] buffer = _enqueueOutputData.ToArray();
+
+#if DEBUG
+
+            System.Diagnostics.Debug.WriteLine(System.Text.Encoding.UTF8.GetString(buffer));
+#endif
+
             _enqueueOutputData.SetLength(0);
 
             lock (_sendingStateLock)
@@ -815,7 +828,7 @@ namespace SharpConnect.Internal2
         bool _startRecv;
         public override void StartReceive()
         {
-             
+
             if (_startRecv)
             {
                 return;

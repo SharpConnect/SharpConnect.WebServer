@@ -162,13 +162,13 @@ namespace SharpConnect.Internal2
         //send,
         //resp 
 
-        int sendingTargetBytes; //target to send
-        int sendingTransferredBytes; //has transfered bytes
-        byte[] currentSendingData = null;
-        Queue<byte[]> sendingQueue = new Queue<byte[]>();
+        int _sendingTargetBytes; //target to send
+        int _sendingTransferredBytes; //has transfered bytes
+        byte[] _currentSendingData = null;
+        Queue<byte[]> _sendingQueue = new Queue<byte[]>();
 
-        object stateLock = new object();
-        object queueLock = new object();
+        object _stateLock = new object();
+        object _queueLock = new object();
         SendIOState _sendingState = SendIOState.ReadyNextSend;
         AbstractAsyncNetworkStream _networkStream;
 
@@ -237,27 +237,27 @@ namespace SharpConnect.Internal2
 
         public void Reset()
         {
-            lock (stateLock)
+            lock (_stateLock)
             {
                 if (sendingState != SendIOState.ReadyNextSend)
                 {
                 }
             }
 
-            sendingTargetBytes = sendingTransferredBytes = 0;
-            currentSendingData = null;
-            lock (queueLock)
+            _sendingTargetBytes = _sendingTransferredBytes = 0;
+            _currentSendingData = null;
+            lock (_queueLock)
             {
-                if (sendingQueue.Count > 0)
+                if (_sendingQueue.Count > 0)
                 {
 
                 }
-                sendingQueue.Clear();
+                _sendingQueue.Clear();
             }
         }
         public void EnqueueOutputData(byte[] dataToSend, int count)
         {
-            lock (stateLock)
+            lock (_stateLock)
             {
                 SendIOState snap1 = this.sendingState;
 #if DEBUG && !NETSTANDARD1_6
@@ -268,19 +268,19 @@ namespace SharpConnect.Internal2
                 }
 #endif
             }
-            lock (queueLock)
+            lock (_queueLock)
             {
-                sendingQueue.Enqueue(dataToSend);
+                _sendingQueue.Enqueue(dataToSend);
             }
         }
-        public int QueueCount => sendingQueue.Count;
+        public int QueueCount => _sendingQueue.Count;
 #if DEBUG
         int dbugSendingTheadId;
 #endif
 
         public void StartSendAsync()
         {
-            lock (stateLock)
+            lock (_stateLock)
             {
                 if (sendingState != SendIOState.ReadyNextSend)
                 {
@@ -297,17 +297,17 @@ namespace SharpConnect.Internal2
 
             //------------------------------------------------------------------------
             //send this data first 
-            int remaining = this.sendingTargetBytes - this.sendingTransferredBytes;
+            int remaining = _sendingTargetBytes - _sendingTransferredBytes;
             if (remaining == 0)
             {
                 bool hasSomeData = false;
-                lock (queueLock)
+                lock (_queueLock)
                 {
-                    if (this.sendingQueue.Count > 0)
+                    if (_sendingQueue.Count > 0)
                     {
-                        this.currentSendingData = sendingQueue.Dequeue();
-                        remaining = this.sendingTargetBytes = currentSendingData.Length;
-                        this.sendingTransferredBytes = 0;
+                        _currentSendingData = _sendingQueue.Dequeue();
+                        remaining = _sendingTargetBytes = _currentSendingData.Length;
+                        _sendingTransferredBytes = 0;
                         hasSomeData = true;
                     }
                 }
@@ -333,10 +333,10 @@ namespace SharpConnect.Internal2
             byte[] sendingData = null;// CreateTestHtmlRespMsg("hello!");
             using (MemoryStream ms1 = new MemoryStream())
             {
-                ms1.Write(currentSendingData, 0, currentSendingData.Length);
-                while (sendingQueue.Count > 0)
+                ms1.Write(_currentSendingData, 0, _currentSendingData.Length);
+                while (_sendingQueue.Count > 0)
                 {
-                    byte[] anotherBuffer = sendingQueue.Dequeue();
+                    byte[] anotherBuffer = _sendingQueue.Dequeue();
                     ms1.Write(anotherBuffer, 0, anotherBuffer.Length);
                 }
                 sendingData = ms1.ToArray();
@@ -345,7 +345,7 @@ namespace SharpConnect.Internal2
             if (!_networkStream.WriteBuffer(sendingData, 0, sendingData.Length))
             {
                 remaining = 0;
-                sendingTargetBytes = sendingTransferredBytes;
+                _sendingTargetBytes = _sendingTransferredBytes;
             }
             else
             {

@@ -6,11 +6,7 @@ namespace SharpConnect.WebServers
 
     class HttpWebResponse : HttpResponse
     {
-        enum WriteContentState : byte
-        {
-            HttpHead,
-            HttpBody,
-        }
+         
         readonly HttpContext _context;
 
         internal HttpWebResponse(HttpContext context) : base(context)

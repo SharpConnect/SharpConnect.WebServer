@@ -40,7 +40,7 @@ namespace SharpConnect.Internal2
         }
 
         Queue<WebSocketRequest> _incommingReqs = new Queue<WebSocketRequest>();
-        SharpConnect.Internal2.RecvIOBufferStream2 _myBufferStream;
+        RecvIOBufferStream2 _myBufferStream;
         WebSocketRequest _currentReq;
 
         ParseState _parseState;
@@ -55,7 +55,7 @@ namespace SharpConnect.Internal2
 
         bool _asClientContext;
 
-        internal WebSocketProtocolParser2(bool asClientContext, SharpConnect.Internal2.RecvIOBufferStream2 recvBufferStream)
+        internal WebSocketProtocolParser2(bool asClientContext, RecvIOBufferStream2 recvBufferStream)
         {
             _asClientContext = asClientContext;
             _myBufferStream = recvBufferStream;
