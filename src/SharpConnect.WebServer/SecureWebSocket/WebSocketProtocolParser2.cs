@@ -27,7 +27,7 @@ using SharpConnect.WebServers;
 
 namespace SharpConnect.Internal2
 {
-    class WebSocketProtocolParser
+    class WebSocketProtocolParser2
     {
 
         enum ParseState
@@ -55,7 +55,7 @@ namespace SharpConnect.Internal2
 
         bool _asClientContext;
 
-        internal WebSocketProtocolParser(bool asClientContext, SharpConnect.Internal2.RecvIOBufferStream2 recvBufferStream)
+        internal WebSocketProtocolParser2(bool asClientContext, SharpConnect.Internal2.RecvIOBufferStream2 recvBufferStream)
         {
             _asClientContext = asClientContext;
             _myBufferStream = recvBufferStream;
