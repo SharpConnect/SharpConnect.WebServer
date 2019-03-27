@@ -33,6 +33,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)SecureWebSocket\SecureWebSocketConn.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\Flags.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\PlainWebSocketConn.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)WebSocket\SecureWebSocketConn.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketClient.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketConnectionBase.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketContext.cs" />
