@@ -1,0 +1,150 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26228.9
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpConnect.WebServer", "build\NETCore\SharpConnect.WebServer\SharpConnect.WebServer.csproj", "{72A04B6A-C310-4FB4-A59F-83F4263F7088}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NETSTD", "NETSTD", "{7B52AB7D-5670-44FF-A63C-3CEC0E0270F7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NET20", "NET20", "{A504C555-2D0F-45F6-BE0F-ECE77E52AC54}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpConnect.WebServer", "build\NET20\SharpConnect.WebServer\SharpConnect.WebServer.csproj", "{E6770D15-EFA9-4126-9081-677D89CA441D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test", "Test", "{A4D07531-CF2A-48C3-A5C5-0BC11FAC787D}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "WebServerApp", "tests\WebServerApp\WebServerApp.shproj", "{CF4BFB13-5A72-4328-9700-8F27BC1C570A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebServerApp", "build\NET20\WebServerApp\WebServerApp.csproj", "{DD90FB5E-7437-451B-9D41-6E3F2214A50B}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "SharpConnect.WebServer", "src\SharpConnect.WebServer\SharpConnect.WebServer.shproj", "{1585F301-4ECE-462C-A9D5-49BFE1C40041}"
+EndProject
+Global
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		src\SharpConnect.WebServer\SharpConnect.WebServer.projitems*{1585f301-4ece-462c-a9d5-49bfe1c40041}*SharedItemsImports = 13
+		tests\WebServerApp\WebServerApp.projitems*{cf4bfb13-5a72-4328-9700-8f27bc1c570a}*SharedItemsImports = 13
+		tests\WebServerApp\WebServerApp.projitems*{dd90fb5e-7437-451b-9d41-6e3f2214a50b}*SharedItemsImports = 4
+		src\SharpConnect.WebServer\SharpConnect.WebServer.projitems*{e6770d15-efa9-4126-9081-677d89ca441d}*SharedItemsImports = 4
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug_Ubuntu|Any CPU = Debug_Ubuntu|Any CPU
+		Debug_Ubuntu|x64 = Debug_Ubuntu|x64
+		Debug_Ubuntu|x86 = Debug_Ubuntu|x86
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release_Ubuntu|Any CPU = Release_Ubuntu|Any CPU
+		Release_Ubuntu|x64 = Release_Ubuntu|x64
+		Release_Ubuntu|x86 = Release_Ubuntu|x86
+		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+		Trace|Any CPU = Trace|Any CPU
+		Trace|x64 = Trace|x64
+		Trace|x86 = Trace|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Debug_Ubuntu|Any CPU.ActiveCfg = Debug|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Debug_Ubuntu|Any CPU.Build.0 = Debug|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Debug_Ubuntu|x64.ActiveCfg = Debug|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Debug_Ubuntu|x64.Build.0 = Debug|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Debug_Ubuntu|x86.ActiveCfg = Debug|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Debug_Ubuntu|x86.Build.0 = Debug|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Debug|x64.Build.0 = Debug|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Debug|x86.Build.0 = Debug|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Release_Ubuntu|Any CPU.ActiveCfg = Release|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Release_Ubuntu|Any CPU.Build.0 = Release|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Release_Ubuntu|x64.ActiveCfg = Release|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Release_Ubuntu|x64.Build.0 = Release|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Release_Ubuntu|x86.ActiveCfg = Release|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Release_Ubuntu|x86.Build.0 = Release|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Release|Any CPU.Build.0 = Release|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Release|x64.ActiveCfg = Release|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Release|x64.Build.0 = Release|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Release|x86.ActiveCfg = Release|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Release|x86.Build.0 = Release|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Trace|Any CPU.ActiveCfg = Debug|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Trace|Any CPU.Build.0 = Debug|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Trace|x64.ActiveCfg = Debug|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Trace|x64.Build.0 = Debug|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Trace|x86.ActiveCfg = Debug|Any CPU
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088}.Trace|x86.Build.0 = Debug|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Debug_Ubuntu|Any CPU.ActiveCfg = Debug|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Debug_Ubuntu|Any CPU.Build.0 = Debug|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Debug_Ubuntu|x64.ActiveCfg = Debug|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Debug_Ubuntu|x64.Build.0 = Debug|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Debug_Ubuntu|x86.ActiveCfg = Debug|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Debug_Ubuntu|x86.Build.0 = Debug|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Debug|x64.Build.0 = Debug|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Debug|x86.Build.0 = Debug|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Release_Ubuntu|Any CPU.ActiveCfg = Release|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Release_Ubuntu|Any CPU.Build.0 = Release|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Release_Ubuntu|x64.ActiveCfg = Release|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Release_Ubuntu|x64.Build.0 = Release|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Release_Ubuntu|x86.ActiveCfg = Release|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Release_Ubuntu|x86.Build.0 = Release|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Release|x64.ActiveCfg = Release|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Release|x64.Build.0 = Release|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Release|x86.ActiveCfg = Release|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Release|x86.Build.0 = Release|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Trace|Any CPU.ActiveCfg = Release|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Trace|Any CPU.Build.0 = Release|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Trace|x64.ActiveCfg = Release|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Trace|x64.Build.0 = Release|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Trace|x86.ActiveCfg = Release|Any CPU
+		{E6770D15-EFA9-4126-9081-677D89CA441D}.Trace|x86.Build.0 = Release|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Debug_Ubuntu|Any CPU.ActiveCfg = Debug|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Debug_Ubuntu|Any CPU.Build.0 = Debug|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Debug_Ubuntu|x64.ActiveCfg = Debug|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Debug_Ubuntu|x64.Build.0 = Debug|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Debug_Ubuntu|x86.ActiveCfg = Debug|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Debug_Ubuntu|x86.Build.0 = Debug|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Debug|x64.Build.0 = Debug|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Debug|x86.Build.0 = Debug|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Release_Ubuntu|Any CPU.ActiveCfg = Release|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Release_Ubuntu|Any CPU.Build.0 = Release|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Release_Ubuntu|x64.ActiveCfg = Release|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Release_Ubuntu|x64.Build.0 = Release|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Release_Ubuntu|x86.ActiveCfg = Release|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Release_Ubuntu|x86.Build.0 = Release|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Release|x64.ActiveCfg = Release|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Release|x64.Build.0 = Release|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Release|x86.ActiveCfg = Release|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Release|x86.Build.0 = Release|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Trace|Any CPU.ActiveCfg = Release|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Trace|Any CPU.Build.0 = Release|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Trace|x64.ActiveCfg = Release|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Trace|x64.Build.0 = Release|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Trace|x86.ActiveCfg = Release|Any CPU
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B}.Trace|x86.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{72A04B6A-C310-4FB4-A59F-83F4263F7088} = {7B52AB7D-5670-44FF-A63C-3CEC0E0270F7}
+		{E6770D15-EFA9-4126-9081-677D89CA441D} = {A504C555-2D0F-45F6-BE0F-ECE77E52AC54}
+		{CF4BFB13-5A72-4328-9700-8F27BC1C570A} = {A4D07531-CF2A-48C3-A5C5-0BC11FAC787D}
+		{DD90FB5E-7437-451B-9D41-6E3F2214A50B} = {A504C555-2D0F-45F6-BE0F-ECE77E52AC54}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {36B24979-E88F-4B59-A2FF-19029A07E9C9}
+	EndGlobalSection
+EndGlobal

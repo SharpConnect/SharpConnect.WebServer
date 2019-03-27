@@ -1,0 +1,50 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>1585f301-4ece-462c-a9d5-49bfe1c40041</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>SharpConnect.WebServer</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)General\BufferManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)General\ConnectionBase.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)General\dbugAcceptOpUserToken.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)General\dbugLOG.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)General\dbugTestFileWriter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)General\NewConnListener.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)General\NewConnListenerSettings.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)General\ReqRespHandler.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)General\SharedResoucePool.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)General\Temp.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer0\SendIO_RecvIO_Code.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer2\HttpsContext.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer2\HttpsRequest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer2\HttpsWebResponse.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer2\HttpsWebServer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer2\RecvIO_SendIO_2.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer0\HttpRequest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer0\HttpResponse.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer0\WebServer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer1\HttpContext.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer1\HttpWebRequest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer1\HttpWebResponse.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer1\HttpWebServer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer1\RecvIO_SendIO.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer2\SockAsyncNetworkStream.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SecureWebSocket\SecureWebSocketClient.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SecureWebSocket\SecureWebSocketContext.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SecureWebSocket\WebSocketProtocolParser2.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)WebSocket\Flags.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)WebSocket\PlainWebSocketClient.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)WebSocket\PlainWebSocketContext.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketClient.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketContext.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketProtocolParser.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketRequest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketResponse.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketServer.cs" />
+  </ItemGroup>
+</Project>
