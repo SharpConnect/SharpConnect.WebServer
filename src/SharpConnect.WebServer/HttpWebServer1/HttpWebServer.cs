@@ -9,7 +9,7 @@ using System.Net.Sockets;
 namespace SharpConnect.WebServers
 {
 
-    class HttpWebServer
+    class HttpWebServer : IHttpServer
     {
         bool _isRunning;
         ReqRespHandler<HttpRequest, HttpResponse> _reqHandler;

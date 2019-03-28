@@ -3,10 +3,17 @@
 
 namespace SharpConnect.WebServers
 {
-    public class WebServer
+    interface IHttpServer
     {
-        HttpWebServer _server1;
-        HttpsWebServer _server2;
+        void Start();
+        void Stop();
+        WebServers.WebSocketServer WebSocketServer { get; }
+    }
+
+
+    public class WebServer : IHttpServer
+    {
+        IHttpServer _server;
 
         int _port;
         bool _localOnly;
@@ -39,32 +46,26 @@ namespace SharpConnect.WebServers
 
             if (UseSsl)
             {
-                _server2 = new HttpsWebServer(_port, _localOnly, _reqHandler);
-                _server2.LoadCertificate(_certFile, _certPsw);
-                _server2.UseSsl = true;
-                _server2.WebSocketServer = WebSocketServer;
-                _server2.Start();
+                var httpsServer = new HttpsWebServer(_port, _localOnly, _reqHandler);
+                httpsServer.LoadCertificate(_certFile, _certPsw);
+                httpsServer.WebSocketServer = WebSocketServer;
+                httpsServer.Start();
+
+                _server = httpsServer;
             }
             else
             {
-                _server1 = new HttpWebServer(_port, _localOnly, _reqHandler);
-                _server1.WebSocketServer = WebSocketServer;
-                _server1.Start();
+                var httpServer = new HttpWebServer(_port, _localOnly, _reqHandler);
+                httpServer.WebSocketServer = WebSocketServer;
+                httpServer.Start();
 
+                _server = httpServer;
             }
         }
         public void Stop()
         {
-            if (_server1 != null)
-            {
-                _server1.Stop();
-            }
-            else if (_server2 != null)
-            {
-                _server2.Stop();
-            }
+            _server.Stop();
         }
-
         //--------------------------------------------------
         public WebSocketServer WebSocketServer { get; set; }
         public bool EnableWebSocket => WebSocketServer != null;

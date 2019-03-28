@@ -30,25 +30,20 @@ namespace SharpConnect.Internal2
 #if DEBUG
             _isSendIO = false;
             debugId = dbugTotalId++;
-
-            if (debugId == 1002)
-            {
-
-            }
 #endif
             _largeBuffer = largeBuffer;
             _startAt = beginAt;
             _len = len;
             _readIndex = _writeIndex = 0;
         }
-#if DEBUG
-        public bool IsSendIO => _isSendIO;
-#endif
+
         public int BufferStartAtIndex => _startAt;
         public int BufferLength => _len;
-        object _resetLock = new object();
 
+        object _resetLock = new object();
         bool _useAccumBuffer;
+        byte[] _accumBuffer;
+        int _accumBufferLen;
 
         public void Reset()
         {
@@ -101,9 +96,6 @@ namespace SharpConnect.Internal2
             }
 #endif
         }
-
-        byte[] _accumBuffer;
-        int _accumBufferLen;
         public int PushDataToAccumBuffer()
         {
             if (_accumBuffer == null)
@@ -185,6 +177,12 @@ namespace SharpConnect.Internal2
         {
             get
             {
+                if (_useAccumBuffer)
+                {
+#if DEBUG
+                    System.Diagnostics.Debugger.Break();
+#endif
+                }
                 return _readIndex < _writeIndex;
             }
         }
@@ -203,7 +201,9 @@ namespace SharpConnect.Internal2
         {
             if (_useAccumBuffer)
             {
-
+#if DEBUG
+                System.Diagnostics.Debugger.Break();
+#endif
             }
             return _largeBuffer[_startAt + _readIndex + index];
         }
@@ -213,7 +213,9 @@ namespace SharpConnect.Internal2
             {
                 if (_useAccumBuffer)
                 {
-
+#if DEBUG
+                    System.Diagnostics.Debugger.Break();
+#endif
                 }
                 return _len - _writeIndex;
             }
@@ -279,6 +281,7 @@ namespace SharpConnect.Internal2
                 _sendingQueue.Enqueue(dataToSend);
             }
         }
+
         public int QueueCount => _sendingQueue.Count;
 
         public void StartSendAsync()
@@ -352,8 +355,5 @@ namespace SharpConnect.Internal2
 
             }
         }
-
     }
-
-
 }

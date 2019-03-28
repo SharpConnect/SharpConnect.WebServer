@@ -7,7 +7,7 @@ using System.Net.Sockets;
 namespace SharpConnect.WebServers
 {
 
-    class HttpsWebServer
+    class HttpsWebServer : IHttpServer
     {
         bool _isRunning;
         ReqRespHandler<HttpRequest, HttpResponse> _reqHandler;
@@ -35,31 +35,30 @@ namespace SharpConnect.WebServers
                 clientSocket =>
                 {
                     //when accept new client
-                    if (UseSsl)
-                    {
-                        int recvSize = 1024 * 2;
-                        int sendSize = 1024 * 2;
-                        HttpsContext context = new HttpsContext(this, recvSize, sendSize);
-                        context.BindReqHandler(_reqHandler); //client handler
+
+                    int recvSize = 1024 * 2;
+                    int sendSize = 1024 * 2;
+                    HttpsContext context = new HttpsContext(this, recvSize, sendSize);
+                    context.BindReqHandler(_reqHandler); //client handler
 #if DEBUG
-                        context.dbugForHttps = true;
+                    context.dbugForHttps = true;
 #endif
 
 
-                        context.BindSocket(clientSocket); //*** bind to client socket                      
-                        context.StartReceive(UseSsl ? _serverCert : null);
-                    }
-                    else
-                    {
-                        HttpsContext context = _contextPool.Pop();
-                        context.BindSocket(clientSocket); //*** bind to client socket                      
-                        context.StartReceive(UseSsl ? _serverCert : null);
-                    }
-
+                    context.BindSocket(clientSocket); //*** bind to client socket                      
+                                                      //for ssl -> cert must not be null
+                    context.StartReceive(_serverCert);
+                    //TODO::
+                    //USE https context from Pool????
+                    //{
+                    //    HttpsContext context = _contextPool.Pop();
+                    //    context.BindSocket(clientSocket); //*** bind to client socket                      
+                    //    context.StartReceive(UseSsl ? _serverCert : null);
+                    //}
                 });
         }
 
-        public bool UseSsl { get; set; }
+
         System.Security.Cryptography.X509Certificates.X509Certificate2 _serverCert;
         public void LoadCertificate(string certFile, string psw)
         {

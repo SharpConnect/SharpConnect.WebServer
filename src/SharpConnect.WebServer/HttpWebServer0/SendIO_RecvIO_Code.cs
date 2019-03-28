@@ -371,6 +371,7 @@ namespace SharpConnect
         int BytesTransferred { get; }
     }
 
+    
     class RecvIOBufferStream : IDisposable
     {
         SimpleBufferReader _simpleBufferReader = new SimpleBufferReader();
