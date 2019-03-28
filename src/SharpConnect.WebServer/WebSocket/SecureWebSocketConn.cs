@@ -41,9 +41,9 @@ namespace SharpConnect.WebServers
             _webSocketReqParser = new WebSocketProtocolParser(this.AsClientContext, new RecvIOBufferStream(clientStream));
             _clientStream = clientStream;
 
-            _clientStream.SetRecvCompleteEventHandler((s, e) =>
+            _clientStream.SetRecvCompleteEventHandler((r, byteCount) =>
             {
-                if (e.ByteTransferedCount == 0)
+                if (byteCount == 0)
                 {
                     HandleReceivedData(RecvEventCode.NoMoreReceiveData);
                 }

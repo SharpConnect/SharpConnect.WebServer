@@ -89,12 +89,12 @@ namespace SharpConnect.WebServers
             _httpResp = new HttpResponseImpl(this);
         }
 
-      
+
         internal AbstractAsyncNetworkStream BaseStream => _sockStream;
 
         internal bool CreatedFromPool { get; set; }
-       
-        public void EnqueueSendingData(byte[] buffer, int len) => _sockStream.EnqueueSendData(buffer, len);        
+
+        public void EnqueueSendingData(byte[] buffer, int len) => _sockStream.EnqueueSendData(buffer, len);
 
         public int RecvByteTransfer => _sockStream.ByteReadTransfered;
         public byte ReadByte(int pos) => _sockStream.RecvReadByte(pos);
@@ -152,7 +152,7 @@ namespace SharpConnect.WebServers
             _isFirstTime = true;
         }
         void StartReceive()
-        { 
+        {
 #if DEBUG
             int debugId = this.dbugId;
 #endif
@@ -171,7 +171,7 @@ namespace SharpConnect.WebServers
                 //if no cert then just start recv                
                 //JustBypassSocketNetworkStream bypass = new JustBypassSocketNetworkStream(_baseSockStream, cert);
                 _sockStream = _baseSockStream;
-                
+
 
                 ////-----------------------------
                 //recvIO.Bind(_sockStream);
@@ -180,9 +180,9 @@ namespace SharpConnect.WebServers
                 if (_isFirstTime)
                 {
                     _isFirstTime = false;
-                    _sockStream.SetRecvCompleteEventHandler((s, e) =>
+                    _sockStream.SetRecvCompleteEventHandler((r, byteCount) =>
                     {
-                        if (e.ByteTransferedCount == 0)
+                        if (byteCount == 0)
                         {
                             HandleReceive(RecvEventCode.NoMoreReceiveData);
                         }
@@ -208,9 +208,9 @@ namespace SharpConnect.WebServers
                 if (_isFirstTime)
                 {
                     _isFirstTime = false;
-                    _sockStream.SetRecvCompleteEventHandler((s, e) =>
+                    _sockStream.SetRecvCompleteEventHandler((r, byteCount) =>
                     {
-                        if (e.ByteTransferedCount == 0)
+                        if (byteCount == 0)
                         {
                             HandleReceive(RecvEventCode.NoMoreReceiveData);
                         }

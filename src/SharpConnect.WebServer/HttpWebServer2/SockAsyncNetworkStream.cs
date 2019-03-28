@@ -8,10 +8,9 @@ using System.Threading;
 
 namespace SharpConnect.Internal2
 {
-    class DataArrEventArgs : EventArgs
-    {
-        public int ByteTransferedCount { get; set; }
-    }
+     
+
+    delegate void RecvCompleteHandler(bool success, int byteCount);
 
     /// <summary>
     /// abstract socket network stream
@@ -48,9 +47,9 @@ namespace SharpConnect.Internal2
         public abstract void Reset();
         //for notify that there are new packet
 
-        EventHandler<DataArrEventArgs> _recvCompleted;
+        RecvCompleteHandler _recvCompleted;
         EventHandler _sendCompleted;
-        public void SetRecvCompleteEventHandler(EventHandler<DataArrEventArgs> recvCompleted)
+        public void SetRecvCompleteEventHandler(RecvCompleteHandler recvCompleted)
         {
             _recvCompleted = recvCompleted;
         }
@@ -64,7 +63,7 @@ namespace SharpConnect.Internal2
         }
         protected void RaiseRecvCompleted(int byteCount)
         {
-            _recvCompleted?.Invoke(this, new DataArrEventArgs() { ByteTransferedCount = byteCount });
+            _recvCompleted?.Invoke(true, byteCount);
         }
 
         internal abstract byte RecvReadByte(int pos);
@@ -803,11 +802,11 @@ namespace SharpConnect.Internal2
         }
 
 
-        private void SocketNetworkStream_RecvCompleted(object sender, DataArrEventArgs e)
+        private void SocketNetworkStream_RecvCompleted(bool result, int byteCount)
         {
 
 #if NET20
-            if (e.ByteTransferedCount > 0)
+            if (byteCount > 0)
             {
                 //.... 
                 lock (_recvAppendLock)
@@ -832,7 +831,7 @@ namespace SharpConnect.Internal2
 
 
             int dataReadLen = _recvBuffer.DataToReadLength;
-            if (e.ByteTransferedCount > 0)
+            if (byteCount > 0)
             {
                 //.... 
                 lock (_recvAppendLock)
