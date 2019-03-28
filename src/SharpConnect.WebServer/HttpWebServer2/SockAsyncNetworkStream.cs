@@ -77,7 +77,7 @@ namespace SharpConnect.Internal2
         public abstract byte[] UnsafeGetInternalBuffer();
         public int BytesTransferred => ByteReadTransfered;
 
-        internal bool BeginWebsocketMode { get; set; }
+        internal virtual bool BeginWebsocketMode { get; set; }
     }
 
 
@@ -593,7 +593,13 @@ namespace SharpConnect.Internal2
                 _startRecv = true;
             }
             //----------------------
-
+#if NET20
+#else
+            if (BeginWebsocketMode)
+            {
+                return;
+            }
+#endif
 #if DEBUG
             dbugStartRecvCount++;
 #endif
@@ -606,6 +612,7 @@ namespace SharpConnect.Internal2
                 }
                 _startRecvAsync = true;
             }
+
             if (!_socket.ReceiveAsync(_recvAsyncEventArgs))
             {
                 _startRecv = false;
@@ -687,6 +694,15 @@ namespace SharpConnect.Internal2
             _recvBuffer = new IOBuffer(tmpIOBuffer, 0, tmpIOBuffer.Length);
         }
 
+        internal override bool BeginWebsocketMode
+        {
+            get => base.BeginWebsocketMode;
+            set
+            {
+                _socketNetworkStream.BeginWebsocketMode = value;
+                base.BeginWebsocketMode = value;
+            }
+        }
         public override byte[] UnsafeGetInternalBuffer() => _recvBuffer._largeBuffer;
 
         internal override void RecvCopyTo(int readpos, byte[] dstBuffer, int copyLen)
@@ -896,7 +912,7 @@ namespace SharpConnect.Internal2
         bool _startRecv;
         public override void StartReceive()
         {
-
+            _socketNetworkStream.BeginWebsocketMode = this.BeginWebsocketMode;
             if (_startRecv)
             {
                 return;

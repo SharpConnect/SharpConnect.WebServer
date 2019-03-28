@@ -35,7 +35,6 @@ namespace SharpConnect.WebServers
             _webSocketResp = new WebSocketResponse(_connectionId, asClient, this);
         }
 
-
         public void Bind(SharpConnect.Internal2.AbstractAsyncNetworkStream clientStream, byte[] wsUpgradeResponseMsg)
         {
 
@@ -60,8 +59,10 @@ namespace SharpConnect.WebServers
             });
 
 
-            _clientStream.StartReceive();
 
+
+            _clientStream.StartReceive();
+            //_clientStream.BeginWebsocketMode = true;//
 
             //--------
             //send websocket reply
@@ -114,7 +115,20 @@ namespace SharpConnect.WebServers
                                         WebSocketRequest req = _webSocketReqParser.Dequeue();
                                         _webSocketReqHandler(req, _webSocketResp);
                                     }
-                                    _clientStream.ClearReceiveBuffer();
+
+                                    if (_clientStream.BeginWebsocketMode)
+                                    {
+#if !NET20
+#else
+                                        _clientStream.ClearReceiveBuffer();
+#endif
+                                    }
+                                    else
+                                    {
+                                        _clientStream.ClearReceiveBuffer();
+                                    }
+
+
                                     _clientStream.StartReceive();
                                     //***no code after StartReceive***
                                 }
