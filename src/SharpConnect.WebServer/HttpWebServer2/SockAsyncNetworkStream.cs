@@ -302,19 +302,14 @@ namespace SharpConnect.Internal2
         public bool PassHandShakeMode => _passHandshake;
         public bool _willRaiseRecvNext;
 
-#if NET20
-        const bool NETCORE = false;
-#else
-        const bool NETCORE = true;
-#endif
-
 
 
 
         public override int Read(byte[] buffer, int offset, int count)
         {
 
-            if (_passHandshake && NETCORE)
+#if !NET20
+            if (_passHandshake)
             {
                 lock (_recvLock)
                 {
@@ -341,7 +336,7 @@ namespace SharpConnect.Internal2
                     return readLen;
                 }
             }
-
+#endif
 
             //***
             //socket layer => [this layer] => ssl stream  
@@ -753,7 +748,7 @@ namespace SharpConnect.Internal2
             RaiseSendComplete();
         }
 
-      
+
         private void SocketNetworkStream_RecvCompleted(object sender, DataArrEventArgs e)
         {
 
