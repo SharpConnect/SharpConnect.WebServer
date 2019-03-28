@@ -87,8 +87,8 @@ namespace SharpConnect.Internal2
         //resuable socket stream 
 
         Socket _socket;
-        SocketAsyncEventArgs _sendAsyncEventArgs;
-        SocketAsyncEventArgs _recvAsyncEventArgs;
+        readonly SocketAsyncEventArgs _sendAsyncEventArgs;
+        readonly SocketAsyncEventArgs _recvAsyncEventArgs;
 
 
         IOBuffer _recvBuffer;
@@ -208,6 +208,8 @@ namespace SharpConnect.Internal2
             {
                 _startRecv = false;
             }
+
+
 
             switch (e.LastOperation)
             {
@@ -541,13 +543,6 @@ namespace SharpConnect.Internal2
         bool _startRecv = false;
 
 
-        class UserToken1
-        {
-            public bool BeginReceive;
-        }
-
-
-
         public override void StartReceive()
         {
             _passHandshake = true; //start recv data from client  
@@ -569,7 +564,7 @@ namespace SharpConnect.Internal2
             dbugStartRecvCount++;
 #endif
 
-
+             
             if (!_socket.ReceiveAsync(_recvAsyncEventArgs))
             {
                 _startRecv = false;
@@ -608,18 +603,17 @@ namespace SharpConnect.Internal2
 
                 }
             }
+            else
+            {
+                 
+            }
+        }
 
-        }
-        public bool HasMoreRecvData()
-        {
-            return _recvBuffer.HasDataToRead;
-        }
+        public bool HasMoreRecvData() => _recvBuffer.HasDataToRead;
+
     }
 
     delegate void AuthenCallbackDelegate();
-
-
-
 
     class SecureSockNetworkStream : AbstractAsyncNetworkStream
     {
@@ -752,7 +746,7 @@ namespace SharpConnect.Internal2
         private void SocketNetworkStream_RecvCompleted(object sender, DataArrEventArgs e)
         {
 
-#if NET20 
+#if NET20
             if (e.ByteTransferedCount > 0)
             {
                 //.... 
@@ -775,6 +769,8 @@ namespace SharpConnect.Internal2
             _recvBuffer.Reset();
 
 #else
+
+
             int dataReadLen = _recvBuffer.DataToReadLength;
             if (e.ByteTransferedCount > 0)
             {
