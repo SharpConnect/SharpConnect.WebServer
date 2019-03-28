@@ -22,7 +22,7 @@ namespace SharpConnect.Internal2
 #if DEBUG
         bool _isSendIO;
         static int dbugTotalId;
-        int debugId;
+        public readonly int debugId;
 #endif
 
         public IOBuffer(byte[] largeBuffer, int beginAt, int len)
@@ -30,6 +30,11 @@ namespace SharpConnect.Internal2
 #if DEBUG
             _isSendIO = false;
             debugId = dbugTotalId++;
+
+            if (debugId == 1002)
+            {
+
+            }
 #endif
             _largeBuffer = largeBuffer;
             _startAt = beginAt;
@@ -41,9 +46,25 @@ namespace SharpConnect.Internal2
 #endif
         public int BufferStartAtIndex => _startAt;
         public int BufferLength => _len;
+        object _resetLock = new object();
+
+        bool _useAccumBuffer;
+
         public void Reset()
         {
-            _readIndex = _writeIndex = 0;
+            lock (_resetLock)
+            {
+                if (debugId == 1002)
+                {
+
+                }
+                else
+                {
+
+                }
+
+                _readIndex = _writeIndex = 0;
+            }
         }
 
         public void WriteBuffer(byte[] srcBuffer, int srcIndex, int count)
@@ -90,9 +111,28 @@ namespace SharpConnect.Internal2
 #endif
         }
 
+        byte[] _accumBuffer;
+        int _accumBufferLen;
+        public int PushDataToAccumBuffer()
+        {
+            if (_accumBuffer == null)
+            {
+                _accumBuffer = new byte[2048];
+            }
 
+            Buffer.BlockCopy(_largeBuffer, 0, _accumBuffer, 0, _accumBufferLen = _writeIndex);
+            _useAccumBuffer = true;
+
+            Reset();
+            return _accumBufferLen;
+        }
         public void CopyBuffer(int readIndex, byte[] dstBuffer, int dstIndex, int count)
         {
+            if (_useAccumBuffer)
+            {
+                Buffer.BlockCopy(_accumBuffer, _startAt + readIndex, dstBuffer, _startAt + dstIndex, count);
+                return;
+            }
             if (readIndex + count <= _writeIndex) //***
             {
                 Buffer.BlockCopy(_largeBuffer, _startAt + readIndex, dstBuffer, _startAt + dstIndex, count);
@@ -108,13 +148,14 @@ namespace SharpConnect.Internal2
         {
             return _largeBuffer[_startAt + _readIndex + index];
         }
-        public void ReadBuffer(byte[] dstBuffer, int dstIndex, int count)
+        public void ReadBufferTo(byte[] dstBuffer, int dstIndex, int count)
         {
             //read data from the latest pos
             if (_readIndex + count <= _writeIndex) //***
             {
                 Buffer.BlockCopy(_largeBuffer, _startAt + _readIndex, dstBuffer, _startAt + dstIndex, count);
                 _readIndex += count;
+
             }
             else
             {
@@ -149,13 +190,43 @@ namespace SharpConnect.Internal2
         //
         public int WriteIndex => _writeIndex;
         public int ReadIndex => _readIndex;
-        public bool HasDataToRead => _readIndex < _writeIndex;
-        public int DataToReadLength => _writeIndex - _readIndex;
+        public bool HasDataToRead
+        {
+            get
+            {
+                return _readIndex < _writeIndex;
+            }
+        }
+        public int DataToReadLength
+        {
+            get
+            {
+                if (_useAccumBuffer)
+                {
+                    return _accumBufferLen;
+                }
+                return _writeIndex - _readIndex;
+            }
+        }
         public byte GetByteFromBuffer(int index)
         {
+            if (_useAccumBuffer)
+            {
+
+            }
             return _largeBuffer[_startAt + _readIndex + index];
         }
-        public int RemainingWriteSpace => _len - _writeIndex;
+        public int RemainingWriteSpace
+        {
+            get
+            {
+                if (_useAccumBuffer)
+                {
+
+                }
+                return _len - _writeIndex;
+            }
+        }
     }
 
 
