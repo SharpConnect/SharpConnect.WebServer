@@ -89,19 +89,18 @@ namespace SharpConnect.WebServers
             _httpResp = new HttpResponseImpl(this);
         }
 
-        public int QueueCount => _baseSockStream.QueueCount;
+
         internal AbstractAsyncNetworkStream BaseStream => _sockStream;
 
         internal bool CreatedFromPool { get; set; }
-        internal void EnqueueSendingData(byte[] buffer, int len) => _sockStream.EnqueueSendData(buffer, len);
-        void ISendIO.EnqueueSendingData(byte[] buffer, int len) => _sockStream.EnqueueSendData(buffer, len);
 
-        void ISendIO.SendIOStartSend() => _sockStream.StartSend();
+        public void EnqueueSendingData(byte[] buffer, int len) => _sockStream.EnqueueSendData(buffer, len);
+
         public int RecvByteTransfer => _sockStream.ByteReadTransfered;
         public byte ReadByte(int pos) => _sockStream.RecvReadByte(pos);
         public void RecvCopyTo(int readpos, byte[] dstBuffer, int copyLen) => _sockStream.RecvCopyTo(readpos, dstBuffer, copyLen);
 
-        internal void SendIOStartSend() => _sockStream.StartSend();
+        public void SendIOStartSend() => _sockStream.StartSend();
 
 
         public bool EnableWebSocket { get; set; }
@@ -131,7 +130,6 @@ namespace SharpConnect.WebServers
         {
             //cut connection from current socket
             _baseSockStream.UnbindSocket();
-
             //
             if (closeClientSocket)
             {
@@ -155,8 +153,6 @@ namespace SharpConnect.WebServers
         }
         void StartReceive()
         {
-            //_asyncStream.StartReceive();
-            //recvIO.StartReceive();
 #if DEBUG
             int debugId = this.dbugId;
 #endif
@@ -176,6 +172,7 @@ namespace SharpConnect.WebServers
                 //JustBypassSocketNetworkStream bypass = new JustBypassSocketNetworkStream(_baseSockStream, cert);
                 _sockStream = _baseSockStream;
 
+
                 ////-----------------------------
                 //recvIO.Bind(_sockStream);
                 //sendIO.Bind(_sockStream);
@@ -183,9 +180,9 @@ namespace SharpConnect.WebServers
                 if (_isFirstTime)
                 {
                     _isFirstTime = false;
-                    _sockStream.SetRecvCompleteEventHandler((s, e) =>
+                    _sockStream.SetRecvCompleteEventHandler((r, byteCount) =>
                     {
-                        if (e.ByteTransferedCount == 0)
+                        if (byteCount == 0)
                         {
                             HandleReceive(RecvEventCode.NoMoreReceiveData);
                         }
@@ -211,9 +208,9 @@ namespace SharpConnect.WebServers
                 if (_isFirstTime)
                 {
                     _isFirstTime = false;
-                    _sockStream.SetRecvCompleteEventHandler((s, e) =>
+                    _sockStream.SetRecvCompleteEventHandler((r, byteCount) =>
                     {
-                        if (e.ByteTransferedCount == 0)
+                        if (byteCount == 0)
                         {
                             HandleReceive(RecvEventCode.NoMoreReceiveData);
                         }

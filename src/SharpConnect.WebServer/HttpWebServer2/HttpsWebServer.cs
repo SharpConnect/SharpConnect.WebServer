@@ -156,6 +156,10 @@ namespace SharpConnect.WebServers
                 string sec_websocket_key = httpReq.GetHeaderKey("Sec-WebSocket-Key");
 
                 Internal2.AbstractAsyncNetworkStream baseStream = httpConn.BaseStream;
+
+#if DEBUG
+                baseStream.BeginWebsocketMode = true;
+#endif
                 //backup data before unbind socket
                 string webSocketInitUrl = httpReq.Url;
                 //--------------------  

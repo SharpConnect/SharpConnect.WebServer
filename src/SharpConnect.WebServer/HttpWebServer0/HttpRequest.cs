@@ -25,7 +25,6 @@ namespace SharpConnect.WebServers
     {
         void EnqueueSendingData(byte[] buffer, int len);
         void SendIOStartSend();
-        int QueueCount { get; }
     }
     public class WebRequestParameter
     {
@@ -148,7 +147,7 @@ namespace SharpConnect.WebServers
 
     class HttpRequestImpl : HttpRequest
     {
-        IHttpContext _context;
+        readonly IHttpContext _context;
         internal HttpRequestImpl(IHttpContext context)
             : base()
         {
@@ -160,6 +159,12 @@ namespace SharpConnect.WebServers
         //===================
         //parsing 
         HttpParsingState _parseState;
+        internal override void Reset()
+        {
+            _parseState = HttpParsingState.Head;
+            base.Reset();//**
+
+        }
         bool IsMsgBodyComplete => _contentByteCount >= _targetContentLength;
 
         void AddMsgBody(byte[] buffer, int start, int count)

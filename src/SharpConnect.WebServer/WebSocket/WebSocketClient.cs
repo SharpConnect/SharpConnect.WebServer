@@ -77,15 +77,10 @@ namespace SharpConnect.WebServers
                 //create http webreq  
 
                 StringBuilder stbuilder = CreateWebSocketUpgradeReq(uri.AbsolutePath, uri.AbsolutePath + ":" + uri.Port);
-                byte[] dataToSend = Encoding.ASCII.GetBytes(stbuilder.ToString());
-
-                //get first confirm server upgrade resp from server
-                byte[] firstRespBuffer = new byte[1024];
-                int firstMsg = _clientSocket.Receive(firstRespBuffer, 1024, SocketFlags.None);
-
+                byte[] dataToSend = Encoding.ASCII.GetBytes(stbuilder.ToString()); 
                 //****
                 //add event listener to our socket  
-                plainWsConn.Bind(_clientSocket, dataToSend);
+                plainWsConn.Bind(_clientSocket, dataToSend);   
             }
         }
 

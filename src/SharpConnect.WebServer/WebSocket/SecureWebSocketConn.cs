@@ -35,17 +35,15 @@ namespace SharpConnect.WebServers
             _webSocketResp = new WebSocketResponse(_connectionId, asClient, this);
         }
 
-        public int SendQueueCount => _webSocketResp.SendQueueCount;
-
         public void Bind(SharpConnect.Internal2.AbstractAsyncNetworkStream clientStream, byte[] wsUpgradeResponseMsg)
         {
 
             _webSocketReqParser = new WebSocketProtocolParser(this.AsClientContext, new RecvIOBufferStream(clientStream));
             _clientStream = clientStream;
 
-            _clientStream.SetRecvCompleteEventHandler((s, e) =>
+            _clientStream.SetRecvCompleteEventHandler((r, byteCount) =>
             {
-                if (e.ByteTransferedCount == 0)
+                if (byteCount == 0)
                 {
                     HandleReceivedData(RecvEventCode.NoMoreReceiveData);
                 }
@@ -61,8 +59,10 @@ namespace SharpConnect.WebServers
             });
 
 
-            _clientStream.StartReceive();
 
+
+            _clientStream.StartReceive();
+            //_clientStream.BeginWebsocketMode = true;//
 
             //--------
             //send websocket reply
@@ -73,7 +73,7 @@ namespace SharpConnect.WebServers
         }
         void ISendIO.EnqueueSendingData(byte[] buffer, int len) => _clientStream.EnqueueSendData(buffer, len);
         void ISendIO.SendIOStartSend() => _clientStream.StartSend();
-        int ISendIO.QueueCount => _clientStream.QueueCount;
+
 
         void HandleReceivedData(RecvEventCode recvCode)
         {
@@ -97,10 +97,7 @@ namespace SharpConnect.WebServers
                             }
                             //-- 
                         }
-                        else
-                        {
-
-                        }
+                        //------
 
                         //parse recv msg
                         switch (_webSocketReqParser.ParseRecvData())
@@ -118,7 +115,20 @@ namespace SharpConnect.WebServers
                                         WebSocketRequest req = _webSocketReqParser.Dequeue();
                                         _webSocketReqHandler(req, _webSocketResp);
                                     }
-                                    _clientStream.ClearReceiveBuffer();
+
+                                    if (_clientStream.BeginWebsocketMode)
+                                    {
+#if !NET20
+#else
+                                        _clientStream.ClearReceiveBuffer();
+#endif
+                                    }
+                                    else
+                                    {
+                                        _clientStream.ClearReceiveBuffer();
+                                    }
+
+
                                     _clientStream.StartReceive();
                                     //***no code after StartReceive***
                                 }
