@@ -302,6 +302,11 @@ namespace SharpConnect.Internal2
         public bool PassHandShakeMode => _passHandshake;
         public bool _willRaiseRecvNext;
 
+#if NET20
+        const bool NETCORE = false;
+#else
+        const bool NETCORE = true;
+#endif
 
 
 
@@ -309,7 +314,7 @@ namespace SharpConnect.Internal2
         public override int Read(byte[] buffer, int offset, int count)
         {
 
-            if (_passHandshake)
+            if (_passHandshake && NETCORE)
             {
                 lock (_recvLock)
                 {
@@ -318,20 +323,16 @@ namespace SharpConnect.Internal2
                     {
 
                         _recvBuffer.ReadBufferTo(buffer, offset, readLen);
-
                         ResetRecvStream();
-
                         if (!_socket.ReceiveAsync(_recvAsyncEventArgs))
                         {
                             //sync 
                             _willRaiseRecvNext = false;
                         }
                         else
-                        {
-                            //sync  
+                        {                            //sync  
                             _willRaiseRecvNext = true;
                         }
-
                     }
                     else
                     {
@@ -461,9 +462,7 @@ namespace SharpConnect.Internal2
         }
 
 
-        //MemoryStream _msTemp;
-        //int _msTempStartAt = 0;
-        //int _msTempLen = 0;
+
         bool _hasDataInTempMem;
 
         void ProcessWaitingDataInTempMem()
@@ -471,54 +470,7 @@ namespace SharpConnect.Internal2
             _sendAsyncEventArgs.SetBuffer(_sendBuffer._largeBuffer, 0, _sendBuffer._len);
             _hasDataInTempMem = false;
         }
-        //void ProcessWaitingDataInTempMem()
-        //{
-        //    //recursive ***
 
-        //    //copy data from temp mem and write to buffer
-        //    int count = _recvBuffer._len;
-        //    if (_msTempLen > count)
-        //    {
-        //        count = _recvBuffer._len;
-        //        _msTempLen -= count;
-        //        _msTempStartAt += count;
-        //    }
-        //    else
-        //    {
-        //        _hasDataInTempMem = false;
-        //    }
-
-        //    _sendAsyncEventArgs.SetBuffer(0, _msTempLen); //clear before each write
-
-        //    _msTemp.Read(_sendBuffer._largeBuffer, _msTempStartAt, _msTempLen);
-
-        //    if (!_socket.SendAsync(_sendAsyncEventArgs))
-        //    {
-        //        //Returns false if the I / O operation completed synchronously.****
-        //        //Returns true if data is pending (send async)
-        //        _sendingByteTransfered = count;
-        //        if (_hasDataInTempMem)
-        //        {
-        //            ProcessWaitingDataInTempMem();//recursive
-        //        }
-        //        else
-        //        {
-        //            lock (_sendWaitLock)
-        //            {
-        //                _sendComplete = true;
-        //                Monitor.Pulse(_sendWaitLock);
-        //            }
-        //        }
-        //    }
-        //    else
-        //    {
-        //        //sending data is pending...
-        //        //send complete event will be raised
-        //        //in this case, this Write() method is sync method
-        //        //so we need to wait when the writing out is complete 
-
-        //    } 
-        //}
         public override void Write(byte[] buffer, int offset, int count)
         {
 
@@ -531,30 +483,7 @@ namespace SharpConnect.Internal2
 
             if (count > _sendBuffer._len)
             {
-                //if (!_passHandshake)
-                //{
-                //}
-                ////if input data is larger than buffer
-                ////we must copy it into temp mem
-                //if (_msTemp == null)
-                //{
-                //    _msTemp = new MemoryStream();
-                //}
 
-                //_msTemp.SetLength(0);
-                //_msTempStartAt = 0;
-                //_hasDataInTempMem = true;
-                //_msTempLen = count - _recvBuffer._len;
-                //_msTemp.Write(buffer, offset + _recvBuffer._len - 1, _msTempLen);
-
-                ////****
-                //count = _recvBuffer._len; //changed
-                ////*****
-                ///
-                if (_passHandshake)
-                {
-
-                }
                 byte[] tmpBuffer = new byte[count];
                 _sendAsyncEventArgs.SetBuffer(tmpBuffer, 0, count);
                 _hasDataInTempMem = true;
@@ -825,7 +754,7 @@ namespace SharpConnect.Internal2
         }
         private void SocketNetworkStream_RecvCompleted(object sender, DataArrEventArgs e)
         {
-#if  DEBUG
+#if DEBUG
             if (BeginWebsocketMode)
             {
 
