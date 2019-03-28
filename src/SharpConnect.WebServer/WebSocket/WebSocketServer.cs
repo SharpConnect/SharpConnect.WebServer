@@ -79,7 +79,6 @@ namespace SharpConnect.WebServers
 
         static byte[] MakeWebSocketUpgradeResponse(string webSocketSecCode)
         {
-            int contentByteCount = 0; // "" empty string 
             StringBuilder headerStBuilder = new StringBuilder();
             headerStBuilder.Length = 0;
             headerStBuilder.Append("HTTP/1.1 ");
@@ -87,24 +86,29 @@ namespace SharpConnect.WebServers
             headerStBuilder.Append("Upgrade: websocket\r\n");
             headerStBuilder.Append("Connection: Upgrade\r\n");
             headerStBuilder.Append("Sec-WebSocket-Accept: " + webSocketSecCode + "\r\n");
-            headerStBuilder.Append("Content-Length: " + contentByteCount + "\r\n");
+            headerStBuilder.Append("Content-Length: 0\r\n");
             headerStBuilder.Append("\r\n");
 
             //-----------------------------------------------------------------
             //switch transfer encoding method of the body***
             var headBuffer = Encoding.UTF8.GetBytes(headerStBuilder.ToString().ToCharArray());
-            byte[] dataToSend = new byte[headBuffer.Length + contentByteCount];
+            byte[] dataToSend = new byte[headBuffer.Length];//content length=0
             Buffer.BlockCopy(headBuffer, 0, dataToSend, 0, headBuffer.Length);
             return dataToSend;
         }
         //----------------------------
         //websocket
         const string MAGIC_STRING = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+
+        [System.ThreadStatic]
+        static SHA1 s_sha1;
         static string MakeResponseMagicCode(string reqMagicString)
         {
+            if (s_sha1 == null) s_sha1 = SHA1.Create();
+            //
             string total = reqMagicString + MAGIC_STRING;
-            var sha1 = SHA1.Create();
-            byte[] shaHash = sha1.ComputeHash(Encoding.ASCII.GetBytes(total));
+            
+            byte[] shaHash = s_sha1.ComputeHash(Encoding.ASCII.GetBytes(total));
             return Convert.ToBase64String(shaHash);
         }
 
