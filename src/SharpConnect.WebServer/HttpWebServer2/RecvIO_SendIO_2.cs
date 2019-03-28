@@ -54,15 +54,6 @@ namespace SharpConnect.Internal2
         {
             lock (_resetLock)
             {
-                if (debugId == 1002)
-                {
-
-                }
-                else
-                {
-
-                }
-
                 _readIndex = _writeIndex = 0;
             }
         }
