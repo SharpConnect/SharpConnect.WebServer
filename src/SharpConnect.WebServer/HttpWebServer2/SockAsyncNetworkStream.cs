@@ -209,7 +209,10 @@ namespace SharpConnect.Internal2
                 _startRecv = false;
             }
 
-
+            lock (_startRecvAsyncLock)
+            {
+                _startRecvAsync = false;
+            }
 
             switch (e.LastOperation)
             {
@@ -321,6 +324,15 @@ namespace SharpConnect.Internal2
 
                         _recvBuffer.ReadBufferTo(buffer, offset, readLen);
                         ResetRecvStream();
+                        lock (_startRecvAsyncLock)
+                        {
+                            if (_startRecvAsync)
+                            {
+
+                            }
+                            _startRecvAsync = true;
+                        }
+
                         if (!_socket.ReceiveAsync(_recvAsyncEventArgs))
                         {
                             //sync 
@@ -329,6 +341,11 @@ namespace SharpConnect.Internal2
                         else
                         {                            //sync  
                             _willRaiseRecvNext = true;
+
+                            lock (_startRecvAsyncLock)
+                            {
+                                _startRecvAsync = false;
+                            }
                         }
                     }
                     else
@@ -350,7 +367,14 @@ namespace SharpConnect.Internal2
                 _recvComplete = false;
                 //...               
                 int readByteCount = 0;
+                lock (_startRecvAsyncLock)
+                {
+                    if (_startRecvAsync)
+                    {
 
+                    }
+                    _startRecvAsync = true;
+                }
                 if (_socket.ReceiveAsync(_recvAsyncEventArgs))
                 {
                     //true if the I/O operation is pending.
@@ -390,7 +414,11 @@ namespace SharpConnect.Internal2
                     //the e object passed as a parameter may be examined immediately after the method call
                     //returns to retrieve the result of the operation.
 
+                    lock (_startRecvAsyncLock)
+                    {
 
+                        _startRecvAsync = false;
+                    }
 
                     lock (_recvLock)
                     {
@@ -542,9 +570,15 @@ namespace SharpConnect.Internal2
         object _startRecvLock = new object();
         bool _startRecv = false;
 
+        bool _startRecvAsync;
+        object _startRecvAsyncLock = new object();
 
         public override void StartReceive()
         {
+            if (BeginWebsocketMode)
+            {
+
+            }
             _passHandshake = true; //start recv data from client  
             lock (_startRecvLock)
             {
@@ -564,7 +598,14 @@ namespace SharpConnect.Internal2
             dbugStartRecvCount++;
 #endif
 
-             
+            lock (_startRecvAsyncLock)
+            {
+                if (_passHandshake && _startRecvAsync)
+                {
+                    return;
+                }
+                _startRecvAsync = true;
+            }
             if (!_socket.ReceiveAsync(_recvAsyncEventArgs))
             {
                 _startRecv = false;
@@ -605,7 +646,10 @@ namespace SharpConnect.Internal2
             }
             else
             {
-                 
+                lock (_startRecvAsyncLock)
+                {
+                    _startRecvAsync = false;
+                }
             }
         }
 

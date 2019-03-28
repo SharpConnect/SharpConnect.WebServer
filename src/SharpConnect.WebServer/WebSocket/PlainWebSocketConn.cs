@@ -107,6 +107,7 @@ namespace SharpConnect.WebServers
             //sockAsyncListener.SetBuffer(new byte[RECV_BUFF_SIZE], 0, RECV_BUFF_SIZE);
             //------------------------------------------------------
             //when bind we start listening 
+            
             clientSocket.ReceiveAsync(_sockAsyncListener);
             //------------------------------------------------------  
 
@@ -197,7 +198,7 @@ namespace SharpConnect.WebServers
         void HandleSendCompleted(SendIOEventCode eventCode)
         {
 
-        } 
+        }
         public override void Close() => _clientSocket.Close();
 
 
