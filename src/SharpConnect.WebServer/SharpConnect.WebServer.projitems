@@ -30,7 +30,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer1\HttpWebServer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer1\RecvIO_SendIO.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)HttpWebServer2\SockAsyncNetworkStream.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)SecureWebSocket\SecureWebSocketConn.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\Flags.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\PlainWebSocketConn.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\SecureWebSocketConn.cs" />
