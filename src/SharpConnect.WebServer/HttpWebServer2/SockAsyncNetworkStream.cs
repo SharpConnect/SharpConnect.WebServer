@@ -752,14 +752,34 @@ namespace SharpConnect.Internal2
 
             RaiseSendComplete();
         }
+
+      
         private void SocketNetworkStream_RecvCompleted(object sender, DataArrEventArgs e)
         {
-#if DEBUG
-            if (BeginWebsocketMode)
+
+#if NET20 
+            if (e.ByteTransferedCount > 0)
             {
+                //.... 
+                lock (_recvAppendLock)
+                {
+                    _recvBuffer.WriteBufferFromStream(_sslStream);
+                    while (_socketNetworkStream.HasMoreRecvData())
+                    {
+                        _recvBuffer.WriteBufferFromStream(_sslStream);
+                    }
+                    _socketNetworkStream.ResetRecvStream();
+                }
 
             }
-#endif
+            _startRecv = false;
+            //-----------
+            //this should notify the ssl that we have some data arrive
+            RaiseRecvCompleted(_recvBuffer.DataToReadLength);
+
+            _recvBuffer.Reset();
+
+#else
             int dataReadLen = _recvBuffer.DataToReadLength;
             if (e.ByteTransferedCount > 0)
             {
@@ -799,6 +819,9 @@ namespace SharpConnect.Internal2
             {
                 _recvBuffer.Reset();
             }
+#endif
+
+
         }
 
         public override void ReadBuffer(int srcIndex, int copyCount, byte[] dstBuffer, int dstIndex)
