@@ -9,7 +9,7 @@ using System.IO;
 namespace SharpConnect.Internal2
 {
 
-    struct IOBuffer
+    class IOBuffer
     {
 
         internal readonly byte[] _largeBuffer;
@@ -136,7 +136,7 @@ namespace SharpConnect.Internal2
 
             }
 #endif
-            //try read max data from the stream
+            //try read max data from the stream 
             _writeIndex += inputStream.Read(_largeBuffer, _writeIndex, _len - _writeIndex);
 #if DEBUG
             if (_writeIndex == 2048)
