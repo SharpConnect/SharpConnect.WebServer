@@ -9,8 +9,8 @@ namespace SharpConnect
     {
         static void Main(string[] args)
         {
-            //Main_Http();
-            Main_Https();
+            Main_Http();
+            //Main_Https();
         }
 
         static List<SharpConnect.WebServers.WebSocketContext> s_contextList = new List<WebServers.WebSocketContext>();
@@ -23,7 +23,11 @@ namespace SharpConnect
             try
             {
                 //1. create  
-                SharpConnect.WebServers.WebServer webServer = new SharpConnect.WebServers.WebServer(8080, true, testApp.HandleRequest);
+#if DEBUG
+                var webServer = new SharpConnect.WebServers.WebServer(8080, true, testApp.HandleRequest);
+#else
+                var webServer = new SharpConnect.WebServers.WebServer(8080, false, testApp.HandleRequest);
+#endif
                 //test websocket 
                 var webSocketServer = new SharpConnect.WebServers.WebSocketServer();
                 webSocketServer.SetOnNewConnectionContext(ctx =>
@@ -83,7 +87,11 @@ namespace SharpConnect
             try
             {
                 //1. create  
-                SharpConnect.WebServers.WebServer webServer = new SharpConnect.WebServers.WebServer(8080, true, testApp.HandleRequest);
+#if DEBUG
+                var webServer = new SharpConnect.WebServers.WebServer(8080, true, testApp.HandleRequest);
+#else 
+                var webServer = new SharpConnect.WebServers.WebServer(8080, false, testApp.HandleRequest);
+#endif
                 //webServer.LoadCertificate(@"D:\WImageTest\mycert.p12", "12345");
                 webServer.LoadCertificate(@"mycert.p12", "12345");
                 webServer.UseSsl = true;

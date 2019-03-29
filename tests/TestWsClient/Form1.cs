@@ -58,6 +58,7 @@ namespace TestWsClient
 
                 }));
             });
+            //_client.Connect("https://localhost:8080/websocket");
             _client.Connect("https://localhost:8080/websocket");
         }
     }

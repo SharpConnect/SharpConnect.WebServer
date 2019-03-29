@@ -49,9 +49,9 @@ namespace SharpConnect
                         function get_wsurl(){
                                
                                 if(window.location.protocol==""https:""){
-                                    return  ""wss://localhost:8080"";
+                                    return   ""wss://""+ window.location.hostname +"":8080"";
                                 }else{
-                                    return  ""ws://localhost:8080"";
+                                    return   ""ws://""+ window.location.hostname +"":8080"";
                                 }
                         }
                 </script>                
