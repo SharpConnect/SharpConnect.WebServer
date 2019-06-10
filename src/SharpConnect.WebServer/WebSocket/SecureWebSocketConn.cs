@@ -37,8 +37,8 @@ namespace SharpConnect.WebServers
 
         public void Bind(SharpConnect.Internal2.AbstractAsyncNetworkStream clientStream, byte[] wsUpgradeResponseMsg)
         {
+            _webSocketReqParser = new WebSocketProtocolParser(this, new RecvIOBufferStream(clientStream));
 
-            _webSocketReqParser = new WebSocketProtocolParser(this.AsClientContext, new RecvIOBufferStream(clientStream));
             _clientStream = clientStream;
 
             _clientStream.SetRecvCompleteEventHandler((r, byteCount) =>
@@ -71,7 +71,10 @@ namespace SharpConnect.WebServers
             //--------
 
         }
-        void ISendIO.EnqueueSendingData(byte[] buffer, int len) => _clientStream.EnqueueSendData(buffer, len);
+        void ISendIO.EnqueueSendingData(byte[] buffer, int len)
+        {
+            _clientStream.EnqueueSendData(buffer, len);
+        }
         void ISendIO.SendIOStartSend() => _clientStream.StartSend();
 
 

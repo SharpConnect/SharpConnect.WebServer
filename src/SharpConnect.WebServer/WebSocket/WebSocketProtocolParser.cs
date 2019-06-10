@@ -23,7 +23,6 @@
 */
 using System;
 using System.Collections.Generic;
-using SharpConnect.Internal;
 
 namespace SharpConnect.WebServers
 {
@@ -56,11 +55,13 @@ namespace SharpConnect.WebServers
 
         bool _asClientContext;
 
-        internal WebSocketProtocolParser(bool asClientContext, RecvIOBufferStream recvBufferStream)
+        internal WebSocketProtocolParser(WebSocketConnectionBase owner, RecvIOBufferStream recvBufferStream)
         {
-            _asClientContext = asClientContext;
+            OwnerWebSocketConnBase = owner;
+            _asClientContext = owner.AsClientContext;
             _myBufferStream = recvBufferStream;
         }
+        internal WebSocketConnectionBase OwnerWebSocketConnBase { get; private set; }
 
         public int ReqCount => _incommingReqs.Count;
 
@@ -75,7 +76,8 @@ namespace SharpConnect.WebServers
             }
             //----------------------------------------------------------
             //when we read header we start a new websocket request
-            _currentReq = new WebSocketRequest();
+            _currentReq = new WebSocketRequest(this.OwnerWebSocketConnBase);
+
             _incommingReqs.Enqueue(_currentReq);
 
 
@@ -315,6 +317,8 @@ namespace SharpConnect.WebServers
                             else
                             {
 
+                                //_currentReq.Clear();
+                                _currentReq.HasMoreData();
                             }
                             //more than 1 byte 
                         }

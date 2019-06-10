@@ -92,7 +92,7 @@ namespace SharpConnect.WebServers
                 }
             });
             //------------------------------------------------------------------------------------             
-            _webSocketReqParser = new WebSocketProtocolParser(this.AsClientContext, new RecvIOBufferStream(_recvIO));
+            _webSocketReqParser = new WebSocketProtocolParser(this, new RecvIOBufferStream(_recvIO));
 
         }
 
@@ -107,7 +107,7 @@ namespace SharpConnect.WebServers
             //sockAsyncListener.SetBuffer(new byte[RECV_BUFF_SIZE], 0, RECV_BUFF_SIZE);
             //------------------------------------------------------
             //when bind we start listening 
-            
+
             clientSocket.ReceiveAsync(_sockAsyncListener);
             //------------------------------------------------------  
 
