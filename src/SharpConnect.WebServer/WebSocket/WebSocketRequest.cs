@@ -22,49 +22,121 @@
 * THE SOFTWARE.
 */
 using System;
+using System.IO;
+
 namespace SharpConnect.WebServers
 {
 
-    public class WebSocketRequest
+    public class WebSocketRequest : IDisposable
     {
+        readonly WebSocketConnectionBase _ownerConn;
         byte[] _data;
-        internal WebSocketRequest()
+        MemoryStream _ms;
+        internal WebSocketRequest(WebSocketConnectionBase ownerConn)
         {
+            _ownerConn = ownerConn;
+        }
+        public object GeneralUserData => _ownerConn.GeneralCustomData;
+        public void Dispose()
+        {
+            if (_ms != null)
+            {
+                _ms.Dispose();
+                _ms = null;
+            }
         }
         public Opcode OpCode
         {
             get;
             internal set;
         }
+
+        internal void HasMoreData()
+        {
+            if (_ms == null)
+            {
+                _ms = new MemoryStream();
+                _ms.Write(_data, 0, _data.Length);
+            }
+        }
+        internal void Clear()
+        {
+            _data = null;
+        }
         internal void SetData(byte[] newDataBuffer)
         {
-            if (_data != null)
+            if (_ms != null)
             {
-                throw new NotSupportedException();
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine(ReadAsString());
+#endif
+                _ms.Write(newDataBuffer, 0, newDataBuffer.Length);
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine(ReadAsString());
+#endif
             }
-            _data = newDataBuffer;
+            else
+            {
+                if (_data != null)
+                {
+                    throw new NotSupportedException();
+                }
+                _data = newDataBuffer;
+            }
+
         }
         public string ReadAsString()
         {
-            if (_data != null && this.OpCode == Opcode.Text)
+            if (_ms != null)
             {
-                return System.Text.Encoding.UTF8.GetString(_data);
+                if (this.OpCode == Opcode.Text)
+                {
+                    return System.Text.Encoding.UTF8.GetString(_ms.ToArray());
+                }
+                else
+                {
+                    return null;
+                }
             }
             else
             {
-                return null;
+                if (_data != null && this.OpCode == Opcode.Text)
+                {
+                    return System.Text.Encoding.UTF8.GetString(_data);
+                }
+                else
+                {
+                    return null;
+                }
             }
+
         }
         public char[] ReadAsChars()
         {
-            if (_data != null && this.OpCode == Opcode.Text)
+            if (_ms != null)
             {
-                return System.Text.Encoding.UTF8.GetChars(_data);
+                if (this.OpCode == Opcode.Text)
+                {
+                    return System.Text.Encoding.UTF8.GetChars(_ms.ToArray());
+                }
+                else
+                {
+                    return null;
+                }
             }
             else
             {
-                return null;
+                if (_data != null && this.OpCode == Opcode.Text)
+                {
+                    return System.Text.Encoding.UTF8.GetChars(_data);
+                }
+                else
+                {
+                    return null;
+                }
+
             }
+
         }
     }
 }

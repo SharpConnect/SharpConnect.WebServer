@@ -27,14 +27,14 @@ using System.Text;
 
 namespace SharpConnect.WebServers
 {
-    public class WebSocketResponse : IDisposable
+    public class WebSocketResponse
     {
-        MemoryStream _bodyMs = new MemoryStream();
+        //MemoryStream _bodyMs = new MemoryStream();
 
         readonly ISendIO _sendIO;
         readonly Random _rdForMask;
         readonly bool _asClient;
-        readonly int _connId; //connectio id
+        readonly int _connId; //connection id
         internal WebSocketResponse(int connId, bool asClient, ISendIO conn)
         {
             _connId = connId;
@@ -45,32 +45,26 @@ namespace SharpConnect.WebServers
                 _rdForMask = new Random();
             }
         }
-        public int ConnectionId
-        {
-            get
-            {
-                //temp
-                return 0;
-            }
-        }
+        
+        public int ConnectionId => _connId;
 
-        public void Dispose()
-        {
-            if (_bodyMs != null)
-            {
-                _bodyMs.Dispose();
-                _bodyMs = null;
-            }
-        }
+        //public void Dispose()
+        //{
+        //    //if (_bodyMs != null)
+        //    //{
+        //    //    _bodyMs.Dispose();
+        //    //    _bodyMs = null;
+        //    //}
+        //}
 
         public void Write(string content)
         {
             int maskKey = _asClient ? _rdForMask.Next() : 0;
             byte[] dataToSend = CreateSendBuffer(content, maskKey);
             _sendIO.EnqueueSendingData(dataToSend, dataToSend.Length);
-            _sendIO.SendIOStartSend();
+            _sendIO.SendIOStartSend();            
         }
-        
+
         static void MaskAgain(byte[] data, byte[] key)
         {
             for (int i = data.Length - 1; i >= 0; --i)

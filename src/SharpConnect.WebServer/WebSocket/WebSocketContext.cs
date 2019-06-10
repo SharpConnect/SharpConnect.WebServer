@@ -10,6 +10,7 @@ namespace SharpConnect.WebServers
         {
             _webSocketConn = webSocketConn;
         }
+        public int ConnectionId => _webSocketConn.ConnectionId;
         public void Send(string str)
         {
             _webSocketConn.Send(str);

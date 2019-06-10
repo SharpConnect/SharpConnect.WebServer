@@ -8,7 +8,7 @@ using System.Threading;
 
 namespace SharpConnect.Internal2
 {
-     
+
 
     delegate void RecvCompleteHandler(bool success, int byteCount);
 
@@ -79,12 +79,14 @@ namespace SharpConnect.Internal2
         internal virtual bool BeginWebsocketMode { get; set; }
     }
 
-
     class SockNetworkStream : AbstractAsyncNetworkStream
     {
 
-        //resuable socket stream 
+        //resuable socket stream   
+        bool _sending1;
+        object _sending1Lock = new object();
 
+        bool _hasDataInTempMem;
         Socket _socket;
         readonly SocketAsyncEventArgs _sendAsyncEventArgs;
         readonly SocketAsyncEventArgs _recvAsyncEventArgs;
@@ -101,7 +103,7 @@ namespace SharpConnect.Internal2
         object _recvWaitLock2 = new object();
         object _sendWaitLock = new object();
         bool _sendComplete = false;
-        //int _sendingByteTransfered = 0;
+
         readonly SendIO _sendIO;
 
 
@@ -195,6 +197,17 @@ namespace SharpConnect.Internal2
         }
         public override bool WriteBuffer(byte[] srcBuffer, int srcIndex, int count)
         {
+
+            //-------------
+            if (_sending1)
+            {
+                lock (_sending1Lock)
+                    while (_sending1)
+                        Monitor.Wait(_sending1Lock);
+            }
+            //-------------
+
+            _sending1 = true;
             //write data to _sendAsyncEventArgs
             _sendBuffer.WriteBuffer(srcBuffer, srcIndex, count);
             //then send***
@@ -244,7 +257,7 @@ namespace SharpConnect.Internal2
 
 
                         //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
-                        lock (_recvWaitLock)                 // Let's now wake up the thread by
+                        lock (_recvWaitLock)           // Let's now wake up the thread by
                         {                              // setting _go=true and pulsing.
                             _recvComplete = true;
                             Monitor.Pulse(_recvWaitLock);
@@ -268,19 +281,27 @@ namespace SharpConnect.Internal2
                     break;
             }
         }
+
+
+
         void SendAsyncEventArgs_Completed(object sender, SocketAsyncEventArgs e)
         {
+#if DEBUG
             if (_passHandshake)
             {
 
             }
+#endif
+
             switch (e.LastOperation)
             {
                 case SocketAsyncOperation.Receive:
                     break;
                 case SocketAsyncOperation.Send:
                     {
-                        //send complete 
+                        //_sending1 = false;
+
+                        //send complete  
                         if (_hasDataInTempMem)
                         {
                             ProcessWaitingDataInTempMem();
@@ -297,6 +318,12 @@ namespace SharpConnect.Internal2
                                 _sendComplete = true;
                                 Monitor.Pulse(_sendWaitLock);
                             }
+                        }
+
+                        lock (_sending1Lock)
+                        {
+                            _sending1 = false;
+                            Monitor.Pulse(_sending1Lock);
                         }
                     }
                     break;
@@ -368,10 +395,12 @@ namespace SharpConnect.Internal2
                 int readByteCount = 0;
                 lock (_startRecvAsyncLock)
                 {
+#if DEBUG
                     if (_startRecvAsync)
                     {
 
                     }
+#endif
                     _startRecvAsync = true;
                 }
                 if (_socket.ReceiveAsync(_recvAsyncEventArgs))
@@ -485,10 +514,6 @@ namespace SharpConnect.Internal2
             return actualReadByteCount;
         }
 
-
-
-        bool _hasDataInTempMem;
-
         void ProcessWaitingDataInTempMem()
         {
             _sendAsyncEventArgs.SetBuffer(_sendBuffer._largeBuffer, 0, _sendBuffer._len);
@@ -502,12 +527,22 @@ namespace SharpConnect.Internal2
             //are write to socket  
             //copy data to buffer and start send
 #if DEBUG
+            bool snap = _sendComplete;
+            if (!_sendComplete)
+            {
 
+            }
 #endif
+            if (_sending1)
+            {
+                lock (_sending1Lock)
+                    while (_sending1)
+                        Monitor.Wait(_sending1Lock); //? 
+
+            }
 
             if (count > _sendBuffer._len)
             {
-
                 byte[] tmpBuffer = new byte[count];
                 _sendAsyncEventArgs.SetBuffer(tmpBuffer, 0, count);
                 _hasDataInTempMem = true;
@@ -518,9 +553,11 @@ namespace SharpConnect.Internal2
             }
 
             Buffer.BlockCopy(buffer, offset, _sendAsyncEventArgs.Buffer, 0, count);
+            _sending1 = true;
 
             if (!_socket.SendAsync(_sendAsyncEventArgs))
             {
+                _sending1 = false;
                 //Returns false if the I / O operation completed synchronously.****
                 //Returns true if data is pending (send async)
                 //_sendingByteTransfered = count;
@@ -555,9 +592,14 @@ namespace SharpConnect.Internal2
             //impl flush
         }
         //-------------------------------------------- 
+
+
         public override void StartSend()
         {
-            System.Diagnostics.Debug.WriteLine("start send");
+#if DEBUG
+            //System.Diagnostics.Debug.WriteLine("start send");
+            _sendComplete = false;
+#endif
             _sendIO.StartSendAsync();///***
         }
 
@@ -714,7 +756,10 @@ namespace SharpConnect.Internal2
 
         internal override void EnqueueSendData(byte[] buffer, int len)
         {
-            _enqueueOutputData.Write(buffer, 0, len);
+            lock (_sendingStateLock)
+            {
+                _enqueueOutputData.Write(buffer, 0, len);
+            }
         }
 
 
@@ -723,29 +768,24 @@ namespace SharpConnect.Internal2
 
         public override void StartSend()
         {
-            //lock (_startSendLock)
-            //{
-            if (_startSending)
-            {
-                return;
-            }
-            _startSending = true;
-            //}
-            //upper layer call this 
-            //: check waiting data and send it 
-            byte[] buffer = _enqueueOutputData.ToArray();
-
-#if DEBUG
-            System.Diagnostics.Debug.WriteLine(System.Text.Encoding.UTF8.GetString(buffer));
-#endif
-
-            _enqueueOutputData.SetLength(0);
-
             lock (_sendingStateLock)
             {
+                if (_startSending)
+                {
+                    return;
+                }
+                _startSending = true;
+
+                //upper layer call this 
+                //check waiting data and send it 
+
+                byte[] buffer = _enqueueOutputData.ToArray();
+                _enqueueOutputData.SetLength(0);
+
                 _sslStream.Write(buffer);
+                _startSending = false;
             }
-            _startSending = false;
+
         }
         public override void Reset()
         {
@@ -891,6 +931,10 @@ namespace SharpConnect.Internal2
         /// <returns></returns>
         public override bool WriteBuffer(byte[] srcBuffer, int srcIndex, int count)
         {
+            if (_startSending)
+            {
+
+            }
             //write data down to the ssl stream 
             _sslStream.Write(srcBuffer, srcIndex, count);
             return false;
@@ -899,6 +943,10 @@ namespace SharpConnect.Internal2
         }
         public override void Write(byte[] buffer, int offset, int count)
         {
+            if (_startSending)
+            {
+
+            }
             //we use sslStream as sync 
             //but underlying stream of this ssl stream sends data async 
             _sslStream.Write(buffer, offset, count);

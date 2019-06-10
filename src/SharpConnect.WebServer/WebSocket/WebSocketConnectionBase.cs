@@ -34,6 +34,7 @@ namespace SharpConnect.WebServers
         protected readonly int _connectionId;
         static int s_connectionIdTotal;
         protected readonly bool _asClientContext;
+
         protected WebSocketConnectionBase(bool asClient)
         {
             _asClientContext = asClient;
@@ -41,6 +42,7 @@ namespace SharpConnect.WebServers
         }
         public string Name { get; set; }
         public int ConnectionId => _connectionId;
+        public object GeneralCustomData { get; set; }
         public bool AsClientContext => _asClientContext;
         public string InitClientRequestUrl { get; set; }
 
