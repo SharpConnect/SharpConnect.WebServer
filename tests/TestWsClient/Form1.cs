@@ -1,9 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-
-using System.Drawing;
-using System.Text;
 using System.Windows.Forms;
 using SharpConnect.WebServers;
 
@@ -20,6 +15,7 @@ namespace TestWsClient
 
         private void button1_Click(object sender, EventArgs e)
         {
+            //plain websocket
             if (_client != null) return;
             //------------------------------------------------
             _client = new WebSocketClient();
@@ -44,6 +40,7 @@ namespace TestWsClient
 
         private void button3_Click(object sender, EventArgs e)
         {
+            //secure websocket
             if (_client != null) return;
             //------------------------------------------------
             _client = new WebSocketClient();
