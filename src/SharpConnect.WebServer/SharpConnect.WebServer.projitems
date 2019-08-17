@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)General\BufferManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)General\CompressionUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)General\ConnectionBase.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)General\dbugAcceptOpUserToken.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)General\dbugLOG.cs" />
@@ -37,6 +38,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketConnectionBase.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketProtocolParser.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketReqInputQueue.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketRequest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketResponse.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WebSocket\WebSocketServer.cs" />

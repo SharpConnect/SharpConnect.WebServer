@@ -38,8 +38,6 @@ namespace SharpConnect.WebServers
             ExpectBody,
             Complete
         }
-
-        Queue<WebSocketRequest> _incommingReqs = new Queue<WebSocketRequest>();
         RecvIOBufferStream _myBufferStream;
         WebSocketRequest _currentReq;
 
@@ -48,12 +46,12 @@ namespace SharpConnect.WebServers
         int _currentPacketLen;
         int _currentMaskLen;
         //-----------------------
-        byte[] _maskKey = new byte[4];
-        byte[] _fullPayloadLengthBuffer = new byte[8];
+        readonly byte[] _maskKey = new byte[4];
+        readonly byte[] _fullPayloadLengthBuffer = new byte[8];
         bool _useMask;
         Opcode _currentOpCode = Opcode.Cont;//use default                                             
 
-        bool _asClientContext;
+        readonly bool _asClientContext;
 
         internal WebSocketProtocolParser(WebSocketConnectionBase owner, RecvIOBufferStream recvBufferStream)
         {
@@ -61,24 +59,23 @@ namespace SharpConnect.WebServers
             _asClientContext = owner.AsClientContext;
             _myBufferStream = recvBufferStream;
         }
+
+        Action<WebSocketRequest> _newResultHandler;
+        internal void SetNewParseResultHandler(Action<WebSocketRequest> newResultHandler)
+        {
+            _newResultHandler = newResultHandler;
+        }
         internal WebSocketConnectionBase OwnerWebSocketConnBase { get; private set; }
 
-        public int ReqCount => _incommingReqs.Count;
-
-        public WebSocketRequest Dequeue() => _incommingReqs.Dequeue();
-
         bool ReadHeader()
-        {
+        { 
             if (!_myBufferStream.Ensure(2))
-            {
-                _myBufferStream.BackupRecvIO();
+            { 
                 return false;
             }
             //----------------------------------------------------------
             //when we read header we start a new websocket request
             _currentReq = new WebSocketRequest(this.OwnerWebSocketConnBase);
-
-            _incommingReqs.Enqueue(_currentReq);
 
 
             byte b1 = _myBufferStream.ReadByte();
@@ -97,6 +94,13 @@ namespace SharpConnect.WebServers
             // Opcode
             _currentOpCode = (Opcode)(b1 & 0x0f);//4 bits  
             //----------------------------------------------------------  
+
+            if (rsv1 == Rsv.On)
+            {
+                _currentReq.Compression = OwnerWebSocketConnBase.Compression;
+            }
+
+
             byte b2 = _myBufferStream.ReadByte();          //mask
 
             //----------------------------------------------------------  
@@ -143,15 +147,16 @@ namespace SharpConnect.WebServers
                     break;
                 case Opcode.Text: //this is data
                     {
-                        if (rsv1 == Rsv.On)
+                        if (rsv1 == Rsv.On && _currentReq.Compression == WebSocketContentCompression.NoCompression)
                         {
+
                             errCode = "A non data frame is compressed.";
                         }
                     }
                     break;
                 case Opcode.Binary: //this is data
                     {
-                        if (rsv1 == Rsv.On)
+                        if (rsv1 == Rsv.On && _currentReq.Compression == WebSocketContentCompression.NoCompression)
                         {
                             errCode = "A non data frame is compressed.";
                         }
@@ -217,8 +222,7 @@ namespace SharpConnect.WebServers
         {
             int extendedPayloadByteCount = (_currentPacketLen == 126 ? 2 : 8);
             if (!_myBufferStream.Ensure(extendedPayloadByteCount))
-            {
-                _myBufferStream.BackupRecvIO();
+            { 
                 return false;
             }
             //----------------------------------------------------------
@@ -240,8 +244,7 @@ namespace SharpConnect.WebServers
         bool ReadMask()
         {
             if (!_myBufferStream.Ensure(_currentMaskLen))
-            {
-                _myBufferStream.BackupRecvIO();
+            { 
                 return false;
             }
             //---------------------------------------------------------- 
@@ -258,7 +261,6 @@ namespace SharpConnect.WebServers
 
             for (; ; )
             {
-
                 switch (_parseState)
                 {
                     default:
@@ -312,15 +314,19 @@ namespace SharpConnect.WebServers
                             {
                                 _parseState = ParseState.Init;
                                 _myBufferStream.Clear();
+
+                                _newResultHandler(_currentReq);
+                                _currentReq = null;
                                 return ProcessReceiveBufferResult.Complete;
                             }
                             else
                             {
-
-                                //_currentReq.Clear();
-                                _currentReq.HasMoreData();
+                                //more than 1 msg?
+                                _parseState = ParseState.Init;
+                                //
+                                _newResultHandler(_currentReq);
+                                _currentReq = null;
                             }
-                            //more than 1 byte 
                         }
                         break;
                 }
@@ -329,18 +335,19 @@ namespace SharpConnect.WebServers
         bool ReadBodyContent(int readLen)
         {
             if (!_myBufferStream.Ensure(readLen))
-            {
-                _myBufferStream.BackupRecvIO();
+            { 
                 return false;
             }
             //------------------------------------
             byte[] data = new byte[readLen];
             _myBufferStream.CopyBuffer(data, readLen);
+
             if (_useMask)
             {
                 //unmask
                 MaskAgain(data, _maskKey);
             }
+            //we set a raw connection to request?
             _currentReq.SetData(data);
             return true;
         }

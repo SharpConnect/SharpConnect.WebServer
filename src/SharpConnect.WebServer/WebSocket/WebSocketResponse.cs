@@ -29,12 +29,11 @@ namespace SharpConnect.WebServers
 {
     public class WebSocketResponse
     {
-        //MemoryStream _bodyMs = new MemoryStream();
-
         readonly ISendIO _sendIO;
         readonly Random _rdForMask;
         readonly bool _asClient;
         readonly int _connId; //connection id
+        WebSocketContentCompression _compression;
         internal WebSocketResponse(int connId, bool asClient, ISendIO conn)
         {
             _connId = connId;
@@ -45,26 +44,33 @@ namespace SharpConnect.WebServers
                 _rdForMask = new Random();
             }
         }
-        
-        public int ConnectionId => _connId;
+        public WebSocketContentCompression Compression
+        {
+            get => _compression;
+            set
+            {
+                _compression = value;
+            }
+        }
 
-        //public void Dispose()
-        //{
-        //    //if (_bodyMs != null)
-        //    //{
-        //    //    _bodyMs.Dispose();
-        //    //    _bodyMs = null;
-        //    //}
-        //}
+
+        public int ConnectionId => _connId;
 
         public void Write(string content)
         {
             int maskKey = _asClient ? _rdForMask.Next() : 0;
-            byte[] dataToSend = CreateSendBuffer(content, maskKey);
+            byte[] dataToSend = CreateSendBuffer(content, maskKey, Compression);
             _sendIO.EnqueueSendingData(dataToSend, dataToSend.Length);
-            _sendIO.SendIOStartSend();            
+            _sendIO.SendIOStartSend();
         }
-
+        public void Write(byte[] content, int start, int len)
+        {
+            //send as binary data
+            int maskKey = _asClient ? _rdForMask.Next() : 0;
+            byte[] dataToSend = CreateSendBuffer(content, maskKey, true, Compression);
+            _sendIO.EnqueueSendingData(dataToSend, dataToSend.Length);
+            _sendIO.SendIOStartSend();
+        }
         static void MaskAgain(byte[] data, byte[] key)
         {
             for (int i = data.Length - 1; i >= 0; --i)
@@ -72,7 +78,7 @@ namespace SharpConnect.WebServers
                 data[i] ^= key[i % 4];
             }
         }
-        static byte[] CreateSendBuffer(string msg, int maskKey)
+        static byte[] CreateSendBuffer(byte[] sendingData, int maskKey, bool isBinaryData, WebSocketContentCompression compression)
         {
             byte[] data = null;
             using (MemoryStream ms = new MemoryStream())
@@ -90,12 +96,33 @@ namespace SharpConnect.WebServers
                 //Rsv rsv3 = (b1 & (1 << 4)) == (1 << 4) ? Rsv.On : Rsv.Off; 
 
                 //-------------
-                //opcode: 1 = text
-                b1 |= 1;
-                //-------------
+
+                if (isBinaryData)
+                {
+                    b1 |= 2;//binary
+                }
+                else
+                {
+                    b1 |= 1; //text
+                }
+
+                switch (compression)
+                {
+                    case WebSocketContentCompression.Gzip:
+                        b1 |= (1 << 6);
+                        //compress the data
+                        sendingData = CompressionUtils.GZipCompress(sendingData);
+                        break;
+                    case WebSocketContentCompression.Deflate:
+                        b1 |= (1 << 6);
+                        //compress the data
+                        sendingData = CompressionUtils.DeflateCompress(sendingData);
+                        break;
+                }
 
 
-                byte[] sendingData = Encoding.UTF8.GetBytes(msg);
+
+                //------------- 
                 //if len <126  then               
                 int dataLen = sendingData.Length;
 
@@ -186,6 +213,10 @@ namespace SharpConnect.WebServers
             }
 
             return data;
+        }
+        static byte[] CreateSendBuffer(string msg, int maskKey, WebSocketContentCompression compression)
+        {
+            return CreateSendBuffer(Encoding.UTF8.GetBytes(msg), maskKey, false, compression);
         }
     }
 }

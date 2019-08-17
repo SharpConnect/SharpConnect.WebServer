@@ -2,8 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Net;
-using System.Net.Sockets;
 using System.Text;
 
 using SharpConnect.Internal2;
@@ -23,6 +21,7 @@ namespace SharpConnect.WebServers
 
         }
         public bool UseSsl { get; set; }
+        public WebSocketContentCompression Compression { get; set; }
         public void SetHandler(ReqRespHandler<WebSocketRequest, WebSocketResponse> websocketHandler)
         {
             _websocketHandler = websocketHandler;
@@ -38,15 +37,19 @@ namespace SharpConnect.WebServers
             if (UseSsl)
             {
                 var secureWebSocketClient = new SecureWsSession();
-                secureWebSocketClient.SetHandler(_websocketHandler);
-                secureWebSocketClient.Connect(url, _serverCert);
+                secureWebSocketClient.Compression = Compression;
+                secureWebSocketClient.SetHandler(_websocketHandler);                
 
+                secureWebSocketClient.Connect(url, _serverCert);
+                
                 _clientBase = secureWebSocketClient;
             }
             else
             {
                 var plainWebSocketClient = new PlainWsSession();
-                plainWebSocketClient.SetHandler(_websocketHandler);
+                plainWebSocketClient.Compression = Compression;
+                plainWebSocketClient.SetHandler(_websocketHandler); 
+                
                 plainWebSocketClient.Connect(url);
 
                 _clientBase = plainWebSocketClient;
@@ -54,19 +57,25 @@ namespace SharpConnect.WebServers
         }
         public void SendData(string data)
         {
+            _clientBase.Compression = Compression;
             _clientBase.SendData(data);
         }
-
+        public void SendBinaryData(byte[] binaryData)
+        {
+            _clientBase.Compression = Compression;
+            _clientBase.SendBinaryData(binaryData, 0, binaryData.Length);
+        }
         //--------------
         class PlainWsSession : WsClientSessionBase
         {
             public PlainWsSession()
             {
-
+                
             }
             public void Connect(string url)
             {
                 var plainWsConn = new PlainWebSocketConn(true);
+                plainWsConn.Compression = this.Compression;
                 plainWsConn.SetMessageHandler(_websocketHandler);
                 _wbsocketConn = plainWsConn;
 
@@ -76,11 +85,11 @@ namespace SharpConnect.WebServers
                 _clientSocket.Connect(_hostIP, uri.Port);
                 //create http webreq  
 
-                StringBuilder stbuilder = CreateWebSocketUpgradeReq(uri.AbsolutePath, uri.AbsolutePath + ":" + uri.Port);
-                byte[] dataToSend = Encoding.ASCII.GetBytes(stbuilder.ToString()); 
+                StringBuilder stbuilder = CreateWebSocketUpgradeReq(uri.AbsolutePath, uri.AbsolutePath + ":" + uri.Port, plainWsConn.Compression);
+                byte[] dataToSend = Encoding.ASCII.GetBytes(stbuilder.ToString());
                 //****
                 //add event listener to our socket  
-                plainWsConn.Bind(_clientSocket, dataToSend);   
+                plainWsConn.Bind(_clientSocket, dataToSend);
             }
         }
 
@@ -97,10 +106,9 @@ namespace SharpConnect.WebServers
             public void Connect(string url, System.Security.Cryptography.X509Certificates.X509Certificate2 cert)
             {
                 var secureWsConn = new SecureWebSocketConn(true);
+                secureWsConn.Compression = this.Compression;
                 secureWsConn.SetMessageHandler(_websocketHandler);
                 _wbsocketConn = secureWsConn;
-
-                
 
                 //TODO: review buffer management here***
                 byte[] buffer1 = new byte[2048];
@@ -108,9 +116,8 @@ namespace SharpConnect.WebServers
                 IOBuffer recvBuffer = new IOBuffer(buffer1, 0, buffer1.Length);
                 IOBuffer sendBuffer = new IOBuffer(buffer2, 0, buffer2.Length);
 
-                var sockNetworkStream = new SockNetworkStream(recvBuffer, sendBuffer);
+                var sockNetworkStream = new LowLevelNetworkStream(recvBuffer, sendBuffer);
                 var secureStream = new SecureSockNetworkStream(sockNetworkStream, cert, delegate { return true; }); //***
-
 
                 Uri uri = new Uri(url);
                 InitClientSocket(uri);
@@ -118,17 +125,25 @@ namespace SharpConnect.WebServers
                 sockNetworkStream.Bind(_clientSocket);
                 _clientSocket.Connect(_hostIP, uri.Port);
 
-                //_secureStream.AuthenAsClient(uri.Host);
+                bool _passConn = false;
                 secureStream.AuthenAsClient(uri.Host, () =>
                 {
                     //--------------
-                    StringBuilder stbuilder = CreateWebSocketUpgradeReq(uri.AbsolutePath, uri.AbsolutePath + ":" + uri.Port);
+                    StringBuilder stbuilder = CreateWebSocketUpgradeReq(uri.AbsolutePath, uri.AbsolutePath + ":" + uri.Port, secureWsConn.Compression);
                     byte[] dataToSend = Encoding.ASCII.GetBytes(stbuilder.ToString());
                     //int totalCount = dataToSend.Length;
                     //int sendByteCount = _clientSocket.Send(dataToSend);
                     secureWsConn.Bind(secureStream, dataToSend);
+                    _passConn = true;
                 });
+                //------------
 
+                //wait
+                System.Threading.Thread.SpinWait(10);
+                while (!_passConn)
+                {
+                    System.Threading.Thread.Sleep(2);
+                }
             }
         }
     }

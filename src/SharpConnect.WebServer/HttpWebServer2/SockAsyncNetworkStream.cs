@@ -77,37 +77,43 @@ namespace SharpConnect.Internal2
         public int BytesTransferred => ByteReadTransfered;
 
         internal virtual bool BeginWebsocketMode { get; set; }
+
+        void IRecvIO.RecvClearBuffer() => RecvClearBufferInternal();
+        void IRecvIO.RecvCopyTo(byte[] target, int startAt, int len) => RecvCopyToInternal(target, startAt, len);
+
+        protected abstract void RecvClearBufferInternal();
+        protected abstract void RecvCopyToInternal(byte[] target, int startAt, int len);
     }
 
-    class SockNetworkStream : AbstractAsyncNetworkStream
+    class LowLevelNetworkStream : AbstractAsyncNetworkStream
     {
 
-        //resuable socket stream   
         bool _sending1;
-        object _sending1Lock = new object();
+        readonly object _sending1Lock = new object();
 
         bool _hasDataInTempMem;
+
         Socket _socket;
         readonly SocketAsyncEventArgs _sendAsyncEventArgs;
         readonly SocketAsyncEventArgs _recvAsyncEventArgs;
 
-
         IOBuffer _recvBuffer;
         IOBuffer _sendBuffer;
 
-        object _recvLock = new object();
+        readonly object _recvLock = new object();
         bool _passHandshake;
-        object _recvWaitLock = new object();
+        readonly object _recvWaitLock = new object();
         bool _recvComplete = false;
 
-        object _recvWaitLock2 = new object();
-        object _sendWaitLock = new object();
+
+        readonly object _sendWaitLock = new object();
         bool _sendComplete = false;
 
         readonly SendIO _sendIO;
+        MemoryStream _tempBuffer = new MemoryStream();
+        int _tempBufferReadPos = 0;
 
-
-        public SockNetworkStream(IOBuffer recvBuffer, IOBuffer sendBuffer)
+        public LowLevelNetworkStream(IOBuffer recvBuffer, IOBuffer sendBuffer)
         {
             //we assign buffer from external source
             _recvBuffer = recvBuffer;
@@ -126,8 +132,11 @@ namespace SharpConnect.Internal2
             _sendIO = new SendIO();
             _sendIO.Bind(this);
         }
-        //internal override int QueueCount => _sendIO.QueueCount;
 
+        public override void SetLength(long value)
+        {
+
+        }
         public override byte[] UnsafeGetInternalBuffer() => _recvBuffer._largeBuffer;
 
         public override void Reset()
@@ -142,6 +151,17 @@ namespace SharpConnect.Internal2
         {
             return GetByteFromBuffer(pos);
         }
+
+        protected override void RecvClearBufferInternal()
+        {
+            throw new NotImplementedException();
+        }
+        protected override void RecvCopyToInternal(byte[] target, int startAt, int len)
+        {
+            throw new NotImplementedException();
+        }
+
+
         internal override void EnqueueSendData(byte[] buffer, int len)
         {
             _sendIO.EnqueueOutputData(buffer, len);
@@ -214,62 +234,89 @@ namespace SharpConnect.Internal2
             return _socket.SendAsync(_sendAsyncEventArgs);
         }
 
-        void RecvAsyncEventArgs_Completed(object sender, SocketAsyncEventArgs e)
+        void ProcessSendCompleteData()
         {
-            lock (_startRecvLock)
+            //send complete 
+
+            if (_hasDataInTempMem)
             {
-                _startRecv = false;
+                ProcessWaitingDataInTempMem();
             }
 
-            lock (_startRecvAsyncLock)
+            if (_passHandshake)
             {
-                _startRecvAsync = false;
+                RaiseSendComplete();
             }
+            else
+            {
+                lock (_sendWaitLock)
+                {
+                    _sendComplete = true;
+                    Monitor.Pulse(_sendWaitLock);
+                }
+            }
+
+            lock (_sending1Lock)
+            {
+                _sending1 = false;
+                Monitor.Pulse(_sending1Lock);
+            }
+        }
+
+        //object _recvInvoke = new object();
+        int _invokeCheck1 = 0;
+        void RecvAsyncEventArgs_Completed(object sender, SocketAsyncEventArgs e)
+        {
+            //this is called when ...
+            //1. recv complete data or
+            //2. buffer full, 
+#if DEBUG
+
+            if (_recvAsyncStarted != 1)
+            {
+
+            }
+#endif
+            Interlocked.Exchange(ref _recvAsyncStarted, 0);
 
             switch (e.LastOperation)
             {
+                default:
+                    {
+
+                    }
+                    break;
                 case SocketAsyncOperation.Receive:
                     {
-                        //----------------------------------------
-                        int bytesTransferred = e.BytesTransferred;
-                        byte[] data = e.Buffer;
-                        //----------------------------------------   
-
-                        if (bytesTransferred == 0)
+                        if (_passHandshake)
                         {
-                            lock (_recvLock)
-                            {
-                                _recvBuffer.Reset();
-                                //since we use share data
-                                e.SetBuffer(_recvBuffer.WriteIndex, _recvBuffer.RemainingWriteSpace);
-                            }
+                            RecvDataAfterHandshake();
+
                         }
                         else
                         {
+                            int bytesTransferred = e.BytesTransferred;
                             lock (_recvLock)
                             {
-                                _recvBuffer.AppendWriteByteCount(bytesTransferred);
-                                //since we use share data
+                                if (bytesTransferred == 0)
+                                {
+                                    _recvBuffer.Reset();
+                                }
+                                else
+                                {
+                                    //notify recvBuffer that we have some data transfered into
+                                    _recvBuffer.AppendWriteByteCount(bytesTransferred);
+                                    //if remaining space=0, we can't get more data
+                                }
                                 e.SetBuffer(_recvBuffer.WriteIndex, _recvBuffer.RemainingWriteSpace);
                             }
-                        }
 
-
-
-                        //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
-                        lock (_recvWaitLock)           // Let's now wake up the thread by
-                        {                              // setting _go=true and pulsing.
-                            _recvComplete = true;
-                            Monitor.Pulse(_recvWaitLock);
-                        }
-
-                        //
-                        if (_passHandshake)
-                        {
-                            RaiseRecvCompleted(bytesTransferred);
-                            // ResetRecvStream();
-                            _willRaiseRecvNext = false;
-                            _recvBuffer.Reset();
+                            //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
+                            lock (_recvWaitLock)           // Let's now wake up the thread by
+                            {                              // setting _go=true and pulsing.
+                                _recvComplete = true;
+                                Monitor.Pulse(_recvWaitLock);
+                            }
                         }
                     }
                     break;
@@ -282,10 +329,11 @@ namespace SharpConnect.Internal2
             }
         }
 
-
-
         void SendAsyncEventArgs_Completed(object sender, SocketAsyncEventArgs e)
         {
+
+            //TODO: review here,
+            //this is not called on .netcore/https??
 #if DEBUG
             if (_passHandshake)
             {
@@ -298,90 +346,137 @@ namespace SharpConnect.Internal2
                 case SocketAsyncOperation.Receive:
                     break;
                 case SocketAsyncOperation.Send:
-                    {
-                        //_sending1 = false;
-
-                        //send complete  
-                        if (_hasDataInTempMem)
-                        {
-                            ProcessWaitingDataInTempMem();
-                        }
-
-                        if (_passHandshake)
-                        {
-                            RaiseSendComplete();
-                        }
-                        else
-                        {
-                            lock (_sendWaitLock)
-                            {
-                                _sendComplete = true;
-                                Monitor.Pulse(_sendWaitLock);
-                            }
-                        }
-
-                        lock (_sending1Lock)
-                        {
-                            _sending1 = false;
-                            Monitor.Pulse(_sending1Lock);
-                        }
-                    }
+                    ProcessSendCompleteData();
                     break;
             }
         }
 
         public bool PassHandShakeMode => _passHandshake;
-        public bool _willRaiseRecvNext;
 
 
-
-
-        public override int Read(byte[] buffer, int offset, int count)
+        int ReadAfterPassHandshake(byte[] buffer, int offset, int count)
         {
-
-#if !NET20
-            if (_passHandshake)
+            //this is called by upper stream (eg. ssl stream)
+            lock (_tempBuffer)
             {
-                lock (_recvLock)
+                if (_tempBuffer.Length > 0)
                 {
-                    int readLen = _recvBuffer.DataToReadLength;
-                    if (readLen > 0)
+                    //some data in temp buffer
+                    //send this out first 
+                    int availableLen = (int)(_tempBuffer.Length - _tempBufferReadPos);
+                    _tempBuffer.Position = _tempBufferReadPos;//move to readpos
+                    if (availableLen > count)
                     {
-
-                        _recvBuffer.ReadBufferTo(buffer, offset, readLen);
-                        ResetRecvStream();
-                        lock (_startRecvAsyncLock)
-                        {
-                            if (_startRecvAsync)
-                            {
-
-                            }
-                            _startRecvAsync = true;
-                        }
-
-                        if (!_socket.ReceiveAsync(_recvAsyncEventArgs))
-                        {
-                            //sync 
-                            _willRaiseRecvNext = false;
-                        }
-                        else
-                        {                            //sync  
-                            _willRaiseRecvNext = true;
-
-                            lock (_startRecvAsyncLock)
-                            {
-                                _startRecvAsync = false;
-                            }
-                        }
+                        //only available space
+                        _tempBuffer.Read(buffer, offset, count);
+                        _tempBufferReadPos += count;
+                        return count;
                     }
                     else
                     {
-                        _willRaiseRecvNext = false;
+                        //clear all
+                        _tempBuffer.Read(buffer, offset, availableLen);
+                        _tempBuffer.SetLength(0);
+                        _tempBufferReadPos = 0;
+                        return availableLen;
                     }
-                    return readLen;
                 }
+                return 0;
+            }
+        }
+
+
+        void RecvDataAfterHandshake()
+        {
+            if (Interlocked.CompareExchange(ref _invokeCheck1, 1, 0) != 0)
+            {
+                System.Diagnostics.Debugger.Break();
+            }
+            //call by RecvAsyncEventArgs_Completed thread
+#if DEBUG
+            if (_recvAsyncStarted == 1)
+            {
+
             }
 #endif
+            int totalReadLen = 0;
+            int newReadLen = _recvAsyncEventArgs.BytesTransferred;
+            if (newReadLen > 0)
+            {
+
+                totalReadLen += newReadLen;
+
+                lock (_recvLock)
+                {
+                    _recvBuffer.AppendWriteByteCount(newReadLen);
+                    lock (_tempBuffer)
+                    {
+                        _tempBuffer.Position = _tempBuffer.Length;
+                        _recvBuffer.CopyBufferTo(_tempBuffer, newReadLen);
+                    }
+                    ResetRecvStream();
+                }
+            }
+
+            int tryAgainCount = 0;
+        TRY_AGAIN:
+            //trigger get data more ???
+            tryAgainCount++;
+            //System.Diagnostics.Debug.WriteLine("tryAgain:" + tryAgainCount); 
+#if DEBUG
+            if (_recvAsyncStarted == 1)
+            {
+
+            }
+#endif 
+
+            Interlocked.Exchange(ref _recvAsyncStarted, 1);
+            if (_socket.ReceiveAsync(_recvAsyncEventArgs))
+            {
+
+            }
+            else
+            {
+                Interlocked.Exchange(ref _recvAsyncStarted, 0);
+                newReadLen = _recvAsyncEventArgs.BytesTransferred;
+                if (newReadLen > 0)
+                {
+                    totalReadLen += newReadLen;
+                    lock (_recvLock)
+                    {
+                        _recvBuffer.AppendWriteByteCount(newReadLen);
+                        lock (_tempBuffer)
+                        {
+                            _tempBuffer.Position = _tempBuffer.Length;
+                            _recvBuffer.CopyBufferTo(_tempBuffer, newReadLen);
+                        }
+                        ResetRecvStream();
+                    }
+
+
+                    //essential!!!, 
+                    //sleep recv thread,
+                    //lets other thread (eg.upper ssl thread) do their job
+                    Thread.Sleep(1);
+
+                    goto TRY_AGAIN;
+                }
+            }
+
+            if (Interlocked.CompareExchange(ref _invokeCheck1, 0, 1) != 1)
+            {
+                System.Diagnostics.Debugger.Break();
+            }
+
+            EnqueueRecvDataNotification(totalReadLen);
+        }
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            if (_passHandshake)
+            {
+                return ReadAfterPassHandshake(buffer, offset, count);
+            }
+
 
             //***
             //socket layer => [this layer] => ssl stream  
@@ -393,22 +488,11 @@ namespace SharpConnect.Internal2
                 _recvComplete = false;
                 //...               
                 int readByteCount = 0;
-                lock (_startRecvAsyncLock)
-                {
-#if DEBUG
-                    if (_startRecvAsync)
-                    {
-
-                    }
-#endif
-                    _startRecvAsync = true;
-                }
+                Interlocked.Exchange(ref _recvAsyncStarted, 1);
                 if (_socket.ReceiveAsync(_recvAsyncEventArgs))
                 {
                     //true if the I/O operation is pending.
                     //The Completed event on the e parameter will be raised upon completion of the operation. 
-
-
                     //receive async,
                     //but in this method => convert to sync
                     //SYNC, we need to WAIT for data ... 
@@ -418,6 +502,8 @@ namespace SharpConnect.Internal2
                         while (!_recvComplete)
                             Monitor.Wait(_recvWaitLock); //? 
 
+
+                    Interlocked.Exchange(ref _recvAsyncStarted, 0);
                     if (_passHandshake)
                     {
                         lock (_recvLock)
@@ -429,8 +515,6 @@ namespace SharpConnect.Internal2
                             //--------------
                             _recvBuffer.AppendWriteByteCount(readByteCount);
                             _recvAsyncEventArgs.SetBuffer(_recvBuffer.WriteIndex, _recvBuffer.RemainingWriteSpace);
-
-                            //_recvBuffer.WriteBuffer(_recvAsyncEventArgs.Buffer, _recvAsyncEventArgs.Offset, readByteCount);
                         }
                     }
 
@@ -440,14 +524,9 @@ namespace SharpConnect.Internal2
                     //false if the I/O operation completed synchronously.
                     //In this case, The Completed event on the e parameter will not be raised and
                     //the e object passed as a parameter may be examined immediately after the method call
-                    //returns to retrieve the result of the operation.
+                    //returns to retrieve the result of the operation. 
 
-                    lock (_startRecvAsyncLock)
-                    {
-
-                        _startRecvAsync = false;
-                    }
-
+                    Interlocked.Exchange(ref _recvAsyncStarted, 0);
                     lock (_recvLock)
                     {
                         readByteCount = _recvAsyncEventArgs.BytesTransferred;
@@ -467,32 +546,9 @@ namespace SharpConnect.Internal2
 
                         _recvBuffer.AppendWriteByteCount(readByteCount);
                         _recvAsyncEventArgs.SetBuffer(_recvBuffer.WriteIndex, _recvBuffer.RemainingWriteSpace);
-
-                        //_recvBuffer.WriteBuffer(_recvAsyncEventArgs.Buffer, _recvAsyncEventArgs.Offset, readByteCount);
                     }
-
                 }
 
-                //if (!_socket.ReceiveAsync(_recvAsyncEventArgs))
-                //{
-
-                //    //Returns
-                //    //Boolean 
-                //}
-                //else
-                //{
-                //    //receive async,
-                //    //but in this method => convert to sync
-                //    //SYNC, we need to WAIT for data ... 
-                //    //ref: http://www.albahari.com/threading/part4.aspx#_Signaling_with_Wait_and_Pulse
-                //    //--------------------------------
-                //    lock (_waitLock)
-                //        while (!_recvComplete)
-                //            Monitor.Wait(_waitLock); //?
-                //}
-                //------------------
-                //sync model
-                //------------------
                 if (_passHandshake)
                 {
                     RaiseRecvCompleted(readByteCount);
@@ -500,18 +556,12 @@ namespace SharpConnect.Internal2
             }
             //------------------------------------------------------------------------
             //
-            int actualReadByteCount = 0;
+
             lock (_recvLock)
             {
                 //read data from _recvBuffer 
-                _recvBuffer.ReadBufferTo(buffer, offset, count);
-                actualReadByteCount = count;//??
-                //_recvMemStream.Position = _recvReadPos; //goto latest read poos
-                ////
-                //actualReadByteCount = _recvMemStream.Read(buffer, offset, count);
+                return _recvBuffer.ReadBufferTo(buffer, offset, count);
             }
-            //_recvReadPos += actualReadByteCount;
-            return actualReadByteCount;
         }
 
         void ProcessWaitingDataInTempMem()
@@ -528,10 +578,7 @@ namespace SharpConnect.Internal2
             //copy data to buffer and start send
 #if DEBUG
             bool snap = _sendComplete;
-            if (!_sendComplete)
-            {
 
-            }
 #endif
             if (_sending1)
             {
@@ -555,15 +602,10 @@ namespace SharpConnect.Internal2
             Buffer.BlockCopy(buffer, offset, _sendAsyncEventArgs.Buffer, 0, count);
             _sending1 = true;
 
-            if (!_socket.SendAsync(_sendAsyncEventArgs))
+            if (_socket.SendAsync(_sendAsyncEventArgs))
             {
-                _sending1 = false;
-                //Returns false if the I / O operation completed synchronously.****
                 //Returns true if data is pending (send async)
-                //_sendingByteTransfered = count;
-            }
-            else
-            {
+
                 //sending data is pending...
                 //send complete event will be raised
                 //in this case, this Write() method is sync method
@@ -573,16 +615,20 @@ namespace SharpConnect.Internal2
                     while (!_sendComplete)
                         Monitor.Wait(_sendWaitLock); //? 
             }
+            else
+            {
+                _sending1 = false;
+                ProcessSendCompleteData();
+                //Returns false if the I / O operation completed synchronously.****
+            }
         }
-
-
         public void ResetRecvStream()
         {
             lock (_recvLock)
             {
                 //since we share the buffer between _recvAsyncEventArgs and
-                //recvBuffer so=> we need to set this together 
-                _willRaiseRecvNext = false;
+                //recvBuffer so=> we need to set this together
+
                 _recvBuffer.Reset();
                 _recvAsyncEventArgs.SetBuffer(_recvBuffer._startAt, _recvBuffer._len);
             }
@@ -603,136 +649,288 @@ namespace SharpConnect.Internal2
             _sendIO.StartSendAsync();///***
         }
 
-#if DEBUG
-        int dbugStartRecvCount = 0;
-#endif
 
-
-        object _startRecvLock = new object();
-        bool _startRecv = false;
-
-        bool _startRecvAsync;
-        object _startRecvAsyncLock = new object();
+        int _recvAsyncStarted;
+        int _started_recv;
 
         public override void StartReceive()
         {
-            if (BeginWebsocketMode)
-            {
+            //------------------------------
+            _passHandshake = true; //start recv data from client   
 
-            }
-            _passHandshake = true; //start recv data from client  
-            lock (_startRecvLock)
-            {
-                if (_startRecv)
-                {
-                    return;
-                }
-                else
-                {
-
-                }
-                _startRecv = true;
-            }
-            //----------------------
-#if NET20
-#else
-            if (BeginWebsocketMode)
+            if (Interlocked.CompareExchange(ref _started_recv, 1, 0) == 1)
             {
                 return;
             }
-#endif
-#if DEBUG
-            dbugStartRecvCount++;
-#endif
 
-            lock (_startRecvAsyncLock)
+
+
+            if (Interlocked.CompareExchange(ref _recvAsyncStarted, 1, 0) == 1)
             {
-                if (_passHandshake && _startRecvAsync)
-                {
-                    return;
-                }
-                _startRecvAsync = true;
+                return;
             }
 
-            if (!_socket.ReceiveAsync(_recvAsyncEventArgs))
+            if (_socket.ReceiveAsync(_recvAsyncEventArgs))
             {
-                _startRecv = false;
-                //Returns
-                //Boolean
-
                 //true if the I/O operation is pending. 
                 //The Completed event on the e parameter will be raised upon completion of the operation.
+            }
+            else
+            {
 
                 //false if the I/O operation completed synchronously.
                 //In this case, The Completed event on the e parameter will not be raised and
                 //the e object passed as a parameter may be examined immediately after 
-                //the method call returns to retrieve the result of the operation. 
-                //
-                int readByteCount = 0;
-                lock (_recvLock)
+                //the method call returns to retrieve the result of the operation.  
+                Interlocked.Exchange(ref _recvAsyncStarted, 0);
+                RecvDataAfterHandshake();
+            }
+        }
+        void EnqueueRecvDataNotification(int approxByteCount)
+        {
+            if (IsInRecvNotiQueue)
+            {
+                return;
+            }
+            RaiseRecvQueue.Enqueue(this, approxByteCount);
+        }
+        public bool HasMoreRecvData => _recvBuffer.HasDataToRead;
+
+
+        object _notiQueueLock = new object();
+        bool _isInNotiQueue;
+        internal bool IsInRecvNotiQueue
+        {
+            get
+            {
+                lock (_notiQueueLock)
                 {
-                    readByteCount = _recvAsyncEventArgs.BytesTransferred;
-                    //--------------
-                    //write 'encrypted' data from socket to memory stream
-                    //the ssl stream that wrap this stream will decode the data later***
-                    //--------------
-                    _recvBuffer.AppendWriteByteCount(readByteCount);
-                    _recvAsyncEventArgs.SetBuffer(_recvBuffer.WriteIndex, _recvBuffer.RemainingWriteSpace);
-                    //_recvBuffer.WriteBuffer(_recvAsyncEventArgs.Buffer, _recvAsyncEventArgs.Offset, readByteCount);
-                }
-                if (_passHandshake)
-                {
-
-                    //after complete we clear recv buffer
-                    RaiseRecvCompleted(readByteCount);
-                    //
-
-                    _recvBuffer.Reset();
-                    _recvAsyncEventArgs.SetBuffer(_recvBuffer.BufferStartAtIndex, _recvBuffer.BufferLength);
-
+                    return _isInNotiQueue;
                 }
             }
-            else
+            set
             {
-                lock (_startRecvAsyncLock)
+                lock (_notiQueueLock)
                 {
-                    _startRecvAsync = false;
+                    _isInNotiQueue = value;
                 }
             }
         }
 
-        public bool HasMoreRecvData() => _recvBuffer.HasDataToRead;
+        internal void RaiseRecvCompleteInternal(int approxByteCount)
+        {
+            RaiseRecvCompleted(approxByteCount);
+        }
+    }
+
+
+    struct RaiseRecvQueueItem
+    {
+        public readonly LowLevelNetworkStream _s;
+        public readonly int _approxByteCount;
+        public RaiseRecvQueueItem(LowLevelNetworkStream s, int approxByteCount)
+        {
+            _s = s;
+            _approxByteCount = approxByteCount;
+            s.IsInRecvNotiQueue = true;
+        }
+    }
+
+    static class RaiseRecvQueue
+    {
+        static Thread s_notiThread;
+        static Queue<RaiseRecvQueueItem> _notiQueues = new Queue<RaiseRecvQueueItem>();
+        static bool s_hasSomeData;
+        static bool s_running;
+        static RaiseRecvQueue()
+        {
+            s_notiThread = new Thread(ClearingThread);
+#if DEBUG
+            s_notiThread.Name = "RaiseRecvQueu";
+#endif
+            s_running = true;
+            s_notiThread.Start();
+        }
+
+        public static void Enqueue(LowLevelNetworkStream stream, int approxByteCount)
+        {
+            lock (_notiQueues)
+            {
+                _notiQueues.Enqueue(new RaiseRecvQueueItem(stream, approxByteCount));
+                s_hasSomeData = true;
+                Monitor.Pulse(_notiQueues);
+            }
+        }
+        public static void StopAndExitQueue()
+        {
+            //stop and exit queue
+            s_running = false;
+            lock (_notiQueues)
+            {
+                //signal the queue
+                Monitor.Pulse(_notiQueues);
+            }
+        }
+        static void ClearingThread(object state)
+        {
+            RaiseRecvQueueItem item = new RaiseRecvQueueItem();
+            while (s_running)
+            {
+                bool foundJob = false;
+                lock (_notiQueues)
+                {
+                    int count = _notiQueues.Count;
+                    if (count > 0)
+                    {
+                        item = _notiQueues.Dequeue();
+                        item._s.IsInRecvNotiQueue = false;
+                        foundJob = true;
+                        //run this task  
+                    }
+                    else
+                    {
+                        s_hasSomeData = false;
+                    }
+                }
+                if (foundJob)
+                {
+                    item._s.RaiseRecvCompleteInternal(item._approxByteCount);
+                }
+                else
+                {
+                    lock (_notiQueues)
+                        while (!s_hasSomeData)
+                            Monitor.Wait(_notiQueues);
+                }
+            }
+        }
 
     }
 
     delegate void AuthenCallbackDelegate();
 
+    class ReadableRecvBuffer : IDisposable
+    {
+
+        MemoryStream _ms;
+
+        public ReadableRecvBuffer()
+        {
+            _ms = new MemoryStream();
+
+        }
+        public void Dispose()
+        {
+            if (_ms != null)
+            {
+                _ms.Dispose();
+                _ms = null;
+            }
+        }
+        public void Reset()
+        {
+            lock (_ms)
+            {
+                _ms.SetLength(0);
+            }
+        }
+        public void CopyBuffer(int readIndex, byte[] dstBuffer, int dstIndex, int count)
+        {
+            lock (_ms)
+            {
+                byte[] underlyingBuffer = _ms.GetBuffer();
+                Buffer.BlockCopy(underlyingBuffer,
+                    readIndex,
+                    dstBuffer, dstIndex, count);
+            }
+
+        }
+        public byte CopyByte(int index)
+        {
+            lock (_ms)
+            {
+                return _ms.GetBuffer()[index];
+            }
+        }
+
+        /// <summary>
+        /// read data from inputStream and write to our buffer
+        /// </summary>
+        /// <param name="sslStream"></param>
+        public int WriteBufferFromStream(Stream sslStream)
+        {
+            lock (_ms)
+            {
+                //copy data from inputStream to buffer
+                //and copy data from buffer to _ms 
+                //try read max data from the stream
+
+                byte[] tmpWriteBuffer = GetTempWriteBuffer();
+                int readLen = sslStream.Read(tmpWriteBuffer, 0, tmpWriteBuffer.Length);
+                _ms.Write(tmpWriteBuffer, 0, readLen);
+
+                //while (readLen > 0)
+                //{
+                //    _ms.Write(tmpWriteBuffer, 0, readLen);
+                //    readLen = sslStream.Read(tmpWriteBuffer, 0, tmpWriteBuffer.Length);
+                //}
+                return readLen;
+            }
+        }
+
+        public int BufferLength
+        {
+            get
+            {
+                lock (_ms)
+                {
+                    //get unread data
+                    return (int)_ms.Length;
+                }
+            }
+        }
+        public byte GetByteFromBuffer(int index)
+        {
+            lock (_ms)
+            {
+                return _ms.GetBuffer()[index];
+            }
+        }
+
+
+        [ThreadStatic]
+        static byte[] s_tempWriteBuffer;
+        static byte[] GetTempWriteBuffer()
+        {
+            return s_tempWriteBuffer ?? (s_tempWriteBuffer = new byte[2048]);
+        }
+
+    }
+
     class SecureSockNetworkStream : AbstractAsyncNetworkStream
     {
-        IOBuffer _recvBuffer;
+        ReadableRecvBuffer _readableRecvBuffer;
         SslStream _sslStream;
-        SockNetworkStream _socketNetworkStream; //base stream
-        object _recvAppendLock = new object();
+        LowLevelNetworkStream _lowLevelStreamForSSL; //base stream
+        readonly object _recvAppendLock = new object();
         System.Security.Cryptography.X509Certificates.X509Certificate2 _cert;
 
-        System.IO.MemoryStream _enqueueOutputData = new MemoryStream();
+        MemoryStream _enqueueOutputData = new MemoryStream();
 
-        object _sendingStateLock = new object();
+        readonly object _sendingStateLock = new object();
 
-        public SecureSockNetworkStream(SockNetworkStream socketNetworkStream,
+        public SecureSockNetworkStream(LowLevelNetworkStream socketNetworkStream,
             System.Security.Cryptography.X509Certificates.X509Certificate2 cert,
             System.Net.Security.RemoteCertificateValidationCallback remoteCertValidationCb = null)
         {
             _sslStream = new SslStream(socketNetworkStream, true, remoteCertValidationCb, null);
             _cert = cert;
 
-            _socketNetworkStream = socketNetworkStream;
-            _socketNetworkStream.SetRecvCompleteEventHandler(SocketNetworkStream_RecvCompleted);
-            _socketNetworkStream.SetSendCompleteEventHandler(SocketNetworkStream_SendCompleted);
+            _lowLevelStreamForSSL = socketNetworkStream;
+            _lowLevelStreamForSSL.SetRecvCompleteEventHandler(LowLevelForSSL_RecvCompleted);
+            _lowLevelStreamForSSL.SetSendCompleteEventHandler(LowLevelForSSL_SendCompleted);
 
-            //
-            byte[] tmpIOBuffer = new byte[2048];//TODO: alloc this from external 
-            _recvBuffer = new IOBuffer(tmpIOBuffer, 0, tmpIOBuffer.Length);
+            _readableRecvBuffer = new ReadableRecvBuffer();
         }
 
         internal override bool BeginWebsocketMode
@@ -740,19 +938,38 @@ namespace SharpConnect.Internal2
             get => base.BeginWebsocketMode;
             set
             {
-                _socketNetworkStream.BeginWebsocketMode = value;
+                _lowLevelStreamForSSL.BeginWebsocketMode = value;
                 base.BeginWebsocketMode = value;
             }
         }
-        public override byte[] UnsafeGetInternalBuffer() => _recvBuffer._largeBuffer;
+        public override byte[] UnsafeGetInternalBuffer()
+        {
+            //TODO: impl this again for websocket
+            //copy buffer to external
+            return null;
+            //_readableRecvBuffer._largeBuffer;
+        }
 
         internal override void RecvCopyTo(int readpos, byte[] dstBuffer, int copyLen)
         {
-            _recvBuffer.CopyBuffer(readpos, dstBuffer, 0, copyLen);
-            //_recvBuffer.Reset();
+            //*** 
+            _readableRecvBuffer.CopyBuffer(readpos, dstBuffer, 0, copyLen);
         }
 
-        internal override byte RecvReadByte(int pos) => _recvBuffer.CopyByte(pos);
+        internal override byte RecvReadByte(int pos)
+        {
+            return _readableRecvBuffer.CopyByte(pos);
+        }
+
+        protected override void RecvCopyToInternal(byte[] target, int startAt, int len)
+        {
+            _readableRecvBuffer.CopyBuffer(0, target, startAt, len);
+        }
+        protected override void RecvClearBufferInternal()
+        {
+            _readableRecvBuffer.Reset();
+        }
+
 
         internal override void EnqueueSendData(byte[] buffer, int len)
         {
@@ -763,7 +980,7 @@ namespace SharpConnect.Internal2
         }
 
 
-        object _startSendLock = new object();
+        readonly object _startSendLock = new object();
         bool _startSending;
 
         public override void StartSend()
@@ -775,7 +992,6 @@ namespace SharpConnect.Internal2
                     return;
                 }
                 _startSending = true;
-
                 //upper layer call this 
                 //check waiting data and send it 
 
@@ -789,17 +1005,17 @@ namespace SharpConnect.Internal2
         }
         public override void Reset()
         {
-            _recvBuffer.Reset();
-            _socketNetworkStream.Reset();
+            _sslStream.SetLength(0);
+            _readableRecvBuffer.Reset();
+            _lowLevelStreamForSSL.Reset();
         }
         public override void ClearReceiveBuffer()
         {
-            _recvBuffer.Reset();
-            _socketNetworkStream.ClearReceiveBuffer();
+            _readableRecvBuffer.Reset();
         }
         internal override void UnbindSocket()
         {
-            _socketNetworkStream.UnbindSocket();
+            _lowLevelStreamForSSL.UnbindSocket();
         }
         public void AuthenAsServer()
         {
@@ -810,8 +1026,18 @@ namespace SharpConnect.Internal2
             _sslStream.BeginAuthenticateAsServer(_cert, false, System.Security.Authentication.SslProtocols.Default, false,
                 state =>
                 {
-                    _sslStream.EndAuthenticateAsServer(state);
-                    whenFinish();
+                    //authen may fail at this stage
+                    try
+                    {
+                        _sslStream.EndAuthenticateAsServer(state);
+                        whenFinish();
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine(ex.Message);
+
+                    }
+
                 }, new object());
         }
         public void AuthenAsClient(string targetHost)
@@ -831,7 +1057,7 @@ namespace SharpConnect.Internal2
                 }, new object());
         }
 
-        void SocketNetworkStream_SendCompleted(object sender, EventArgs e)
+        void LowLevelForSSL_SendCompleted(object sender, EventArgs e)
         {
             lock (_startSendLock)
             {
@@ -842,81 +1068,49 @@ namespace SharpConnect.Internal2
         }
 
 
-        private void SocketNetworkStream_RecvCompleted(bool result, int byteCount)
+        private void LowLevelForSSL_RecvCompleted(bool result, int lowLevelByteCount)
         {
+            //lowLevelByteCount=> encrypted byte count, we can't use this value directly
 
-#if NET20
-            if (byteCount > 0)
+#if DEBUG
+            if (!_lowLevelStreamForSSL.PassHandShakeMode)
             {
-                //.... 
-                lock (_recvAppendLock)
-                {
-                    _recvBuffer.WriteBufferFromStream(_sslStream);
-                    while (_socketNetworkStream.HasMoreRecvData())
-                    {
-                        _recvBuffer.WriteBufferFromStream(_sslStream);
-                    }
-                    _socketNetworkStream.ResetRecvStream();
-                }
-
-            }
-            _startRecv = false;
-            //-----------
-            //this should notify the ssl that we have some data arrive
-            RaiseRecvCompleted(_recvBuffer.DataToReadLength);
-
-            _recvBuffer.Reset();
-
-#else
-
-
-            int dataReadLen = _recvBuffer.DataToReadLength;
-            if (byteCount > 0)
-            {
-                //.... 
-                lock (_recvAppendLock)
-                {
-                    _recvBuffer.WriteBufferFromStream(_sslStream);
-                    if (_socketNetworkStream.PassHandShakeMode)
-                    {
-                        while (_socketNetworkStream._willRaiseRecvNext)
-                        {
-                            _recvBuffer.WriteBufferFromStream(_sslStream);
-                        }
-                        //_socketNetworkStream.ResetRecvStream();
-                    }
-                    else
-                    {
-                        while (_socketNetworkStream.HasMoreRecvData())
-                        {
-                            _recvBuffer.WriteBufferFromStream(_sslStream);
-                        }
-                        _socketNetworkStream.ResetRecvStream();
-                    }
-                    dataReadLen = _recvBuffer.PushDataToAccumBuffer();
-                    //dataReadLen = _recvBuffer.DataToReadLength;
-                }
-
-            }
-            _startRecv = false;
-            //-----------
-            //this should notify the ssl that we have some data arrive
-            if (dataReadLen > 0)
-            {
-                RaiseRecvCompleted(dataReadLen);
-            }
-            else
-            {
-                _recvBuffer.Reset();
+                System.Diagnostics.Debugger.Break();
             }
 #endif
 
-
+            int readableDataLen = 0;
+            if (lowLevelByteCount > 0)
+            {
+                //.... 
+                lock (_recvAppendLock)
+                {
+                    //decrypt data from sslStream to readable data
+                    //and write to _readableRecvBuffer  
+                    int latestReadLen = _readableRecvBuffer.WriteBufferFromStream(_sslStream);
+                    while (latestReadLen > 0)
+                    {
+                        latestReadLen = _readableRecvBuffer.WriteBufferFromStream(_sslStream);
+                    }
+                    readableDataLen = _readableRecvBuffer.BufferLength;
+                }
+            }
+            _startRecv = false;
+            //-----------
+            //this should notify the ssl that we have some data arrive
+            if (readableDataLen > 0)
+            {
+                RaiseRecvCompleted(readableDataLen);
+            }
+            else
+            {
+                _readableRecvBuffer.Reset();
+            }
         }
 
         public override void ReadBuffer(int srcIndex, int copyCount, byte[] dstBuffer, int dstIndex)
         {
-            _recvBuffer.CopyBuffer(srcIndex, dstBuffer, dstIndex, copyCount);
+            _readableRecvBuffer.CopyBuffer(srcIndex, dstBuffer, dstIndex, copyCount);
         }
         public override int Read(byte[] buffer, int offset, int count)
         {
@@ -931,10 +1125,7 @@ namespace SharpConnect.Internal2
         /// <returns></returns>
         public override bool WriteBuffer(byte[] srcBuffer, int srcIndex, int count)
         {
-            if (_startSending)
-            {
 
-            }
             //write data down to the ssl stream 
             _sslStream.Write(srcBuffer, srcIndex, count);
             return false;
@@ -943,10 +1134,6 @@ namespace SharpConnect.Internal2
         }
         public override void Write(byte[] buffer, int offset, int count)
         {
-            if (_startSending)
-            {
-
-            }
             //we use sslStream as sync 
             //but underlying stream of this ssl stream sends data async 
             _sslStream.Write(buffer, offset, count);
@@ -959,20 +1146,20 @@ namespace SharpConnect.Internal2
         bool _startRecv;
         public override void StartReceive()
         {
-            _socketNetworkStream.BeginWebsocketMode = this.BeginWebsocketMode;
+            _lowLevelStreamForSSL.BeginWebsocketMode = this.BeginWebsocketMode;
             if (_startRecv)
             {
                 return;
             }
             _startRecv = true;
-            _socketNetworkStream.StartReceive();
+            _lowLevelStreamForSSL.StartReceive();
         }
 
-        public override int ByteReadTransfered => _recvBuffer.DataToReadLength;
+        public override int ByteReadTransfered => _readableRecvBuffer.BufferLength;
 
         public override byte GetByteFromBuffer(int index)
         {
-            return _recvBuffer.GetByteFromBuffer(index);
+            return _readableRecvBuffer.GetByteFromBuffer(index);
         }
 
     }

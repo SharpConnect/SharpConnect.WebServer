@@ -29,11 +29,13 @@ namespace SharpConnect
     class SimpleBufferReader
     {
         //TODO: check endian  ***
-        byte[] _originalBuffer;
+
         int _bufferStartIndex;
         int _readIndex;
         int _usedBuffersize;
-        byte[] _buffer = new byte[16];
+        readonly byte[] _buffer = new byte[16];
+        readonly byte[] _originalBuffer = new byte[2048];
+
         public SimpleBufferReader()
         {
 
@@ -45,13 +47,14 @@ namespace SharpConnect
             }
 #endif
         }
-        public void SetBuffer(byte[] originalBuffer, int bufferStartIndex, int bufferSize)
+        public void SetBuffer(int bufferStartIndex, int bufferSize)
         {
-            _originalBuffer = originalBuffer;
+
             _usedBuffersize = bufferSize;
             _bufferStartIndex = bufferStartIndex;
             _readIndex = bufferStartIndex; //auto
         }
+
         public bool Ensure(int len) => _readIndex + len <= _usedBuffersize;
 
         public int AvaialbleByteCount => _usedBuffersize - _readIndex;
@@ -367,189 +370,115 @@ namespace SharpConnect
 
     interface IRecvIO
     {
-        byte[] UnsafeGetInternalBuffer();
+
         int BytesTransferred { get; }
+        void RecvCopyTo(byte[] target, int startAt, int len);
+        void RecvClearBuffer();
     }
 
-    
     class RecvIOBufferStream : IDisposable
     {
-        SimpleBufferReader _simpleBufferReader = new SimpleBufferReader();
-        List<byte[]> _otherBuffers = new List<byte[]>();
-        int _currentBufferIndex;
+        MemoryStream _ms = new MemoryStream();
+        int _latestReadPos = 0;
+ 
 
-        bool _multipartMode;
-        int _readpos = 0;
-        int _totalLen = 0;
-        int _bufferCount = 0;
-
-        IRecvIO _recvIO;
-        public RecvIOBufferStream(IRecvIO recvIO)
+        public RecvIOBufferStream()
         {
-            _recvIO = recvIO;
-            AutoClearPrevBufferBlock = true;
+
         }
-        public bool AutoClearPrevBufferBlock { get; set; }
+        public void AppendNewRecvData()
+        {
+            //nothing... 
+        }
+        public void WriteData(byte[] inputBuffer, int count)
+        {
+            lock (_ms)
+            {
+                //move to latest pos
+                _ms.Position = _ms.Length;
+                _ms.Write(inputBuffer, 0, count);
+            }
+        }
         public void Dispose()
         {
+            if (_ms != null)
+            {
+                _ms.Dispose();
+                _ms = null;
+            }
+        }
 
+        internal void ForceClear()
+        {
+            lock (_ms)
+            {
+                _ms.SetLength(0);
+                _latestReadPos = 0;
+            }
         }
         public void Clear()
         {
 
-            _otherBuffers.Clear();
-            _multipartMode = false;
-            _bufferCount = 0;
-            _currentBufferIndex = 0;
-            _readpos = 0;
-            _totalLen = 0;
-            _simpleBufferReader.SetBuffer(null, 0, 0);
-        }
-
-        public void AppendNewRecvData()
-        {
-            if (_bufferCount == 0)
+            lock (_ms)
             {
-                //single part mode                             
-                _totalLen = _recvIO.BytesTransferred;
-                _simpleBufferReader.SetBuffer(_recvIO.UnsafeGetInternalBuffer(), 0, _totalLen);
-                _bufferCount++;
-            }
-            else
-            {
-                //more than 1 buffer
-                if (_multipartMode)
+                if (_latestReadPos == _ms.Length)
                 {
-                    int thisPartLen = _recvIO.BytesTransferred;
-                    byte[] o2copy = new byte[thisPartLen];
-                    Buffer.BlockCopy(_recvIO.UnsafeGetInternalBuffer(), 0, o2copy, 0, thisPartLen);
-                    _otherBuffers.Add(o2copy);
-                    _totalLen += thisPartLen;
+                    _ms.SetLength(0);
+                    _latestReadPos = 0;
                 }
                 else
                 {
-                    //should not be here
-                    throw new NotSupportedException();
+
                 }
-                _bufferCount++;
+            }
+
+        }
+        public void CopyBuffer(byte[] output, int len)
+        {
+            //from read position copy data to output 
+            lock (_ms)
+            {
+                _ms.Position = _latestReadPos;
+                if (_latestReadPos + len > _ms.Length)
+                {
+                    //read only available 
+                    int readCount = (int)(_ms.Length - _latestReadPos);
+                    _ms.Read(output, 0, readCount);
+                    _latestReadPos += readCount;
+                }
+                else
+                {
+                    _ms.Read(output, 0, len);
+                    _latestReadPos += len;
+                }
             }
         }
-
-        public int Length => _totalLen;
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="len"></param>
-        /// <returns></returns>
-        public bool Ensure(int len) => _readpos + len <= _totalLen;
-
-        public void BackupRecvIO()
+        public bool IsEnd()
         {
-            if (_bufferCount == 1 && !_multipartMode)
+            //read until end?
+            lock (_ms)
             {
-                //only in single mode
-                int thisPartLen = _recvIO.BytesTransferred;
-                byte[] o2copy = new byte[thisPartLen];
-                Buffer.BlockCopy(_recvIO.UnsafeGetInternalBuffer(), 0, o2copy, 0, thisPartLen);
-                _otherBuffers.Add(o2copy);
-                _multipartMode = true;
-                int prevIndex = _simpleBufferReader.Position;
-                _simpleBufferReader.SetBuffer(o2copy, 0, thisPartLen);
-                _simpleBufferReader.Position = prevIndex;
+                return _latestReadPos >= _ms.Length;
+            }
+        }
+        public bool Ensure(int byteCount)
+        {
+            lock (_ms)
+            {
+                return _ms.Length - _latestReadPos >= byteCount;
             }
         }
         public byte ReadByte()
         {
-            if (_simpleBufferReader.Ensure(1))
+            lock (_ms)
             {
-                _readpos++;
-                return _simpleBufferReader.ReadByte();
-            }
-            else
-            {
-                if (_multipartMode)
-                {
-                    //this end of current buffer
-                    //so we switch to the new one
-                    if (_currentBufferIndex < _otherBuffers.Count)
-                    {
-                        MoveToNextBufferBlock();
-                        _readpos++;
-                        return _simpleBufferReader.ReadByte();
-                    }
-                }
-            }
-            throw new Exception();
-        }
-        void MoveToNextBufferBlock()
-        {
-            if (AutoClearPrevBufferBlock)
-            {
-                _otherBuffers[_currentBufferIndex] = null;
-            }
 
-            _currentBufferIndex++;
-            byte[] buff = _otherBuffers[_currentBufferIndex];
-            _simpleBufferReader.SetBuffer(buff, 0, buff.Length);
-        }
-        /// <summary>
-        /// copy data from current pos to output
-        /// </summary>
-        /// <param name="output"></param>
-        /// <param name="len"></param>
-        public void CopyBuffer(byte[] output, int len)
-        {
-            if (_simpleBufferReader.Ensure(len))
-            {
-                _simpleBufferReader.CopyBytes(output, 0, len);
-                _readpos += len;
-            }
-            else
-            {
-                //need more than 1
-                int toCopyLen = _simpleBufferReader.AvaialbleByteCount;
-                int remain = len;
-                int targetIndex = 0;
-                do
-                {
-                    _simpleBufferReader.CopyBytes(output, targetIndex, toCopyLen);
-                    _readpos += toCopyLen;
-                    targetIndex += toCopyLen;
-                    remain -= toCopyLen;
-                    //move to another
-                    if (remain > 0)
-                    {
-                        if (_currentBufferIndex < _otherBuffers.Count - 1)
-                        {
-                            MoveToNextBufferBlock();
-                            //-------------------------- 
-                            //evaluate after copy
-                            if (_simpleBufferReader.Ensure(remain))
-                            {
-                                //end
-                                _simpleBufferReader.CopyBytes(output, targetIndex, remain);
-                                _readpos += remain;
-                                remain = 0;
-                                return;
-                            }
-                            else
-                            {
-                                //not complete on this round
-                                toCopyLen = _simpleBufferReader.UsedBufferDataLen;
-                                //copy all
-                            }
-                        }
-                        else
-                        {
-                            throw new NotSupportedException();
-                        }
-                    }
-                } while (remain > 0);
-
+                _ms.Position = _latestReadPos;
+                _latestReadPos++;
+                return (byte)_ms.ReadByte();
             }
         }
-        public bool IsEnd() => _readpos >= _totalLen;
+        
     }
 
 }
