@@ -734,18 +734,10 @@ namespace SharpConnect.Internal2
             _approxByteCount = approxByteCount;
             s.IsInRecvNotiQueue = true;
         }
+
+        public static readonly RaiseRecvQueueItem Empty = new RaiseRecvQueueItem();
     }
 
-    //public static class GlobalMsgLoop
-    //{
-    //    internal static bool s_running;
-    //    internal static bool s_hasSomeData;
-    //    public static void Stop()
-    //    {
-    //        s_hasSomeData = true;
-    //        RaiseRecvQueue.StopAndExitQueue();
-    //    }
-    //}
 
     static class RaiseRecvQueue
     {
@@ -754,17 +746,7 @@ namespace SharpConnect.Internal2
 
         static int s_running;
         static int s_notiThreadCreated;
-        static RaiseRecvQueue()
-        {
 
-            //            s_notiThread = new Thread(ClearingThread);
-            //            GlobalMsgLoop.s_running = true;
-            //#if DEBUG
-            //            s_notiThread.Name = "RaiseRecvQueu";
-            //#endif
-
-            //            s_notiThread.Start();
-        }
 
         static void RunClearingThread()
         {
@@ -809,7 +791,7 @@ namespace SharpConnect.Internal2
         }
         static void ClearingThread(object state)
         {
-            RaiseRecvQueueItem item = new RaiseRecvQueueItem();
+            RaiseRecvQueueItem item = RaiseRecvQueueItem.Empty;
 
             while (s_running == 1)
             {
@@ -851,7 +833,6 @@ namespace SharpConnect.Internal2
                                 Interlocked.Exchange(ref s_notiThreadCreated, 0);
 
                                 s_notiThread = null;
-                                //tmpThread.Join();
                                 return;
                             }
                             Monitor.Wait(_notiQueues, 2000);//2s
