@@ -736,47 +736,71 @@ namespace SharpConnect.Internal2
         }
     }
 
-    public static class GlobalMsgLoop
-    {
-        internal static bool s_running;
-        internal static bool s_hasSomeData;
-        public static void Stop()
-        {
-            s_hasSomeData = true;
-            RaiseRecvQueue.StopAndExitQueue();
-        }
-    }
+    //public static class GlobalMsgLoop
+    //{
+    //    internal static bool s_running;
+    //    internal static bool s_hasSomeData;
+    //    public static void Stop()
+    //    {
+    //        s_hasSomeData = true;
+    //        RaiseRecvQueue.StopAndExitQueue();
+    //    }
+    //}
 
     static class RaiseRecvQueue
     {
         static Thread s_notiThread;
         static Queue<RaiseRecvQueueItem> _notiQueues = new Queue<RaiseRecvQueueItem>();
 
-       
+        static int s_running;
+        static int s_notiThreadCreated;
         static RaiseRecvQueue()
         {
-            s_notiThread = new Thread(ClearingThread);
-            GlobalMsgLoop.s_running = true;
-#if DEBUG
-            s_notiThread.Name = "RaiseRecvQueu";
-#endif
-            
-            s_notiThread.Start();
+
+            //            s_notiThread = new Thread(ClearingThread);
+            //            GlobalMsgLoop.s_running = true;
+            //#if DEBUG
+            //            s_notiThread.Name = "RaiseRecvQueu";
+            //#endif
+
+            //            s_notiThread.Start();
         }
 
+        static void RunClearingThread()
+        {
+            if (Interlocked.CompareExchange(ref s_notiThreadCreated, 1, 0) == 1)
+            {
+                //has the runninng thread
+                return;
+            }
+            //----
+            //if not start thread
+#if DEBUG
+            if (s_notiThread != null)
+            {
+                throw new NotSupportedException();
+            }
+#endif
+            //------
+            s_notiThread = new Thread(ClearingThread); //run clearing thread
+            s_notiThread.Name = "RaiseRecvQueu";
+
+            Interlocked.Exchange(ref s_running, 1);
+            s_notiThread.Start();
+        }
         public static void Enqueue(LowLevelNetworkStream stream, int approxByteCount)
         {
             lock (_notiQueues)
             {
                 _notiQueues.Enqueue(new RaiseRecvQueueItem(stream, approxByteCount));
-                GlobalMsgLoop.s_hasSomeData = true;
+                RunClearingThread();
                 Monitor.Pulse(_notiQueues);
             }
         }
         public static void StopAndExitQueue()
         {
             //stop and exit queue
-            GlobalMsgLoop.s_running = false;
+            Interlocked.Exchange(ref s_running, 0);
             lock (_notiQueues)
             {
                 //signal the queue
@@ -786,7 +810,8 @@ namespace SharpConnect.Internal2
         static void ClearingThread(object state)
         {
             RaiseRecvQueueItem item = new RaiseRecvQueueItem();
-            while (GlobalMsgLoop.s_running)
+
+            while (s_running == 1)
             {
                 bool foundJob = false;
                 lock (_notiQueues)
@@ -801,18 +826,38 @@ namespace SharpConnect.Internal2
                     }
                     else
                     {
-                        GlobalMsgLoop.s_hasSomeData = false;
                     }
                 }
+                //--------------------------------------------
                 if (foundJob)
                 {
                     item._s.RaiseRecvCompleteInternal(item._approxByteCount);
                 }
                 else
                 {
+                    //no job in this thread,
+                    //we can exit this
+
+                    int noJobCount = 0;
                     lock (_notiQueues)
-                        while (!GlobalMsgLoop.s_hasSomeData)
-                            Monitor.Wait(_notiQueues, 20);
+                    {
+                        while (_notiQueues.Count == 0)
+                        {
+                            if (noJobCount > 5)//configurable
+                            {
+                                //stop this loop
+                                Interlocked.Exchange(ref s_running, 0);
+                                Thread tmpThread = s_notiThread;
+                                Interlocked.Exchange(ref s_notiThreadCreated, 0);
+
+                                s_notiThread = null;
+                                //tmpThread.Join();
+                                return;
+                            }
+                            Monitor.Wait(_notiQueues, 2000);//2s
+                            noJobCount++;
+                        }
+                    }
                 }
             }
         }
