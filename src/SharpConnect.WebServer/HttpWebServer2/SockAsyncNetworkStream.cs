@@ -736,19 +736,31 @@ namespace SharpConnect.Internal2
         }
     }
 
+    public static class GlobalMsgLoop
+    {
+        internal static bool s_running;
+        internal static bool s_hasSomeData;
+        public static void Stop()
+        {
+            s_hasSomeData = true;
+            RaiseRecvQueue.StopAndExitQueue();
+        }
+    }
+
     static class RaiseRecvQueue
     {
         static Thread s_notiThread;
         static Queue<RaiseRecvQueueItem> _notiQueues = new Queue<RaiseRecvQueueItem>();
-        static bool s_hasSomeData;
-        static bool s_running;
+
+       
         static RaiseRecvQueue()
         {
             s_notiThread = new Thread(ClearingThread);
+            GlobalMsgLoop.s_running = true;
 #if DEBUG
             s_notiThread.Name = "RaiseRecvQueu";
 #endif
-            s_running = true;
+            
             s_notiThread.Start();
         }
 
@@ -757,14 +769,14 @@ namespace SharpConnect.Internal2
             lock (_notiQueues)
             {
                 _notiQueues.Enqueue(new RaiseRecvQueueItem(stream, approxByteCount));
-                s_hasSomeData = true;
+                GlobalMsgLoop.s_hasSomeData = true;
                 Monitor.Pulse(_notiQueues);
             }
         }
         public static void StopAndExitQueue()
         {
             //stop and exit queue
-            s_running = false;
+            GlobalMsgLoop.s_running = false;
             lock (_notiQueues)
             {
                 //signal the queue
@@ -774,7 +786,7 @@ namespace SharpConnect.Internal2
         static void ClearingThread(object state)
         {
             RaiseRecvQueueItem item = new RaiseRecvQueueItem();
-            while (s_running)
+            while (GlobalMsgLoop.s_running)
             {
                 bool foundJob = false;
                 lock (_notiQueues)
@@ -789,7 +801,7 @@ namespace SharpConnect.Internal2
                     }
                     else
                     {
-                        s_hasSomeData = false;
+                        GlobalMsgLoop.s_hasSomeData = false;
                     }
                 }
                 if (foundJob)
@@ -799,13 +811,14 @@ namespace SharpConnect.Internal2
                 else
                 {
                     lock (_notiQueues)
-                        while (!s_hasSomeData)
-                            Monitor.Wait(_notiQueues);
+                        while (!GlobalMsgLoop.s_hasSomeData)
+                            Monitor.Wait(_notiQueues, 20);
                 }
             }
         }
-
     }
+
+
 
     delegate void AuthenCallbackDelegate();
 

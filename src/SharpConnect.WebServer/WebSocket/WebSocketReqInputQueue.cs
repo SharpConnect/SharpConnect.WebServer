@@ -21,15 +21,17 @@ namespace SharpConnect.WebServers
     {
         static Thread s_mainClearingThread;
         static Queue<WebSocketReqQueueItem> s_queue = new Queue<WebSocketReqQueueItem>();
-        static bool s_hasSomeData;
-        static bool s_running;
+        //static bool s_hasSomeData;
+        //static bool s_running;
         static WebSocketReqInputQueue()
         {
             s_mainClearingThread = new Thread(ClearingThread);
+            SharpConnect.Internal2.GlobalMsgLoop.s_running = true;
 #if DEBUG
             s_mainClearingThread.Name = "WebSocketReqInputQueue";
 #endif
-            s_running = true;
+
+
             s_mainClearingThread.Start();
         }
 
@@ -38,14 +40,14 @@ namespace SharpConnect.WebServers
             lock (s_queue)
             {
                 s_queue.Enqueue(item);
-                s_hasSomeData = true;
+                SharpConnect.Internal2.GlobalMsgLoop.s_running = true;
                 Monitor.Pulse(s_queue);
             }
         }
         public static void StopAndExitQueue()
         {
             //stop and exit queue
-            s_running = false;
+            SharpConnect.Internal2.GlobalMsgLoop.s_running = false;
             lock (s_queue)
             {
                 //signal the queue
@@ -55,7 +57,7 @@ namespace SharpConnect.WebServers
         static void ClearingThread(object s)
         {
             WebSocketReqQueueItem item = new WebSocketReqQueueItem();
-            while (s_running)
+            while (SharpConnect.Internal2.GlobalMsgLoop.s_running)
             {
                 bool foundJob = false;
                 lock (s_queue)
@@ -69,7 +71,7 @@ namespace SharpConnect.WebServers
                     }
                     else
                     {
-                        s_hasSomeData = false;
+                        SharpConnect.Internal2.GlobalMsgLoop.s_hasSomeData = false;
                     }
                 }
                 if (foundJob)
@@ -87,8 +89,8 @@ namespace SharpConnect.WebServers
                 else
                 {
                     lock (s_queue)
-                        while (!s_hasSomeData)
-                            Monitor.Wait(s_queue);
+                        while (!SharpConnect.Internal2.GlobalMsgLoop.s_hasSomeData)
+                            Monitor.Wait(s_queue, 10);
                 }
             }
         }
