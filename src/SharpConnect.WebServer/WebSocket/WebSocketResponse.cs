@@ -69,7 +69,7 @@ namespace SharpConnect.WebServers
             int maskKey = _asClient ? _rdForMask.Next() : 0;
             byte[] dataToSend = CreateSendBuffer(content, maskKey, true, Compression);
             _sendIO.EnqueueSendingData(dataToSend, dataToSend.Length);
-            _sendIO.SendIOStartSend();
+            _sendIO.SendIOStartSend();            
         }
         static void MaskAgain(byte[] data, byte[] key)
         {

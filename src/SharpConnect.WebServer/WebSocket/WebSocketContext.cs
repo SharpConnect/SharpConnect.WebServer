@@ -12,12 +12,13 @@ namespace SharpConnect.WebServers
     //
     public class WebSocketContext
     {
-        
+
         readonly WebSocketConnectionBase _webSocketConn;
         internal WebSocketContext(WebSocketConnectionBase webSocketConn)
         {
             _webSocketConn = webSocketConn;
         }
+        public string InitClientRequestUrl { get; set; }
         public int ConnectionId => _webSocketConn.ConnectionId;
         public void Send(string str)
         {

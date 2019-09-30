@@ -49,6 +49,7 @@ namespace SharpConnect.WebServers
 
             PlainWebSocketConn wbcontext = new PlainWebSocketConn(false);
             var wbCtx = new WebSocketContext(wbcontext);
+            wbCtx.InitClientRequestUrl = initUrl;
             AssignWebSocketExtensions(wbCtx, sec_websocket_extensions);
 
             _workingWebSocketConns.Add(wbcontext.ConnectionId, wbCtx);//add to working socket 
@@ -65,6 +66,7 @@ namespace SharpConnect.WebServers
         {
             var wbcontext = new SecureWebSocketConn(false);
             var wbCtx = new WebSocketContext(wbcontext);
+            wbCtx.InitClientRequestUrl = initUrl;
             AssignWebSocketExtensions(wbCtx, sec_websocket_extensions);
 
             _workingWebSocketConns.Add(wbcontext.ConnectionId, wbCtx);//add to working socket 

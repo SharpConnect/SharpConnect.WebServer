@@ -132,7 +132,7 @@ namespace SharpConnect.WebServers
             //send websocket reply
             _sendIO.EnqueueOutputData(connReplMsg, connReplMsg.Length);
             _sendIO.StartSendAsync();
-            //--------
+            //--------            
         }
         void ISendIO.EnqueueSendingData(byte[] buffer, int len) => _sendIO.EnqueueOutputData(buffer, len);
         void ISendIO.SendIOStartSend() => _sendIO.StartSendAsync();

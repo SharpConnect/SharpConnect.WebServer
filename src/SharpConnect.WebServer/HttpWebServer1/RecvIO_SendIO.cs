@@ -309,8 +309,12 @@ namespace SharpConnect.Internal
                             StartSendAsync();
                             //****
                         }
-                        else if (remainingBytes == 0)
+                        else
                         {
+                            if (remainingBytes < 0)
+                            {
+
+                            }
                             //complete sending  
                             //check the queue again ...
 
@@ -345,10 +349,7 @@ namespace SharpConnect.Internal
                                 //****   
                             }
                         }
-                        else
-                        {   //< 0 ????
-                            throw new NotSupportedException();
-                        }
+
                     }
                     break;
             }

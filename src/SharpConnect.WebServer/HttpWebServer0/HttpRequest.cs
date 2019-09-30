@@ -134,6 +134,24 @@ namespace SharpConnect.WebServers
                 return "";
             }
         }
+
+        static readonly byte[] s_empty = new byte[0];
+        public byte[] GetBodyContentAsBuffer()
+        {
+            if (_contentByteCount > 0)
+            {
+                var pos = _bodyMs.Position;
+                _bodyMs.Position = 0;
+                byte[] buffer = new byte[_contentByteCount];
+                _bodyMs.Read(buffer, 0, _contentByteCount);
+                _bodyMs.Position = pos;
+                return buffer;
+            }
+            else
+            {
+                return s_empty;
+            }
+        }
         public string Path { get; set; }
         public HttpMethod HttpMethod
         {

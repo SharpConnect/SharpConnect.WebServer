@@ -77,6 +77,7 @@ namespace SharpConnect.WebServers
             //and wait for result 
             _webSocketResp.Compression = Compression;
             _webSocketResp.Write(data, start, len);
+            
         }
         internal void InvokeReqHandler(WebSocketRequest req)
         {
