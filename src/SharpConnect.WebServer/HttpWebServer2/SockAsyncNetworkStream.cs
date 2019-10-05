@@ -290,7 +290,10 @@ namespace SharpConnect.Internal2
                     {
                         if (_passHandshake)
                         {
-                            RecvDataAfterHandshake();
+                            if (e.BytesTransferred > 0)
+                            {
+                                RecvDataAfterHandshake();
+                            }                           
 
                         }
                         else
@@ -388,6 +391,7 @@ namespace SharpConnect.Internal2
 
         void RecvDataAfterHandshake()
         {
+
             if (Interlocked.CompareExchange(ref _invokeCheck1, 1, 0) != 0)
             {
                 System.Diagnostics.Debugger.Break();
@@ -417,7 +421,11 @@ namespace SharpConnect.Internal2
                     ResetRecvStream();
                 }
             }
+            else
+            {
 
+
+            }
             int tryAgainCount = 0;
         TRY_AGAIN:
             //trigger get data more ???
@@ -465,10 +473,13 @@ namespace SharpConnect.Internal2
 
             if (Interlocked.CompareExchange(ref _invokeCheck1, 0, 1) != 1)
             {
-                System.Diagnostics.Debugger.Break();
+                //System.Diagnostics.Debugger.Break();
             }
 
-            EnqueueRecvDataNotification(totalReadLen);
+            if (totalReadLen > 0)
+            {
+                EnqueueRecvDataNotification(totalReadLen);
+            }
         }
         public override int Read(byte[] buffer, int offset, int count)
         {
