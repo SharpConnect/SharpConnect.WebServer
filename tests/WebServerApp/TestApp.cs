@@ -20,7 +20,40 @@ namespace SharpConnect
         const string html = @"<html>
                 <head>
                 <script> 
-                         
+                        
+                        var wsUri=get_wsurl(); 
+                        var websocket= null;
+                        var send_count=0;
+                        (function init(){
+	  
+		                        //command queue 
+		                        websocket = new WebSocket(wsUri);
+		                        websocket.onopen = function(evt) { 
+			                        console.log('open');
+			                        websocket.send('client: Hello!');
+		                        };
+		                        websocket.onclose = function(evt) { 
+			                        console.log('close');
+		                        };
+		                        websocket.onmessage = function(evt) {  
+			                        console.log(evt.data);
+		                        };
+		                        websocket.onerror = function(evt) {  
+		                        };		
+                         })();
+                        function send_data(data){
+                                 send_count++;
+                                //console.log('send_count='+ send_count);
+	                            websocket.send(data +' '+ send_count);
+                        } 
+                        function get_wsurl(){
+                               
+                                if(window.location.protocol==""https:""){
+                                    return   ""wss://""+ window.location.hostname +"":8080"";
+                                }else{
+                                    return   ""ws://""+ window.location.hostname +"":8080"";
+                                }
+                        } 
                        
                 </script>                
                 </head>
@@ -28,428 +61,40 @@ namespace SharpConnect
                         hello-websocket
 	                    <input type=""button"" id=""mytxt"" onclick=""send_data('hello')""></input>	
                         <div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div><div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div><div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div><div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div><div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div><div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div><div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-                       <div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div><div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div><div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div><div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div><div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div><div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div><div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
+                </body></html>
+    
+       ";
 
-                       <div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div><div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div><div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div><div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div><div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div><div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div><div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-                       <div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div><div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div><div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div><div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div><div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div><div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div><div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>AAA</div>
-<div>ZZZZ</div>
-                </body>    
-        </html>";
+        string html2 = null;
+
         public void HandleRequest(HttpRequest req, HttpResponse resp)
-        {             
+        {
             switch (req.Path)
             {
                 case "/":
                     {
                         resp.TransferEncoding = ResponseTransferEncoding.Chunked;
                         resp.End("hello!");
+                    }
+                    break;
+                case "/long_html":
+                    {
+
+                        if (html2 == null)
+                        {
+                            System.Text.StringBuilder stbuilder = new System.Text.StringBuilder();
+                            stbuilder.AppendLine("<html><head></head><body>");
+                            for (int i = 0; i < 1000; ++i)
+                            {
+                                stbuilder.AppendLine("<div>" + i + "</div>");
+                            }
+                            stbuilder.AppendLine("<div>ZZZ</div>");
+                            stbuilder.AppendLine("</body></html>");
+                            html2 = stbuilder.ToString();
+                        }
+
+                        resp.ContentType = WebResponseContentType.TextHtml;
+                        resp.End(html2);
                     }
                     break;
                 case "/websocket":

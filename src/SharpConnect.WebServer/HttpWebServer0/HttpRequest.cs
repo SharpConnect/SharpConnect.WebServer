@@ -245,6 +245,7 @@ namespace SharpConnect.WebServers
                 case "Connection":
                     {
                         _context.KeepAlive = (value.ToLower().Trim() == "keep-alive");
+                        _context.KeepAlive = false;
 
                     }
                     break;
