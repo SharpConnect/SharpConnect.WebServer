@@ -96,7 +96,16 @@ namespace SharpConnect.WebServers
                         {
                             //copy data and write to recvIO stream
 
-                            _recvIO.ProcessReceivedData();
+                            int recvByteCount = e.BytesTransferred;
+                            if (recvByteCount > 0)
+                            {
+                                //TODO
+                                byte[] tmp1 = new byte[recvByteCount];
+                                Buffer.BlockCopy(e.Buffer, 0, tmp1, 0, recvByteCount);
+                                recvIOStream.WriteData(tmp1, recvByteCount);
+                                _recvIO.ProcessReceivedData();
+                            }
+
                         }
                         break;
                 }
