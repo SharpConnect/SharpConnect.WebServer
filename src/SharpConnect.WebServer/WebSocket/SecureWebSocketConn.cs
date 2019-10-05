@@ -29,36 +29,65 @@ namespace SharpConnect.WebServers
     sealed class SecureWebSocketConn : WebSocketConnectionBase, ISendIO
     {
         SharpConnect.Internal2.AbstractAsyncNetworkStream _clientStream;
+        RecvIOBufferStream _recvIOStream;
+        object _recvIOLock = new object();
         public SecureWebSocketConn(bool asClient)
             : base(asClient)
         {
             _webSocketResp = new WebSocketResponse(_connectionId, asClient, this);
         }
+        public override WebSocketContentCompression Compression
+        {
+            get => base.Compression;
+            set
+            {
+                base.Compression = value;
+                _webSocketResp.Compression = value;
+            }
+        }
 
         public void Bind(SharpConnect.Internal2.AbstractAsyncNetworkStream clientStream, byte[] wsUpgradeResponseMsg)
         {
-            _webSocketReqParser = new WebSocketProtocolParser(this, new RecvIOBufferStream(clientStream));
-
+            _recvIOStream = new RecvIOBufferStream();
+            _webSocketReqParser = new WebSocketProtocolParser(this, _recvIOStream);
+            _webSocketReqParser.SetNewParseResultHandler(req =>
+            {
+                WebSocketReqInputQueue.Enqueue(new WebSocketReqQueueItem(this, req));
+            });
+            //-------
             _clientStream = clientStream;
-
             _clientStream.SetRecvCompleteEventHandler((r, byteCount) =>
             {
-                if (byteCount == 0)
+                lock (_recvIOLock)
                 {
-                    HandleReceivedData(RecvEventCode.NoMoreReceiveData);
+                    if (byteCount == 0)
+                    {
+                        HandleReceivedData(RecvEventCode.NoMoreReceiveData);
+                    }
+                    else
+                    {
+                        int recvByteCount = _clientStream.ByteReadTransfered;
+                        if (recvByteCount == 0)
+                        {
+                            HandleReceivedData(RecvEventCode.NoMoreReceiveData);
+                        }
+                        else
+                        {
+                            //use tmp1 from reusable???
+                            //so we don't need to alloc everytime
+                            byte[] tmp1 = new byte[recvByteCount];
+                            _clientStream.ReadBuffer(0, recvByteCount, tmp1, 0);
+                            _recvIOStream.WriteData(tmp1, recvByteCount);
+                            //copy data and write to recvIOStream
+                            HandleReceivedData(RecvEventCode.HasSomeData);
+                        }
+                    }
                 }
-                else
-                {
-                    HandleReceivedData(RecvEventCode.HasSomeData);
-                }
-
             });
             _clientStream.SetSendCompleteEventHandler((s, e) =>
             {
                 //blank here
             });
-
-
 
 
             _clientStream.StartReceive();
@@ -87,22 +116,26 @@ namespace SharpConnect.WebServers
                         if (_asClientContext && !_clientStream.BeginWebsocketMode)
                         {
                             int recvByteCount = _clientStream.ByteReadTransfered;
-                            byte[] tmp1 = new byte[2048];
+                            byte[] tmp1 = new byte[2048];//TODO:....
                             _clientStream.ReadBuffer(0, recvByteCount, tmp1, 0);
                             string text = System.Text.Encoding.UTF8.GetString(tmp1, 0, recvByteCount);
                             if (text.StartsWith("HTTP/1.1 101 Switching Protocols\r\nUpgrade"))
                             {
                                 //*** clear prev buffer before new recv
+
+                                _recvIOStream.ForceClear();
+
                                 _clientStream.ClearReceiveBuffer();
                                 _clientStream.BeginWebsocketMode = true; //***
                                 _clientStream.StartReceive();//***
+
                                 return;
                             }
-                            //-- 
                         }
                         //------
 
                         //parse recv msg
+
                         switch (_webSocketReqParser.ParseRecvData())
                         {
                             //in this version all data is copy into WebSocketRequest
@@ -113,32 +146,48 @@ namespace SharpConnect.WebServers
                                 {
                                     //you can choose ...
                                     //invoke webSocketReqHandler in this thread or another thread
-                                    while (_webSocketReqParser.ReqCount > 0)
-                                    {
-                                        WebSocketRequest req = _webSocketReqParser.Dequeue();
-                                        _webSocketReqHandler(req, _webSocketResp);
-                                    }
-
-                                    if (_clientStream.BeginWebsocketMode)
-                                    {
-#if !NET20
-#else
-                                        _clientStream.ClearReceiveBuffer();
+#if DEBUG
+                                    //System.Diagnostics.Debug.WriteLine("complete:" + _webSocketReqParser.ReqCount.ToString());
 #endif
-                                    }
-                                    else
-                                    {
-                                        _clientStream.ClearReceiveBuffer();
-                                    }
 
+                                    //                                    //debug
+                                    //                                    int reqCount = _webSocketReqParser.ReqCount;
+                                    //                                    int reqCountBackup = reqCount;
+                                    //                                    while (_webSocketReqParser.ReqCount > 0)
+                                    //                                    {
+                                    //#if DEBUG
+                                    //                                        System.Diagnostics.Debug.WriteLine("req_count:" + _webSocketReqParser.ReqCount.ToString());
+                                    //#endif
+                                    //                                        reqCount--;
+                                    //                                        WebSocketRequest req = _webSocketReqParser.Dequeue();
+                                    //                                        _webSocketReqHandler(req, _webSocketResp);
+                                    //                                    }
 
+                                    //                                    if (reqCount != 0)
+                                    //                                    {
+
+                                    //                                    }
+
+                                    _clientStream.ClearReceiveBuffer();
+                                    _recvIOStream.ForceClear();
                                     _clientStream.StartReceive();
                                     //***no code after StartReceive***
                                 }
                                 return;
                             case ProcessReceiveBufferResult.NeedMore:
                                 {
-                                    _clientStream.StartReceive();
+                                    //#if DEBUG
+                                    //                                    System.Diagnostics.Debug.WriteLine("need_more:" + _webSocketReqParser.ReqCount.ToString());
+                                    //#endif
+                                    //                                    while (_webSocketReqParser.ReqCount > 0)
+                                    //                                    {
+                                    //#if DEBUG
+                                    //                                        System.Diagnostics.Debug.WriteLine("req_count_x:" + _webSocketReqParser.ReqCount.ToString());
+                                    //#endif
+                                    //                                        WebSocketRequest req = _webSocketReqParser.Dequeue();
+                                    //                                        _webSocketReqHandler(req, _webSocketResp);
+                                    //                                    }
+                                    //_clientStream.StartReceive();
                                     //recvIO.StartReceive();
                                     //***no code after StartReceive***
                                 }

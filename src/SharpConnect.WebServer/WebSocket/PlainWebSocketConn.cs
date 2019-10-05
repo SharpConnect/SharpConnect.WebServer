@@ -72,6 +72,14 @@ namespace SharpConnect.WebServers
             _sockAsyncListener = new SocketAsyncEventArgs();
             _sockAsyncListener.SetBuffer(new byte[RECV_BUFF_SIZE], 0, RECV_BUFF_SIZE);
             _recvIO = new RecvIO(_sockAsyncListener, 0, RECV_BUFF_SIZE, HandleReceivedData);
+
+
+            RecvIOBufferStream recvIOStream = new RecvIOBufferStream();
+            _webSocketReqParser = new WebSocketProtocolParser(this, recvIOStream);
+            _webSocketReqParser.SetNewParseResultHandler(req =>
+            {
+                WebSocketReqInputQueue.Enqueue(new WebSocketReqQueueItem(this, req));
+            });
             _sockAsyncListener.Completed += new EventHandler<SocketAsyncEventArgs>((s, e) =>
             {
                 switch (e.LastOperation)
@@ -86,16 +94,35 @@ namespace SharpConnect.WebServers
                         break;
                     case SocketAsyncOperation.Receive:
                         {
-                            _recvIO.ProcessReceivedData();
+                            //copy data and write to recvIO stream
+
+                            int recvByteCount = e.BytesTransferred;
+                            if (recvByteCount > 0)
+                            {
+                                //TODO
+                                byte[] tmp1 = new byte[recvByteCount];
+                                Buffer.BlockCopy(e.Buffer, 0, tmp1, 0, recvByteCount);
+                                recvIOStream.WriteData(tmp1, recvByteCount);
+                                _recvIO.ProcessReceivedData();
+                            }
+
                         }
                         break;
                 }
             });
             //------------------------------------------------------------------------------------             
-            _webSocketReqParser = new WebSocketProtocolParser(this, new RecvIOBufferStream(_recvIO));
+
 
         }
-
+        public override WebSocketContentCompression Compression
+        {
+            get => base.Compression;
+            set
+            {
+                base.Compression = value;
+                _webSocketResp.Compression = value;
+            }
+        }
         public void Bind(Socket clientSocket, byte[] connReplMsg)
         {
             _clientSocket = clientSocket;
@@ -114,7 +141,7 @@ namespace SharpConnect.WebServers
             //send websocket reply
             _sendIO.EnqueueOutputData(connReplMsg, connReplMsg.Length);
             _sendIO.StartSendAsync();
-            //--------
+            //--------            
         }
         void ISendIO.EnqueueSendingData(byte[] buffer, int len) => _sendIO.EnqueueOutputData(buffer, len);
         void ISendIO.SendIOStartSend() => _sendIO.StartSendAsync();
@@ -162,23 +189,15 @@ namespace SharpConnect.WebServers
                             //TODO: review this, if we need to copy?,  
 
                             case ProcessReceiveBufferResult.Complete:
-                                {
-                                    //you can choose ...
-                                    //invoke webSocketReqHandler in this thread or another thread
-                                    while (_webSocketReqParser.ReqCount > 0)
-                                    {
-                                        WebSocketRequest req = _webSocketReqParser.Dequeue();
-                                        _webSocketReqHandler(req, _webSocketResp);
-                                    }
-                                    _recvIO.StartReceive();
-                                    //***no code after StartReceive***
-                                }
+
+                                //you can choose ...
+                                //invoke webSocketReqHandler in this thread or another thread 
+                                _recvIO.StartReceive();
+                                //***no code after StartReceive*** 
                                 return;
                             case ProcessReceiveBufferResult.NeedMore:
-                                {
-                                    _recvIO.StartReceive();
-                                    //***no code after StartReceive***
-                                }
+                                _recvIO.StartReceive();
+                                //***no code after StartReceive*** 
                                 return;
                             case ProcessReceiveBufferResult.Error:
                             default:

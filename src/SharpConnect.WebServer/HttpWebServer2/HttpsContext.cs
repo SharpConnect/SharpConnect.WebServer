@@ -41,7 +41,7 @@ namespace SharpConnect.WebServers
         ReqRespHandler<HttpRequest, HttpResponse> _reqHandler;
         HttpsWebServer _ownerServer;
 
-        SockNetworkStream _baseSockStream;
+        LowLevelNetworkStream _baseSockStream;
         AbstractAsyncNetworkStream _sockStream;
 
         Socket _clientSocket;
@@ -76,7 +76,7 @@ namespace SharpConnect.WebServers
 
             IOBuffer recvIOBuffer = new IOBuffer(recvBuff, 0, recvBuff.Length);
             IOBuffer sendIOBuffer = new IOBuffer(sendBuffer, 0, sendBuffer.Length);
-            _baseSockStream = new SockNetworkStream(recvIOBuffer, sendIOBuffer);
+            _baseSockStream = new LowLevelNetworkStream(recvIOBuffer, sendIOBuffer);
             //
             //
             //each recvSendArgs is created for this connection session only *** 
@@ -267,23 +267,15 @@ namespace SharpConnect.WebServers
                 case SendIOEventCode.SendComplete:
                     {
 
+                        //TODO: review , this is not called on .netcore/https
 #if DEBUG
                         dbugSendComplete++;
 #endif
 
-                        if (KeepAlive)
-                        {
-                            Reset();
-                            //next recv on the same client
-                            StartReceive();
-                        }
-                        else
-                        {
-                            Reset();
-                            //next recv on the same client
-                            StartReceive();
-                            //UnBindSocket(true);
-                        }
+                        Reset();
+                        //next recv on the same client
+                        StartReceive();
+
                     }
                     break;
             }
@@ -321,13 +313,19 @@ namespace SharpConnect.WebServers
                                     {
                                         return;
                                     }
+
                                     _reqHandler(_httpReq, _httpResp);
+                                    if (_httpResp._actualEnd)
+                                    {
+                                        _httpResp.ActualEnd();
+                                    }
+
+                                    Reset();
                                 }
                                 break;
                             case ProcessReceiveBufferResult.NeedMore:
-                                {
-                                    _sockStream.StartReceive();
-                                    //recvIO.StartReceive();
+                                { 
+
                                 }
                                 break;
                             case ProcessReceiveBufferResult.Error:

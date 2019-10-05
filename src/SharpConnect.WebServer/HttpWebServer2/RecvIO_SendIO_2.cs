@@ -41,9 +41,7 @@ namespace SharpConnect.Internal2
         public int BufferLength => _len;
 
         object _resetLock = new object();
-        bool _useAccumBuffer;
-        byte[] _accumBuffer;
-        int _accumBufferLen;
+
 
         public void Reset()
         {
@@ -88,6 +86,7 @@ namespace SharpConnect.Internal2
                 throw new IndexOutOfRangeException();
             }
             _writeIndex += newWriteBytes;
+
 #if DEBUG
 
             if (_writeIndex == 2048)
@@ -96,26 +95,10 @@ namespace SharpConnect.Internal2
             }
 #endif
         }
-        public int PushDataToAccumBuffer()
-        {
-            if (_accumBuffer == null)
-            {
-                _accumBuffer = new byte[2048];
-            }
 
-            Buffer.BlockCopy(_largeBuffer, 0, _accumBuffer, 0, _accumBufferLen = _writeIndex);
-            _useAccumBuffer = true;
-
-            Reset();
-            return _accumBufferLen;
-        }
         public void CopyBuffer(int readIndex, byte[] dstBuffer, int dstIndex, int count)
         {
-            if (_useAccumBuffer)
-            {
-                Buffer.BlockCopy(_accumBuffer, _startAt + readIndex, dstBuffer, _startAt + dstIndex, count);
-                return;
-            }
+
             if (readIndex + count <= _writeIndex) //***
             {
                 Buffer.BlockCopy(_largeBuffer, _startAt + readIndex, dstBuffer, _startAt + dstIndex, count);
@@ -131,20 +114,48 @@ namespace SharpConnect.Internal2
         {
             return _largeBuffer[_startAt + _readIndex + index];
         }
-        public void ReadBufferTo(byte[] dstBuffer, int dstIndex, int count)
+        public void CopyBufferTo(MemoryStream ms, int count)
+        {
+            ms.Write(_largeBuffer, _startAt + _readIndex, count);
+        }
+        public int ReadBufferTo(byte[] dstBuffer, int dstIndex, int count)
         {
             //read data from the latest pos
-            if (_readIndex + count <= _writeIndex) //***
+            try
             {
-                Buffer.BlockCopy(_largeBuffer, _startAt + _readIndex, dstBuffer, _startAt + dstIndex, count);
-                _readIndex += count;
 
+#if DEBUG
+                int org_count = count;
+#endif
+                if (_readIndex + count > _writeIndex)
+                {
+                    count = _writeIndex - _readIndex;
+                }
+
+                if (count > 0)
+                {
+                    if (dstIndex + count > dstBuffer.Length)
+                    {
+                        //only available 
+                        int availableLen = dstBuffer.Length - dstIndex;
+                        Buffer.BlockCopy(_largeBuffer, _startAt + _readIndex, dstBuffer, _startAt + dstIndex, availableLen);
+                        _readIndex += availableLen;
+                        return availableLen;
+                    }
+                    else
+                    {
+                        Buffer.BlockCopy(_largeBuffer, _startAt + _readIndex, dstBuffer, _startAt + dstIndex, count);
+                        _readIndex += count;
+                        return count;
+                    }
+                }
+                return 0;
             }
-            else
+            catch (Exception ex)
             {
-                //out-of-range!
-                throw new NotSupportedException();
+                throw ex;
             }
+
         }
 
 
@@ -154,6 +165,8 @@ namespace SharpConnect.Internal2
         /// <param name="inputStream"></param>
         public void WriteBufferFromStream(Stream inputStream)
         {
+
+            //eg. inputStream is SslStream
 #if DEBUG
             if (_writeIndex >= _len)
             {
@@ -163,6 +176,7 @@ namespace SharpConnect.Internal2
             //try read max data from the stream 
             _writeIndex += inputStream.Read(_largeBuffer, _writeIndex, _len - _writeIndex);
 #if DEBUG
+
             if (_writeIndex == 2048)
             {
 
@@ -172,17 +186,11 @@ namespace SharpConnect.Internal2
 
         //
         public int WriteIndex => _writeIndex;
-        public int ReadIndex => _readIndex;
+
         public bool HasDataToRead
         {
             get
             {
-                if (_useAccumBuffer)
-                {
-#if DEBUG
-                    System.Diagnostics.Debugger.Break();
-#endif
-                }
                 return _readIndex < _writeIndex;
             }
         }
@@ -190,33 +198,17 @@ namespace SharpConnect.Internal2
         {
             get
             {
-                if (_useAccumBuffer)
-                {
-                    return _accumBufferLen;
-                }
                 return _writeIndex - _readIndex;
             }
         }
         public byte GetByteFromBuffer(int index)
         {
-            if (_useAccumBuffer)
-            {
-#if DEBUG
-                System.Diagnostics.Debugger.Break();
-#endif
-            }
             return _largeBuffer[_startAt + _readIndex + index];
         }
         public int RemainingWriteSpace
         {
             get
             {
-                if (_useAccumBuffer)
-                {
-#if DEBUG
-                    System.Diagnostics.Debugger.Break();
-#endif
-                }
                 return _len - _writeIndex;
             }
         }
@@ -236,10 +228,7 @@ namespace SharpConnect.Internal2
         object _stateLock = new object();
         object _queueLock = new object();
         SendIOState _sendingState;
-#if DEBUG && !NETSTANDARD1_6
-        readonly int dbugThradId = System.Threading.Thread.CurrentThread.ManagedThreadId;
-        int dbugSendingTheadId;
-#endif
+
         //-----------
         AbstractAsyncNetworkStream _networkStream;
 
@@ -293,11 +282,6 @@ namespace SharpConnect.Internal2
                     //if in other state then return
                     return;
                 }
-
-
-#if DEBUG && !NETSTANDARD1_6
-                dbugSendingTheadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
-#endif
                 _sendingState = SendIOState.Sending;
             }
 

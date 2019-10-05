@@ -9,7 +9,7 @@ namespace SharpConnect
         static CrossOriginPolicy crossOriginPolicy = new CrossOriginPolicy(AllowCrossOrigin.All, "*");
         static TestApp()
         {
-            
+
             //eg.
             //stBuilder.Append("Access-Control-Allow-Methods: GET, POST\r\n");
             //stBuilder.Append("Access-Control-Allow-Headers: Content-Type\r\n");
@@ -20,7 +20,7 @@ namespace SharpConnect
         const string html = @"<html>
                 <head>
                 <script> 
-                         
+                        
                         var wsUri=get_wsurl(); 
                         var websocket= null;
                         var send_count=0;
@@ -53,56 +53,48 @@ namespace SharpConnect
                                 }else{
                                     return   ""ws://""+ window.location.hostname +"":8080"";
                                 }
-                        }
+                        } 
+                       
                 </script>                
                 </head>
                 <body>
                         hello-websocket
 	                    <input type=""button"" id=""mytxt"" onclick=""send_data('hello')""></input>	
-                </body>    
-        </html>";
+                        <div>AAA</div>
+                </body></html>
+    
+       ";
+
+        string html2 = null;
+
         public void HandleRequest(HttpRequest req, HttpResponse resp)
         {
-
-            //string rootFolder = @"C:\apache2\htdocs\";
-            //string absFile = rootFolder + "\\" + req.Url;  
-            //if (File.Exists(absFile))
-            //{
-            //    byte[] buffer = File.ReadAllBytes(absFile);
-            //    resp.AllowCrossOriginPolicy = crossOriginPolicy;
-            //    switch (Path.GetExtension(absFile))
-            //    {
-            //        case ".jpg":
-            //            resp.ContentType = WebResponseContentType.ImageJpeg;
-            //            break;
-            //        case ".png":
-            //            resp.ContentType = WebResponseContentType.ImagePng;
-            //            break;
-            //        case ".php":
-            //        case ".html":
-            //            resp.ContentType = WebResponseContentType.TextHtml;
-            //            break;
-            //        case ".js":
-            //            resp.ContentType = WebResponseContentType.TextJavascript;
-            //            break;
-            //        case ".css":
-            //            resp.ContentType = WebResponseContentType.TextCss;
-            //            break;
-            //    }
-            //    resp.End(buffer);
-            //}
-            //else
-            //{
-            //    resp.End("something wrong");
-            //}
-
-
-            switch (req.Url)
+            switch (req.Path)
             {
                 case "/":
                     {
                         resp.TransferEncoding = ResponseTransferEncoding.Chunked;
                         resp.End("hello!");
+                    }
+                    break;
+                case "/long_html":
+                    {
+
+                        if (html2 == null)
+                        {
+                            System.Text.StringBuilder stbuilder = new System.Text.StringBuilder();
+                            stbuilder.AppendLine("<html><head></head><body>");
+                            for (int i = 0; i < 1000; ++i)
+                            {
+                                stbuilder.AppendLine("<div>" + i + "</div>");
+                            }
+                            stbuilder.AppendLine("<div>ZZZ</div>");
+                            stbuilder.AppendLine("</body></html>");
+                            html2 = stbuilder.ToString();
+                        }
+
+                        resp.ContentType = WebResponseContentType.TextHtml;
+                        resp.End(html2);
                     }
                     break;
                 case "/websocket":
@@ -132,21 +124,44 @@ namespace SharpConnect
         int count = 0;
         public void HandleWebSocket(WebSocketRequest req, WebSocketResponse resp)
         {
-            string clientMsg = req.ReadAsString();
-            if (clientMsg == null)
+
+            if (req.OpCode == Opcode.Text)
             {
-                resp.Write("");
-                return;
+                string clientMsg = req.ReadAsString();
+
+                if (clientMsg == null)
+                {
+                    resp.Write("");
+                    return;
+                }
+
+                string serverMsg = null;
+                if (clientMsg.StartsWith("LOOPBACK"))
+                {
+                    serverMsg = "from SERVER " + clientMsg;
+                }
+                else
+                {
+                    serverMsg = "server:" + (count++);
+                }
+
+                resp.Write(serverMsg);
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine(serverMsg);
+#endif
+            }
+            else if (req.OpCode == Opcode.Binary)
+            {
+                //this is binary data
+                byte[] binaryData = req.ReadAsBinary();
+#if DEBUG
+                count++;
+                string serverMsg = count + " binary_len" + binaryData.Length;
+                System.Diagnostics.Debug.WriteLine(serverMsg);
+                resp.Write(serverMsg);
+#endif
             }
 
-            if (clientMsg.StartsWith("LOOPBACK"))
-            {
-                resp.Write("from SERVER " + clientMsg);
-            }
-            else
-            {
-                resp.Write("server:" + (count++));
-            }
         }
     }
 }

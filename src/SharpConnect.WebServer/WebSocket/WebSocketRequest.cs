@@ -30,13 +30,13 @@ namespace SharpConnect.WebServers
     public class WebSocketRequest : IDisposable
     {
         readonly WebSocketConnectionBase _ownerConn;
-        byte[] _data;
-        MemoryStream _ms;
+        MemoryStream _ms = new MemoryStream();
         internal WebSocketRequest(WebSocketConnectionBase ownerConn)
         {
             _ownerConn = ownerConn;
         }
-        public object GeneralUserData => _ownerConn.GeneralCustomData;
+        public WebSocketContentCompression Compression { get; internal set; }
+
         public void Dispose()
         {
             if (_ms != null)
@@ -50,93 +50,44 @@ namespace SharpConnect.WebServers
             get;
             internal set;
         }
-
-        internal void HasMoreData()
-        {
-            if (_ms == null)
-            {
-                _ms = new MemoryStream();
-                _ms.Write(_data, 0, _data.Length);
-            }
-        }
-        internal void Clear()
-        {
-            _data = null;
-        }
         internal void SetData(byte[] newDataBuffer)
         {
-            if (_ms != null)
+            _ms.Write(newDataBuffer, 0, newDataBuffer.Length);
+        }
+        public byte[] ReadAsBinary()
+        {             
+            switch (Compression)
             {
-#if DEBUG
-                System.Diagnostics.Debug.WriteLine(ReadAsString());
-#endif
-                _ms.Write(newDataBuffer, 0, newDataBuffer.Length);
-#if DEBUG
-                System.Diagnostics.Debug.WriteLine(ReadAsString());
-#endif
+                default:
+                case WebSocketContentCompression.NoCompression:
+                    return _ms.ToArray();
+                case WebSocketContentCompression.Deflate:
+                    return CompressionUtils.DeflateDecompress(_ms.ToArray());
+                case WebSocketContentCompression.Gzip:
+                    return CompressionUtils.GZipDecompress(_ms.ToArray());
             }
-            else
-            {
-                if (_data != null)
-                {
-                    throw new NotSupportedException();
-                }
-                _data = newDataBuffer;
-            }
-
         }
         public string ReadAsString()
         {
-            if (_ms != null)
+            if (this.OpCode == Opcode.Text)
             {
-                if (this.OpCode == Opcode.Text)
-                {
-                    return System.Text.Encoding.UTF8.GetString(_ms.ToArray());
-                }
-                else
-                {
-                    return null;
-                }
+                return System.Text.Encoding.UTF8.GetString(ReadAsBinary());
             }
             else
             {
-                if (_data != null && this.OpCode == Opcode.Text)
-                {
-                    return System.Text.Encoding.UTF8.GetString(_data);
-                }
-                else
-                {
-                    return null;
-                }
+                return null;
             }
-
         }
         public char[] ReadAsChars()
         {
-            if (_ms != null)
+            if (this.OpCode == Opcode.Text)
             {
-                if (this.OpCode == Opcode.Text)
-                {
-                    return System.Text.Encoding.UTF8.GetChars(_ms.ToArray());
-                }
-                else
-                {
-                    return null;
-                }
+                return System.Text.Encoding.UTF8.GetChars(ReadAsBinary());
             }
             else
             {
-                if (_data != null && this.OpCode == Opcode.Text)
-                {
-                    return System.Text.Encoding.UTF8.GetChars(_data);
-                }
-                else
-                {
-                    return null;
-                }
-
+                return null;
             }
-
         }
     }
 }

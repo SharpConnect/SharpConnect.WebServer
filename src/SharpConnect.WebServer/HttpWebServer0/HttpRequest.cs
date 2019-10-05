@@ -97,7 +97,7 @@ namespace SharpConnect.WebServers
         {
 
             _headerKeyValues.Clear();
-            Url = null;
+            Path = null;
             ReqParameters = null;
             HttpMethod = HttpMethod.Get;
 
@@ -134,7 +134,25 @@ namespace SharpConnect.WebServers
                 return "";
             }
         }
-        public string Url { get; set; }
+
+        static readonly byte[] s_empty = new byte[0];
+        public byte[] GetBodyContentAsBuffer()
+        {
+            if (_contentByteCount > 0)
+            {
+                var pos = _bodyMs.Position;
+                _bodyMs.Position = 0;
+                byte[] buffer = new byte[_contentByteCount];
+                _bodyMs.Read(buffer, 0, _contentByteCount);
+                _bodyMs.Position = pos;
+                return buffer;
+            }
+            else
+            {
+                return s_empty;
+            }
+        }
+        public string Path { get; set; }
         public HttpMethod HttpMethod
         {
             get;
@@ -167,10 +185,50 @@ namespace SharpConnect.WebServers
         }
         bool IsMsgBodyComplete => _contentByteCount >= _targetContentLength;
 
+
+        object _bodyLock = new object();
         void AddMsgBody(byte[] buffer, int start, int count)
         {
-            _bodyMs.Write(buffer, start, count);
-            _contentByteCount += count;
+            try
+            {
+                lock (_bodyLock)
+                {
+                    if (count > 2048)
+                    {
+                        int s1 = start;
+                        int blockSize = 2048;
+                        int remaining = count;
+                        while (remaining > 0)
+                        {
+                            if (remaining < blockSize)
+                            {
+                                _bodyMs.Write(buffer, s1, remaining);
+                                remaining = 0;
+                                _contentByteCount += remaining;
+                            }
+                            else
+                            {
+                                _bodyMs.Write(buffer, s1, blockSize);
+                                remaining -= blockSize;
+                                _contentByteCount += blockSize;
+                                s1 += blockSize;
+                            }
+                        }
+
+                    }
+                    else
+                    {
+                        _bodyMs.Write(buffer, start, count);
+                        _contentByteCount += count;
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+
+            }
+
         }
         void AddHeaderInfo(string key, string value)
         {
@@ -187,6 +245,7 @@ namespace SharpConnect.WebServers
                 case "Connection":
                     {
                         _context.KeepAlive = (value.ToLower().Trim() == "keep-alive");
+                        _context.KeepAlive = false;
 
                     }
                     break;
@@ -233,7 +292,7 @@ namespace SharpConnect.WebServers
 
         void AddReqHeader(string line)
         {
-            if (Url == null)
+            if (Path == null)
             {
                 //check if GET or POST
                 bool foundHttpMethod = false;
@@ -261,7 +320,7 @@ namespace SharpConnect.WebServers
                         int qpos = getContent.IndexOf('?');
                         if (qpos > -1)
                         {
-                            Url = getContent.Substring(0, qpos);
+                            Path = getContent.Substring(0, qpos);
                             string[] paramsParts = getContent.Substring(qpos + 1).Split('&');
                             int paramLength = paramsParts.Length;
                             var reqParams = new WebRequestParameter[paramLength];
@@ -283,7 +342,7 @@ namespace SharpConnect.WebServers
                         }
                         else
                         {
-                            Url = getContent;
+                            Path = getContent;
                         }
                     }
                     HttpMethod = httpMethod;
@@ -310,6 +369,9 @@ namespace SharpConnect.WebServers
             //start from pos0
             int readpos = 0;
             int lim = _context.RecvByteTransfer - 1;
+
+
+
             int i = 0;
             for (; i <= lim; ++i)
             {
@@ -351,6 +413,7 @@ namespace SharpConnect.WebServers
             }
             return readpos;
         }
+
         void ProcessHtmlPostBody(int readpos)
         {
             //parse body

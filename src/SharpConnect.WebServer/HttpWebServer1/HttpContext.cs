@@ -144,6 +144,12 @@ namespace SharpConnect.WebServers
                                         return;
                                     }
                                     _reqHandler(_httpReq, _httpResp);
+                                    if (_httpResp._actualEnd)
+                                    {
+                                        _httpResp.ActualEnd();
+                                    }
+
+//                                    Reset();
                                 }
                                 break;
                             case ProcessReceiveBufferResult.NeedMore:

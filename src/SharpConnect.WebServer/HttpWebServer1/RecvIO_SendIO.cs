@@ -107,6 +107,18 @@ namespace SharpConnect.Internal
 
         public byte[] UnsafeGetInternalBuffer() => _recvArgs.Buffer;
 
+        public void RecvCopyTo(byte[] target, int startAt, int len)
+        {
+            Buffer.BlockCopy(_recvArgs.Buffer,
+               _recvStartOffset + 0,
+               target,
+               startAt, len);
+        }
+
+        public void RecvClearBuffer()
+        {
+            throw new NotImplementedException();
+        }
     }
 
 
@@ -337,7 +349,12 @@ namespace SharpConnect.Internal
                         }
                         else
                         {   //< 0 ????
-                            throw new NotSupportedException();
+                            //  throw new NotSupportedException();
+                            Reset();
+                            //notify no more data
+                            //****
+                            _sendingState = SendIOState.ReadyNextSend;
+                            _notify(SendIOEventCode.SendComplete);
                         }
                     }
                     break;
