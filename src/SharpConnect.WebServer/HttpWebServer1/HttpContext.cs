@@ -124,7 +124,7 @@ namespace SharpConnect.WebServers
                     {
                         //no data to receive
                         _httpResp.End();
-                        //reqHandler(this.httpReq, httpResp);
+
                     }
                     break;
                 case RecvEventCode.HasSomeData:
@@ -143,7 +143,16 @@ namespace SharpConnect.WebServers
                                     {
                                         return;
                                     }
+
                                     _reqHandler(_httpReq, _httpResp);
+                                   
+
+                                    if (_httpResp._actualEnd)
+                                    {
+                                        _httpResp.ActualEnd();
+                                    }
+
+                                    Reset();
                                 }
                                 break;
                             case ProcessReceiveBufferResult.NeedMore:
@@ -263,8 +272,8 @@ namespace SharpConnect.WebServers
 
         public void SendIOStartSend() => _sendIO.StartSendAsync();
 
-        public void EnqueueSendingData(byte[] dataToSend, int count) => _sendIO.EnqueueOutputData(dataToSend, count); 
-      
+        public void EnqueueSendingData(byte[] dataToSend, int count) => _sendIO.EnqueueOutputData(dataToSend, count);
+
 
         public int RecvByteTransfer => _recvIO.BytesTransferred;
         public byte ReadByte(int pos) => _recvIO.ReadByte(pos);

@@ -26,8 +26,9 @@ using System;
 namespace SharpConnect.WebServers
 {
 
-    class WebSocketConnectionBase : IDisposable
+    abstract class WebSocketConnectionBase : IDisposable
     {
+        WebSocketContentCompression _compression;
         protected WebSocketResponse _webSocketResp;
         protected WebSocketProtocolParser _webSocketReqParser;
         protected ReqRespHandler<WebSocketRequest, WebSocketResponse> _webSocketReqHandler;
@@ -42,9 +43,17 @@ namespace SharpConnect.WebServers
         }
         public string Name { get; set; }
         public int ConnectionId => _connectionId;
-        public object GeneralCustomData { get; set; }
         public bool AsClientContext => _asClientContext;
         public string InitClientRequestUrl { get; set; }
+        public virtual WebSocketContentCompression Compression
+        {
+            get => _compression;
+            set
+            {
+                _compression = value;
+            }
+        }
+
 
         public virtual void Dispose()
         {
@@ -59,7 +68,20 @@ namespace SharpConnect.WebServers
         {
             //send data to server
             //and wait for result 
+            _webSocketResp.Compression = Compression;
             _webSocketResp.Write(data);
+        }
+        public void SendBinaryData(byte[] data, int start, int len)
+        {
+            //send data to server
+            //and wait for result 
+            _webSocketResp.Compression = Compression;
+            _webSocketResp.Write(data, start, len);
+            
+        }
+        internal void InvokeReqHandler(WebSocketRequest req)
+        {
+            _webSocketReqHandler(req, _webSocketResp);
         }
     }
 }

@@ -43,35 +43,63 @@ namespace SharpConnect.WebServers
         internal WebSocketContext RegisterNewWebSocket(
             Socket clientSocket,
             string initUrl,
-            string sec_websocket_key)
+            string sec_websocket_key,
+            string sec_websocket_extensions)
         {
 
             PlainWebSocketConn wbcontext = new PlainWebSocketConn(false);
-
             var wbCtx = new WebSocketContext(wbcontext);
+            wbCtx.InitClientRequestUrl = initUrl;
+            AssignWebSocketExtensions(wbCtx, sec_websocket_extensions);
+
             _workingWebSocketConns.Add(wbcontext.ConnectionId, wbCtx);//add to working socket 
             wbcontext.InitClientRequestUrl = initUrl;
             wbcontext.Bind(clientSocket, MakeWebSocketUpgradeResponse(MakeResponseMagicCode(sec_websocket_key))); //move client socket to webSocketConn    
-
-
             _newContextConnected?.Invoke(wbCtx);
-
             return wbCtx;
         }
         internal WebSocketContext RegisterNewWebSocket(
             SharpConnect.Internal2.AbstractAsyncNetworkStream clientNetworkStream,
             string initUrl,
-            string sec_websocket_key)
+            string sec_websocket_key,
+            string sec_websocket_extensions)
         {
             var wbcontext = new SecureWebSocketConn(false);
             var wbCtx = new WebSocketContext(wbcontext);
+            wbCtx.InitClientRequestUrl = initUrl;
+            AssignWebSocketExtensions(wbCtx, sec_websocket_extensions);
+
             _workingWebSocketConns.Add(wbcontext.ConnectionId, wbCtx);//add to working socket 
             wbcontext.InitClientRequestUrl = initUrl;
             wbcontext.Bind(clientNetworkStream, MakeWebSocketUpgradeResponse(MakeResponseMagicCode(sec_websocket_key))); //move client socket to webSocketConn    
+
             _newContextConnected?.Invoke(wbCtx);
             return wbCtx;
         }
-
+        static void AssignWebSocketExtensions(WebSocketContext context, string sec_websocket_extensions)
+        {
+            if (string.IsNullOrEmpty(sec_websocket_extensions))
+            {
+                return;
+            }
+            //check if we support the request extensions?
+            string[] exts = sec_websocket_extensions.Split(';');
+            foreach (string ext in exts)
+            {
+                //for this version,
+                //we support some extensions ...
+                switch (ext)
+                {
+                    //if server support default
+                    case "deflate-stream":
+                        context.Compression = WebSocketContentCompression.Deflate;
+                        break;
+                    case "gzip-stream":
+                        context.Compression = WebSocketContentCompression.Gzip;
+                        break;
+                }
+            }
+        }
         public void SetOnNewConnectionContext(Action<WebSocketContext> newContextConnected)
         {
             _newContextConnected = newContextConnected;
@@ -105,11 +133,9 @@ namespace SharpConnect.WebServers
         static string MakeResponseMagicCode(string reqMagicString)
         {
             if (s_sha1 == null) s_sha1 = SHA1.Create();
-            //
-            string total = reqMagicString + MAGIC_STRING;
-            
-            byte[] shaHash = s_sha1.ComputeHash(Encoding.ASCII.GetBytes(total));
-            return Convert.ToBase64String(shaHash);
+            return Convert.ToBase64String(
+                         s_sha1.ComputeHash(
+                            Encoding.ASCII.GetBytes(reqMagicString + MAGIC_STRING)));
         }
 
     }

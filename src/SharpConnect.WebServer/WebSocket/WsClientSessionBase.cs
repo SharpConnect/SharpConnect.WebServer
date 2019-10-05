@@ -22,8 +22,9 @@ namespace SharpConnect.WebServers
             //set external msg handler
             _websocketHandler = websocketHandler;
         }
+        public WebSocketContentCompression Compression { get; set; }
 
-        protected static StringBuilder CreateWebSocketUpgradeReq(string host, string url)
+        protected static StringBuilder CreateWebSocketUpgradeReq(string host, string url, WebSocketContentCompression compression)
         {
             //GET / HTTP / 1.1
             //Host: 127.0.0.1
@@ -36,6 +37,17 @@ namespace SharpConnect.WebServers
             stbuilder.Append($"GET {url} HTTP /1.1\r\n");
             stbuilder.Append("Host: " + host + "\r\n");
             stbuilder.Append("Upgrade: websocket\r\n"); //***
+
+            switch (compression)
+            {
+                case WebSocketContentCompression.Deflate:
+                    stbuilder.Append("Sec-WebSocket-Extensions: deflate-stream\r\n");
+                    break;
+                case WebSocketContentCompression.Gzip:
+                    stbuilder.Append("Sec-WebSocket-Extensions: gzip-stream\r\n");
+                    break;
+            }
+
             stbuilder.Append("Sec-WebSocket-Key: " + sock_key);
             //end with \r\n\r\n
             stbuilder.Append("\r\n\r\n");
@@ -47,11 +59,17 @@ namespace SharpConnect.WebServers
         /// <param name="data"></param>
         public void SendData(string data)
         {
+            _wbsocketConn.Compression = Compression;
             _wbsocketConn.Send(data);
+        }
+        public void SendBinaryData(byte[] data, int start, int len)
+        {
+            _wbsocketConn.Compression = Compression;
+            _wbsocketConn.SendBinaryData(data, start, len);
         }
         protected void InitClientSocket(Uri uri)
         {
-           
+
             _clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IP);
             _hostIP = IPAddress.Loopback;
             if (uri.Host != "localhost")

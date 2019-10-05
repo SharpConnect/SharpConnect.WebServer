@@ -92,7 +92,7 @@ namespace SharpConnect
 #else 
                 var webServer = new SharpConnect.WebServers.WebServer(8080, false, testApp.HandleRequest);
 #endif
-                //webServer.LoadCertificate(@"D:\WImageTest\mycert.p12", "12345");
+                 
                 webServer.LoadCertificate(@"mycert.p12", "12345");
                 webServer.UseSsl = true;
 

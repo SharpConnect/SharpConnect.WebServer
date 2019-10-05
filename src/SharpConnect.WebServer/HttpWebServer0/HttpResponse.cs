@@ -130,6 +130,7 @@ namespace SharpConnect.WebServers
         public CrossOriginPolicy AllowCrossOriginPolicy { get; set; }
         internal void ResetAll()
         {
+            _actualEnd = false;
             _headerStBuilder.Length = 0;
             StatusCode = 200;
 
@@ -194,6 +195,9 @@ namespace SharpConnect.WebServers
             _bodyMs.Write(rawBuffer, 0, rawBuffer.Length);
             _contentByteCount += rawBuffer.Length;
         }
+
+        public bool _actualEnd;
+
         public void End(string str)
         {
             //Write and End
@@ -206,8 +210,10 @@ namespace SharpConnect.WebServers
             _contentByteCount += data.Length;
             End();
         }
-        public void End()
+
+        public void ActualEnd()
         {
+
             switch (_writeContentState)
             {
                 //generate head 
@@ -308,9 +314,12 @@ namespace SharpConnect.WebServers
             }
 
             //-----------------------
-            //send 
-
+            //send  
             StartSend();
+        }
+        public void End()
+        {
+            _actualEnd = true;
         }
         bool _isSend = false;
         void StartSend()
@@ -435,7 +444,7 @@ namespace SharpConnect.WebServers
                     stBuilder.Append("\r\n");
                     return;
             }
-        } 
+        }
     }
 
     class HttpResponseImpl : HttpResponse

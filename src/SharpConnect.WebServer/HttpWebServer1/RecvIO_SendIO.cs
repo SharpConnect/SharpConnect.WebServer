@@ -53,7 +53,17 @@ namespace SharpConnect.Internal
                 count);
         }
 
-
+        void IRecvIO.RecvCopyTo(byte[] target, int startAt, int len)
+        {
+            Buffer.BlockCopy(_recvArgs.Buffer,
+               _recvStartOffset + 0,
+               target,
+               startAt, len);
+        }
+        void IRecvIO.RecvClearBuffer()
+        {
+            //do nothing
+        }
 #if DEBUG
         internal int dbugStartRecvPos => _recvStartOffset;
 
@@ -184,7 +194,7 @@ namespace SharpConnect.Internal
 
         public int QueueCount => _sendingQueue.Count;
 
- 
+
         public void StartSendAsync()
         {
             lock (_stateLock)
@@ -299,8 +309,12 @@ namespace SharpConnect.Internal
                             StartSendAsync();
                             //****
                         }
-                        else if (remainingBytes == 0)
+                        else
                         {
+                            if (remainingBytes < 0)
+                            {
+
+                            }
                             //complete sending  
                             //check the queue again ...
 
@@ -335,10 +349,7 @@ namespace SharpConnect.Internal
                                 //****   
                             }
                         }
-                        else
-                        {   //< 0 ????
-                            throw new NotSupportedException();
-                        }
+
                     }
                     break;
             }
