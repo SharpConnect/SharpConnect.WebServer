@@ -73,7 +73,8 @@ namespace SharpConnect.WebServers
                         }
                         else
                         {
-
+                            //use tmp1 from reusable???
+                            //so we don't need to alloc everytime
                             byte[] tmp1 = new byte[recvByteCount];
                             _clientStream.ReadBuffer(0, recvByteCount, tmp1, 0);
                             _recvIOStream.WriteData(tmp1, recvByteCount);
