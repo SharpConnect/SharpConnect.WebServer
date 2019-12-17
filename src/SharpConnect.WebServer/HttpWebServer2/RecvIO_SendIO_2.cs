@@ -1,4 +1,4 @@
-﻿//2010, CPOL, Stan Kirk
+﻿//CPOL, 2010, Stan Kirk
 //MIT, 2015-present, EngineKit and contributors
 //https://docs.microsoft.com/en-us/dotnet/framework/network-programming/socket-performance-enhancements-in-version-3-5
 
@@ -136,14 +136,14 @@ namespace SharpConnect.Internal2
                 {
                     if (dstIndex + count > dstBuffer.Length)
                     {
-                        //only available 
+                        //only available  
                         int availableLen = dstBuffer.Length - dstIndex;
                         Buffer.BlockCopy(_largeBuffer, _startAt + _readIndex, dstBuffer, _startAt + dstIndex, availableLen);
                         _readIndex += availableLen;
                         return availableLen;
                     }
                     else
-                    {
+                   {
                         Buffer.BlockCopy(_largeBuffer, _startAt + _readIndex, dstBuffer, _startAt + dstIndex, count);
                         _readIndex += count;
                         return count;

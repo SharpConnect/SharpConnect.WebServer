@@ -61,10 +61,10 @@ namespace SharpConnect.WebServers
                 default:
                 case WebSocketContentCompression.NoCompression:
                     return _ms.ToArray();
-                case WebSocketContentCompression.Deflate:
-                    return CompressionUtils.DeflateDecompress(_ms.ToArray());
-                case WebSocketContentCompression.Gzip:
-                    return CompressionUtils.GZipDecompress(_ms.ToArray());
+                //case WebSocketContentCompression.Deflate:
+                //    return CompressionUtils.DeflateDecompress(_ms.ToArray());
+                //case WebSocketContentCompression.Gzip:
+                //    return CompressionUtils.GZipDecompress(_ms.ToArray());
             }
         }
         public string ReadAsString()

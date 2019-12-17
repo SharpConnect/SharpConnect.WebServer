@@ -24,7 +24,7 @@ namespace SharpConnect
             {
                 //1. create  
 #if DEBUG
-                var webServer = new SharpConnect.WebServers.WebServer(8080, true, testApp.HandleRequest);
+                var webServer = new SharpConnect.WebServers.WebServer(8080, false, testApp.HandleRequest);
 #else
                 var webServer = new SharpConnect.WebServers.WebServer(8080, false, testApp.HandleRequest);
 #endif
@@ -88,11 +88,11 @@ namespace SharpConnect
             {
                 //1. create  
 #if DEBUG
-                var webServer = new SharpConnect.WebServers.WebServer(8080, true, testApp.HandleRequest);
-#else 
+                var webServer = new SharpConnect.WebServers.WebServer(8080, false, testApp.HandleRequest);
+#else
                 var webServer = new SharpConnect.WebServers.WebServer(8080, false, testApp.HandleRequest);
 #endif
-                 
+
                 webServer.LoadCertificate(@"mycert.p12", "12345");
                 webServer.UseSsl = true;
 

@@ -55,9 +55,7 @@ namespace SharpConnect.WebServers
         }
 
 
-        public virtual void Dispose()
-        {
-        }
+        public virtual void Dispose() { }
         public virtual void Close() { }
         public void SetMessageHandler(ReqRespHandler<WebSocketRequest, WebSocketResponse> webSocketReqHandler)
         {
