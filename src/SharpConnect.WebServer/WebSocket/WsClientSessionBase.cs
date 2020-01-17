@@ -57,7 +57,7 @@ namespace SharpConnect.WebServers
         /// send text data to the server
         /// </summary>
         /// <param name="data"></param>
-        public void SendData(string data)
+        public void SendTextData(string data)
         {
             _wbsocketConn.Compression = Compression;
             _wbsocketConn.SendTextData(data);

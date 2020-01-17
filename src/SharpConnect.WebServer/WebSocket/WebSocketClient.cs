@@ -55,10 +55,10 @@ namespace SharpConnect.WebServers
                 _clientBase = plainWebSocketClient;
             }
         }
-        public void SendData(string data)
+        public void SendTextData(string data)
         {
             _clientBase.Compression = Compression;
-            _clientBase.SendData(data);
+            _clientBase.SendTextData(data);
         }
         public void SendBinaryData(byte[] binaryData)
         {
