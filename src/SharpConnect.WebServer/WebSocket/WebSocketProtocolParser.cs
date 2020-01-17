@@ -27,7 +27,7 @@ using System.Collections.Generic;
 namespace SharpConnect.WebServers
 {
 
-    class WebSocketProtocolParser
+    public class WebSocketProtocolParser
     {
 
         enum ParseState
@@ -68,9 +68,9 @@ namespace SharpConnect.WebServers
         internal WebSocketConnectionBase OwnerWebSocketConnBase { get; private set; }
 
         bool ReadHeader()
-        { 
+        {
             if (!_myBufferStream.Ensure(2))
-            { 
+            {
                 return false;
             }
             //----------------------------------------------------------
@@ -125,9 +125,10 @@ namespace SharpConnect.WebServers
             //----------------------------------------------------------
             // Payload Length
             byte payloadLen = (byte)(b2 & 0x7f); //is 7 bits of the b2 
+
+            bool allowMoreFrame = false;
             if (fin == Fin.More || _currentOpCode == Opcode.Cont)
             {
-                //process fragment frame *** 
                 throw new NotSupportedException();
             }
             else
@@ -222,7 +223,7 @@ namespace SharpConnect.WebServers
         {
             int extendedPayloadByteCount = (_currentPacketLen == 126 ? 2 : 8);
             if (!_myBufferStream.Ensure(extendedPayloadByteCount))
-            { 
+            {
                 return false;
             }
             //----------------------------------------------------------
@@ -244,7 +245,7 @@ namespace SharpConnect.WebServers
         bool ReadMask()
         {
             if (!_myBufferStream.Ensure(_currentMaskLen))
-            { 
+            {
                 return false;
             }
             //---------------------------------------------------------- 
@@ -335,7 +336,7 @@ namespace SharpConnect.WebServers
         bool ReadBodyContent(int readLen)
         {
             if (!_myBufferStream.Ensure(readLen))
-            { 
+            {
                 return false;
             }
             //------------------------------------

@@ -293,7 +293,7 @@ namespace SharpConnect.Internal2
                             if (e.BytesTransferred > 0)
                             {
                                 RecvDataAfterHandshake();
-                            }                           
+                            }
 
                         }
                         else
@@ -387,14 +387,18 @@ namespace SharpConnect.Internal2
                 return 0;
             }
         }
-
-
         void RecvDataAfterHandshake()
         {
 
+        TRY_AGAIN2:
+            if (_invokeCheck1 != 0)
+            {
+                goto TRY_AGAIN2;
+            }
             if (Interlocked.CompareExchange(ref _invokeCheck1, 1, 0) != 0)
             {
                 System.Diagnostics.Debugger.Break();
+
             }
             //call by RecvAsyncEventArgs_Completed thread
 #if DEBUG
@@ -471,6 +475,10 @@ namespace SharpConnect.Internal2
                 }
             }
 
+            if (_invokeCheck1 == 0)
+            {
+
+            }
             if (Interlocked.CompareExchange(ref _invokeCheck1, 0, 1) != 1)
             {
                 //System.Diagnostics.Debugger.Break();
@@ -1104,6 +1112,7 @@ namespace SharpConnect.Internal2
                 {
                     _sslStream.EndAuthenticateAsClient(state);
                     whenFinish();
+
                 }, new object());
         }
 
@@ -1137,12 +1146,19 @@ namespace SharpConnect.Internal2
                 {
                     //decrypt data from sslStream to readable data
                     //and write to _readableRecvBuffer  
-                    int latestReadLen = _readableRecvBuffer.WriteBufferFromStream(_sslStream);
-                    while (latestReadLen > 0)
+                    try
                     {
-                        latestReadLen = _readableRecvBuffer.WriteBufferFromStream(_sslStream);
+                        int latestReadLen = _readableRecvBuffer.WriteBufferFromStream(_sslStream);
+                        while (latestReadLen > 0)
+                        {
+                            latestReadLen = _readableRecvBuffer.WriteBufferFromStream(_sslStream);
+                        }
+                        readableDataLen = _readableRecvBuffer.BufferLength;
                     }
-                    readableDataLen = _readableRecvBuffer.BufferLength;
+                    catch (Exception ex)
+                    {
+
+                    }
                 }
             }
             _startRecv = false;

@@ -63,13 +63,13 @@ namespace SharpConnect.WebServers
             _sendIO.EnqueueSendingData(dataToSend, dataToSend.Length);
             _sendIO.SendIOStartSend();
         }
-        public void Write(byte[] content, int start, int len)
+        public void Write(byte[] content, int start, int len, bool isBinary = true)
         {
             //send as binary data
             int maskKey = _asClient ? _rdForMask.Next() : 0;
-            byte[] dataToSend = CreateSendBuffer(content, maskKey, true, Compression);
+            byte[] dataToSend = CreateSendBuffer(content, maskKey, isBinary, Compression);
             _sendIO.EnqueueSendingData(dataToSend, dataToSend.Length);
-            _sendIO.SendIOStartSend();            
+            _sendIO.SendIOStartSend();
         }
         static void MaskAgain(byte[] data, byte[] key)
         {

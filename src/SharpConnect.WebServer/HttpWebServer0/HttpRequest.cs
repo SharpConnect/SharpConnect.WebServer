@@ -157,9 +157,7 @@ namespace SharpConnect.WebServers
             get;
             internal set;
         }
-
         protected int ContentLength => _targetContentLength;
-
     }
 
     class HttpRequestImpl : HttpRequest

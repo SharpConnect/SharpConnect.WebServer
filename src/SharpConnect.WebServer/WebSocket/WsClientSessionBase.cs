@@ -60,7 +60,7 @@ namespace SharpConnect.WebServers
         public void SendData(string data)
         {
             _wbsocketConn.Compression = Compression;
-            _wbsocketConn.Send(data);
+            _wbsocketConn.SendTextData(data);
         }
         public void SendBinaryData(byte[] data, int start, int len)
         {

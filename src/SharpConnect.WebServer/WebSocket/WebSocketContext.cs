@@ -22,7 +22,7 @@ namespace SharpConnect.WebServers
         public int ConnectionId => _webSocketConn.ConnectionId;
         public void Send(string str)
         {
-            _webSocketConn.Send(str);
+            _webSocketConn.SendTextData(str);
         }
         public void SendAsBinaryData(byte[] data, int start, int len)
         {
