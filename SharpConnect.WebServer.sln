@@ -27,11 +27,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestLoad", "builds\NET20\Te
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestLoadNetStd", "builds\NETSTD\TestLoadNetStd\TestLoadNetStd.csproj", "{3FA078C1-4A8D-4D71-81C7-C8C978D8191C}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "TestLoad", "tests\TestLoad\TestLoad.shproj", "{A793836F-ECFA-4009-B36B-B812BAA4C7E1}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		src\SharpConnect.WebServer\SharpConnect.WebServer.projitems*{1585f301-4ece-462c-a9d5-49bfe1c40041}*SharedItemsImports = 13
 		tests\TestLoad\TestLoad.projitems*{24e7e45b-3716-4dd3-b4b0-10dff0a6211a}*SharedItemsImports = 4
 		src\SharpConnect.WebServer\SharpConnect.WebServer.projitems*{741a7428-705d-4928-b02c-0db087fde753}*SharedItemsImports = 4
+		tests\TestLoad\TestLoad.projitems*{a793836f-ecfa-4009-b36b-b812baa4c7e1}*SharedItemsImports = 13
 		tests\WebServerApp\WebServerApp.projitems*{ce060f7f-6f5f-45fa-855f-81f28ff00d21}*SharedItemsImports = 4
 		tests\WebServerApp\WebServerApp.projitems*{cf4bfb13-5a72-4328-9700-8f27bc1c570a}*SharedItemsImports = 13
 	EndGlobalSection
