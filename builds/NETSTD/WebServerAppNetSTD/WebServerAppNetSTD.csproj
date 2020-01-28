@@ -13,10 +13,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\SharpConnect.WebServer\SharpConnect.WebServer.csproj" />
-  </ItemGroup>
-
   <Import Project="..\..\..\tests\WebServerApp\WebServerApp.projitems" Label="Shared" />
+
+  <Import Project="..\..\..\src\SharpConnect.WebServer\SharpConnect.WebServer.projitems" Label="Shared" />
 
 </Project>

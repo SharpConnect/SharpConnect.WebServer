@@ -11,8 +11,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test", "Test", "{A4D07531-C
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "WebServerApp", "tests\WebServerApp\WebServerApp.shproj", "{CF4BFB13-5A72-4328-9700-8F27BC1C570A}"
 EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "SharpConnect.WebServer", "src\SharpConnect.WebServer\SharpConnect.WebServer.shproj", "{1585F301-4ECE-462C-A9D5-49BFE1C40041}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpConnect.WebServer", "builds\NETSTD\SharpConnect.WebServer\SharpConnect.WebServer.csproj", "{24CA242A-B8F4-450D-A08F-69B23F54B4C9}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpConnect.WebServer", "builds\NET20\SharpConnect.WebServer\SharpConnect.WebServer.csproj", "{741A7428-705D-4928-B02C-0DB087FDE753}"
@@ -28,6 +26,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestLoadNetStd", "builds\NETSTD\TestLoadNetStd\TestLoadNetStd.csproj", "{3FA078C1-4A8D-4D71-81C7-C8C978D8191C}"
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "TestLoad", "tests\TestLoad\TestLoad.shproj", "{A793836F-ECFA-4009-B36B-B812BAA4C7E1}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "SharpConnect.WebServer_SH", "src\SharpConnect.WebServer\SharpConnect.WebServer_SH.shproj", "{1585F301-4ECE-462C-A9D5-49BFE1C40041}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
