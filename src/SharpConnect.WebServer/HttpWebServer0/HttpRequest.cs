@@ -66,7 +66,7 @@ namespace SharpConnect.WebServers
         }
         public void Dispose()
         {
-
+            OnDispose();
         }
         protected virtual void OnDispose()
         {
@@ -114,8 +114,7 @@ namespace SharpConnect.WebServers
 
         public string GetHeaderKey(string key)
         {
-            string found;
-            _headerKeyValues.TryGetValue(key, out found);
+            _headerKeyValues.TryGetValue(key, out string found);
             return found;
         }
         public string GetBodyContentAsString()
@@ -244,7 +243,7 @@ namespace SharpConnect.WebServers
                     break;
                 case "Connection":
                     {
-                        _context.KeepAlive = (value.ToLower().Trim() == "keep-alive"); 
+                        _context.KeepAlive = (value.ToLower().Trim() == "keep-alive");
                     }
                     break;
             }
@@ -260,16 +259,17 @@ namespace SharpConnect.WebServers
                 case HttpParsingState.Head:
                     {
                         //find html header 
-                        int readpos = ParseHttpRequestHeader();
+                         
                         //check if complete or not
+                        _readPos = ParseHttpRequestHeader();
                         if (_parseState == HttpParsingState.Body)
                         {
-                            ProcessHtmlPostBody(readpos);
+                            ProcessHtmlPostBody(_readPos);
                         }
                     }
                     break;
                 case HttpParsingState.Body:
-                    ProcessHtmlPostBody(0);
+                    ProcessHtmlPostBody(_readPos);
                     break;
                 case HttpParsingState.Complete:
                     break;
@@ -412,13 +412,15 @@ namespace SharpConnect.WebServers
             return readpos;
         }
 
+        int _readPos;
         void ProcessHtmlPostBody(int readpos)
         {
             //parse body
+
             int transferedBytes = _context.RecvByteTransfer;
             int remaining = transferedBytes - readpos;
             if (!IsMsgBodyComplete)
-            {
+            {   
                 int wantBytes = ContentLength - _contentByteCount;
                 if (wantBytes <= remaining)
                 {
@@ -427,6 +429,7 @@ namespace SharpConnect.WebServers
                     _context.RecvCopyTo(readpos, buff, wantBytes);
                     //add to req  
                     AddMsgBody(buff, 0, wantBytes);
+                     
                     //complete 
                     _parseState = HttpParsingState.Complete;
                     return;
@@ -441,7 +444,6 @@ namespace SharpConnect.WebServers
                         //add to req  
                         AddMsgBody(buff, 0, remaining);
                     }
-
                     return;
                 }
             }

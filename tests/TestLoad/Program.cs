@@ -44,6 +44,10 @@ namespace TestLoad
             wb.Proxy = null;
             try
             {
+                for (int i = 0; i < 100; ++i)
+                {
+                    wb.UploadString("https://localhost:8080", "hello!1111222333_" + i);
+                }
                 for (int i = 0; i < 1010; ++i)
                 {
                     Console.WriteLine(i.ToString());
