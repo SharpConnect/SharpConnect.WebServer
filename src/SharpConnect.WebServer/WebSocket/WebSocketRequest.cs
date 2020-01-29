@@ -36,7 +36,7 @@ namespace SharpConnect.WebServers
             _ownerConn = ownerConn;
         }
         public WebSocketContentCompression Compression { get; internal set; }
-
+        public int OwnerContextId => _ownerConn.ConnectionId;
         public void Dispose()
         {
             if (_ms != null)

@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Windows.Forms;
 using SharpConnect.WebServers;
-
+using System.Net;
+using System.Net.Sockets;
+using System.Net.Security;
 
 namespace TestWsClient
 {
@@ -37,6 +39,8 @@ namespace TestWsClient
 
         private void button3_Click(object sender, EventArgs e)
         {
+
+
             //secure websocket
             if (_client != null) return;
             //------------------------------------------------
@@ -57,7 +61,9 @@ namespace TestWsClient
                 }));
             });
             //_client.Connect("https://localhost:8080/websocket");
-            _client.Connect("https://localhost:8080/websocket");
+            //_client.Connect("https://localhost:8080/websocket");
+            //_client.LoadCertificate("mycert.pfx", "12345");
+            _client.Connect("https://localhost:8080/");
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -67,16 +73,31 @@ namespace TestWsClient
 
         private void button2_Click(object sender, EventArgs e)
         {
-            _client.SendData("LOOPBACK: hello server " + _outputMsgCount++);
+            _client.SendTextData("LOOPBACK: hello server " + _outputMsgCount++);
 
         }
         private void button4_Click(object sender, EventArgs e)
         {
-            for (int i = 0; i < 10; ++i)
+            for (int i = 0; i < 100; ++i)
             {
-                _client.SendData("LOOPBACK: hello server " + _outputMsgCount++);
+                _client.SendTextData("LOOPBACK: hello server " + _outputMsgCount++);
+                //_client.SendData("LOOPBACK: hello server " + _outputMsgCount++);
+                //_client.SendData("LOOPBACK: hello server " + _outputMsgCount++);
+                //_client.SendData("LOOPBACK: hello server " + _outputMsgCount++);
+                //_client.SendData("LOOPBACK: hello server " + _outputMsgCount++);
+                //_client.SendData("LOOPBACK: hello server " + _outputMsgCount++);
+                //_client.SendData("LOOPBACK: hello server " + _outputMsgCount++);
+                //_client.SendData("LOOPBACK: hello server " + _outputMsgCount++);
+                //_client.SendData("LOOPBACK: hello server " + _outputMsgCount++);
+                //_client.SendData("LOOPBACK: hello server " + _outputMsgCount++);
+
             }
 
+        }
+
+        private void button5_Click(object sender, EventArgs e)
+        {
+            Examples.System.Net.SslTcpClient.Main1();
         }
     }
 }

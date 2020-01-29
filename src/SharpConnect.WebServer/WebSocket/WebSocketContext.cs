@@ -1,4 +1,4 @@
-﻿//MIT, 2019, EngineKit
+﻿//MIT, 2019-present, EngineKit
 
 
 namespace SharpConnect.WebServers
