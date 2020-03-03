@@ -86,6 +86,8 @@ namespace SharpConnect.WebServers
             //ownerServer.SetBufferFor(this.recvSendArgs = new SocketAsyncEventArgs()); 
             //----------------------------------------------------------------------------------------------------------  
             _httpReq = new HttpRequestImpl(this);
+            _httpReq.SetLargeUploadFilePolicyHandler(_ownerServer.LargeFileUploadPermissionReqHandler);
+
             _httpResp = new HttpResponseImpl(this);
         }
 

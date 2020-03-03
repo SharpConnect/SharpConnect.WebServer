@@ -33,6 +33,7 @@ namespace SharpConnect.WebServers
             _certFile = certFile;
             _certPsw = psw;
         }
+        public LargeFileUploadPermissionReqHandler LargeFileUploadPermissionReqHandler { get; set; }
 
         /// <summary>
         /// use https
@@ -49,6 +50,7 @@ namespace SharpConnect.WebServers
                 var httpsServer = new HttpsWebServer(_port, _localOnly, _reqHandler);
                 httpsServer.LoadCertificate(_certFile, _certPsw);
                 httpsServer.WebSocketServer = WebSocketServer;
+                httpsServer.LargeFileUploadPermissionReqHandler = this.LargeFileUploadPermissionReqHandler;
                 httpsServer.Start();
 
                 _server = httpsServer;
@@ -57,8 +59,8 @@ namespace SharpConnect.WebServers
             {
                 var httpServer = new HttpWebServer(_port, _localOnly, _reqHandler);
                 httpServer.WebSocketServer = WebSocketServer;
+                httpServer.LargeFileUploadPermissionReqHandler = this.LargeFileUploadPermissionReqHandler;
                 httpServer.Start();
-
                 _server = httpServer;
             }
         }

@@ -106,11 +106,7 @@ namespace SharpConnect.WebServers
             _targetContentLength = 0;
         }
 
-        public WebRequestParameter[] ReqParameters
-        {
-            get;
-            internal set;
-        }
+        public WebRequestParameter[] ReqParameters { get; internal set; }
 
         public string GetHeaderKey(string key)
         {
@@ -135,16 +131,37 @@ namespace SharpConnect.WebServers
         }
 
         static readonly byte[] s_empty = new byte[0];
+
+        /// <summary>
+        /// max byte count of body in mem stream
+        /// </summary>
+        public int InMemMaxUploadBodySize { get; protected set; }
+
+        public string UploadTempFileName { get; protected set; }
+
         public byte[] GetBodyContentAsBuffer()
         {
             if (_contentByteCount > 0)
             {
-                var pos = _bodyMs.Position;
-                _bodyMs.Position = 0;
-                byte[] buffer = new byte[_contentByteCount];
-                _bodyMs.Read(buffer, 0, _contentByteCount);
-                _bodyMs.Position = pos;
-                return buffer;
+                if (UploadTempFileName != null)
+                {
+                    //read all data from temp filename
+                    //TODO: check if it is large file or not
+                    //if it is a large file ***
+                    //we should read it as file stream 
+
+                    return null;
+                }
+                else
+                {
+                    //copy from mem-stream
+                    var pos = _bodyMs.Position;
+                    _bodyMs.Position = 0;
+                    byte[] buffer = new byte[_contentByteCount];
+                    _bodyMs.Read(buffer, 0, _contentByteCount);
+                    _bodyMs.Position = pos;
+                    return buffer;
+                }
             }
             else
             {
@@ -160,18 +177,35 @@ namespace SharpConnect.WebServers
         protected int ContentLength => _targetContentLength;
     }
 
+    public class LargetFileUploadPolicyResult
+    {
+        public bool Cancel { get; set; }
+        public string TempUploadFilename { get; set; }
+    }
+
+    public delegate void LargeFileUploadPermissionReqHandler(HttpRequest req, LargetFileUploadPolicyResult result);
+
     class HttpRequestImpl : HttpRequest
     {
         readonly IHttpContext _context;
+        LargeFileUploadPermissionReqHandler _largeFileUploadPermissionReqHandler;
+
         internal HttpRequestImpl(IHttpContext context)
             : base()
         {
             _context = context;
             _bodyMs = new MemoryStream();
+            InMemMaxUploadBodySize = 1024 * 4;//default 4k
         }
 
 
+        public void SetLargeUploadFilePolicyHandler(LargeFileUploadPermissionReqHandler largeFileUploadPermissionReqHandler)
+        {
+            _largeFileUploadPermissionReqHandler = largeFileUploadPermissionReqHandler;
+        }
         //===================
+
+
         //parsing 
         HttpParsingState _parseState;
         internal override void Reset()
@@ -182,8 +216,7 @@ namespace SharpConnect.WebServers
         }
         bool IsMsgBodyComplete => _contentByteCount >= _targetContentLength;
 
-
-        object _bodyLock = new object();
+        readonly object _bodyLock = new object();
         void AddMsgBody(byte[] buffer, int start, int count)
         {
             try
@@ -201,13 +234,11 @@ namespace SharpConnect.WebServers
                             {
                                 _bodyMs.Write(buffer, s1, remaining);
                                 remaining = 0;
-                                _contentByteCount += remaining;
                             }
                             else
                             {
                                 _bodyMs.Write(buffer, s1, blockSize);
                                 remaining -= blockSize;
-                                _contentByteCount += blockSize;
                                 s1 += blockSize;
                             }
                         }
@@ -216,7 +247,6 @@ namespace SharpConnect.WebServers
                     else
                     {
                         _bodyMs.Write(buffer, start, count);
-                        _contentByteCount += count;
                     }
                 }
 
@@ -246,6 +276,8 @@ namespace SharpConnect.WebServers
                     break;
             }
         }
+
+
         /// <summary>
         /// add and parse data
         /// </summary>
@@ -257,17 +289,44 @@ namespace SharpConnect.WebServers
                 case HttpParsingState.Head:
                     {
                         //find html header 
-                         
                         //check if complete or not
+                        _contentByteCount = 0; //reset
+                        _uploadCanceled = false;//reset
+
                         _readPos = ParseHttpRequestHeader();
+
+                        if (ContentLength > InMemMaxUploadBodySize)
+                        {
+                            if (_largeFileUploadPermissionReqHandler != null)
+                            {
+                                //what to do with large file
+                                LargetFileUploadPolicyResult permissionResult = new LargetFileUploadPolicyResult();
+                                _largeFileUploadPermissionReqHandler(this, permissionResult);
+                                if (!permissionResult.Cancel && permissionResult.TempUploadFilename != null)
+                                {
+                                    UploadTempFileName = permissionResult.TempUploadFilename;
+                                }
+                                else
+                                {
+                                    UploadTempFileName = null;
+                                    _uploadCanceled = true;
+                                }
+                            }
+
+                        }
+                        else
+                        {
+                            UploadTempFileName = null; //reset
+                        }
+
                         if (_parseState == HttpParsingState.Body)
                         {
-                            ProcessHtmlPostBody(_readPos);
+                            ProcessHtmlPostBody();
                         }
                     }
                     break;
                 case HttpParsingState.Body:
-                    ProcessHtmlPostBody(_readPos);
+                    ProcessHtmlPostBody();
                     break;
                 case HttpParsingState.Complete:
                     break;
@@ -365,9 +424,6 @@ namespace SharpConnect.WebServers
             //start from pos0
             int readpos = 0;
             int lim = _context.RecvByteTransfer - 1;
-
-
-
             int i = 0;
             for (; i <= lim; ++i)
             {
@@ -410,41 +466,66 @@ namespace SharpConnect.WebServers
             return readpos;
         }
 
+
+
         int _readPos;
-        void ProcessHtmlPostBody(int readpos)
+        FileStream _uploadTempFile = null;
+        bool _uploadCanceled = false;
+
+        void ProcessHtmlPostBody()
         {
             //parse body
-
             int transferedBytes = _context.RecvByteTransfer;
-            int remaining = transferedBytes - readpos;
-            if (!IsMsgBodyComplete)
-            {   
-                int wantBytes = ContentLength - _contentByteCount;
-                if (wantBytes <= remaining)
+            int len1 = transferedBytes - _readPos;
+
+            if (!_uploadCanceled && len1 > 0)
+            {
+                //TODO review here
+                //write to file first, or write to mem ***
+                //if we upload large content, we should write to file
+                // 
+                if (UploadTempFileName != null)
                 {
-                    //complete here 
-                    byte[] buff = new byte[wantBytes];
-                    _context.RecvCopyTo(readpos, buff, wantBytes);
-                    //add to req  
-                    AddMsgBody(buff, 0, wantBytes);
-                     
-                    //complete 
-                    _parseState = HttpParsingState.Complete;
-                    return;
+                    //write data to file
+                    if (_uploadTempFile == null)
+                    {
+                        _uploadTempFile = new FileStream(UploadTempFileName, FileMode.Create);
+                    }
+
+                    byte[] buff = new byte[len1]; //TODO: reuse the buffer
+                    _context.RecvCopyTo(_readPos, buff, len1);
+                    _uploadTempFile.Write(buff, 0, len1);
+                    _uploadTempFile.Flush();//** ensure write to disk
                 }
                 else
                 {
-                    //continue read             
-                    if (remaining > 0)
-                    {
-                        byte[] buff = new byte[remaining];
-                        _context.RecvCopyTo(readpos, buff, remaining);
-                        //add to req  
-                        AddMsgBody(buff, 0, remaining);
-                    }
-                    return;
+                    //write to mem
+                    byte[] buff = new byte[len1]; //TODO: reuse the buffer
+                    _context.RecvCopyTo(_readPos, buff, len1);
+                    AddMsgBody(buff, 0, len1);
                 }
             }
+
+            _contentByteCount += len1; //***
+            _readPos = 0;
+            //read until end of buffer
+
+            //System.Diagnostics.Debug.WriteLine("expect" + ContentLength + "tx:" + _contentByteCount + ",rem:" + (ContentLength - _contentByteCount));
+
+            if (!IsMsgBodyComplete)
+            {
+                return;
+            }
+
+            //finish
+            //close the file stream
+            if (_uploadTempFile != null)
+            {
+                _uploadTempFile.Close();
+                _uploadTempFile.Dispose();
+                _uploadTempFile = null;
+            }
+
             _parseState = HttpParsingState.Complete;
         }
     }

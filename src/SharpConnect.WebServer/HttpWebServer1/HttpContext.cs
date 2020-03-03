@@ -49,9 +49,7 @@ namespace SharpConnect.WebServers
         HttpRequestImpl _httpReq;
         HttpResponseImpl _httpResp;
         ReqRespHandler<HttpRequest, HttpResponse> _reqHandler;
-        HttpWebServer _ownerServer;
-
-
+        HttpWebServer _ownerServer; 
 
         public HttpContext(
             HttpWebServer ownerServer,
@@ -76,6 +74,8 @@ namespace SharpConnect.WebServers
             _sendIO = new SendIO(_send_a, _send_a.Offset, sendBufferSize, HandleSend);
             //----------------------------------------------------------------------------------------------------------  
             _httpReq = new HttpRequestImpl(this);
+            _httpReq.SetLargeUploadFilePolicyHandler(_ownerServer.LargeFileUploadPermissionReqHandler);
+
             _httpResp = new HttpResponseImpl(this);
 
             //common(shared) event listener***
