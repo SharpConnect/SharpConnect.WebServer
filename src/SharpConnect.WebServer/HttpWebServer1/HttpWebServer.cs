@@ -19,34 +19,20 @@ namespace SharpConnect.WebServers
         BufferManager _bufferMan;
         SharedResoucePool<HttpContext> _contextPool;
 
+        int _port;
+        bool _localOnly;
         public HttpWebServer(
             int port,
             bool localOnly,
             ReqRespHandler<HttpRequest, HttpResponse> reqHandler)
         {
+            _port = port;
+            _localOnly = localOnly;
             _reqHandler = reqHandler;
 
-            int maxNumberOfConnections = 500;
-            int excessSaeaObjectsInPool = 200;
-            int backlog = 100;
-            int maxSimultaneousAcceptOps = 100;
-
-            var setting = new NewConnListenerSettings(maxNumberOfConnections,
-                   excessSaeaObjectsInPool,
-                   backlog,
-                   maxSimultaneousAcceptOps,
-                   new IPEndPoint(localOnly ? IPAddress.Loopback : IPAddress.Any, port));//check only local host or not
-
-            CreateContextPool(maxNumberOfConnections);
-            _newConnListener = new NewConnectionListener(setting,
-                clientSocket =>
-                {
-                    //when accept new client
-                    HttpContext context = _contextPool.Pop();
-                    context.BindSocket(clientSocket); //*** bind to client socket 
-                    context.StartReceive(); //start receive data
-                });
         }
+
+        public LargeFileUploadPermissionReqHandler LargeFileUploadPermissionReqHandler { get; set; }
 
         void CreateContextPool(int maxNumberOfConnnections)
         {
@@ -94,6 +80,32 @@ namespace SharpConnect.WebServers
             //------------------------------
             try
             {
+
+                int maxNumberOfConnections = 500;
+                int excessSaeaObjectsInPool = 200;
+                int backlog = 100;
+                int maxSimultaneousAcceptOps = 100;
+
+                var setting = new NewConnListenerSettings(maxNumberOfConnections,
+                       excessSaeaObjectsInPool,
+                       backlog,
+                       maxSimultaneousAcceptOps,
+                       new IPEndPoint(_localOnly ? IPAddress.Loopback : IPAddress.Any, _port));//check only local host or not
+
+                CreateContextPool(maxNumberOfConnections);
+                _newConnListener = new NewConnectionListener(setting,
+                    clientSocket =>
+                    {
+                        //when accept new client
+                        HttpContext context = _contextPool.Pop();
+                        context.BindSocket(clientSocket); //*** bind to client socket 
+                        context.StartReceive(); //start receive data
+                    });
+
+
+
+
+
                 //start web server   
                 _isRunning = true;
                 _newConnListener.StartListening();

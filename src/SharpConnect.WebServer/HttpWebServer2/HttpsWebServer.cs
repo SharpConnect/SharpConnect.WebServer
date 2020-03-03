@@ -15,49 +15,17 @@ namespace SharpConnect.WebServers
         BufferManager _bufferMan;
         SharedResoucePool<HttpsContext> _contextPool;
 
+
+        bool _localOnly;
+        int _port;
         public HttpsWebServer(int port, bool localOnly, ReqRespHandler<HttpRequest, HttpResponse> reqHandler)
         {
-            _reqHandler = reqHandler;
-
-            int maxNumberOfConnections = 500;
-            int excessSaeaObjectsInPool = 200;
-            int backlog = 100;
-            int maxSimultaneousAcceptOps = 100;
-
-            var setting = new NewConnListenerSettings(maxNumberOfConnections,
-                   excessSaeaObjectsInPool,
-                   backlog,
-                   maxSimultaneousAcceptOps,
-                   new IPEndPoint(localOnly ? IPAddress.Loopback : IPAddress.Any, port));//check only local host or not
-
-            CreateContextPool(maxNumberOfConnections);
-            _newConnListener = new NewConnectionListener(setting,
-                clientSocket =>
-                {
-                    //when accept new client
-
-                    int recvSize = 1024 * 2;
-                    int sendSize = 1024 * 2;
-                    HttpsContext context = new HttpsContext(this, recvSize, sendSize);
-                    context.BindReqHandler(_reqHandler); //client handler
-#if DEBUG
-                    context.dbugForHttps = true;
-#endif
-
-
-                    context.BindSocket(clientSocket); //*** bind to client socket                      
-                                                      //for ssl -> cert must not be null
-                    context.StartReceive(_serverCert);
-                    //TODO::
-                    //USE https context from Pool????
-                    //{
-                    //    HttpsContext context = _contextPool.Pop();
-                    //    context.BindSocket(clientSocket); //*** bind to client socket                      
-                    //    context.StartReceive(UseSsl ? _serverCert : null);
-                    //}
-                });
+            _port = port;
+            _localOnly = localOnly;
+            _reqHandler = reqHandler; 
         }
 
+        public LargeFileUploadPermissionReqHandler LargeFileUploadPermissionReqHandler { get; set; }
 
         System.Security.Cryptography.X509Certificates.X509Certificate2 _serverCert;
         public void LoadCertificate(string certFile, string psw)
@@ -115,6 +83,48 @@ namespace SharpConnect.WebServers
             //------------------------------
             try
             {
+
+                //------------------------------
+                int maxNumberOfConnections = 500;
+                int excessSaeaObjectsInPool = 200;
+                int backlog = 100;
+                int maxSimultaneousAcceptOps = 100;
+
+                var setting = new NewConnListenerSettings(maxNumberOfConnections,
+                       excessSaeaObjectsInPool,
+                       backlog,
+                       maxSimultaneousAcceptOps,
+                       new IPEndPoint(_localOnly ? IPAddress.Loopback : IPAddress.Any, _port));//check only local host or not
+
+                CreateContextPool(maxNumberOfConnections);
+                _newConnListener = new NewConnectionListener(setting,
+                    clientSocket =>
+                    {
+                    //when accept new client
+
+                    int recvSize = 1024 * 2;
+                        int sendSize = 1024 * 2;
+                        HttpsContext context = new HttpsContext(this, recvSize, sendSize);
+                        context.BindReqHandler(_reqHandler); //client handler
+#if DEBUG
+                    context.dbugForHttps = true;
+#endif
+
+
+                    context.BindSocket(clientSocket); //*** bind to client socket                      
+                                                      //for ssl -> cert must not be null
+                    context.StartReceive(_serverCert);
+                    //TODO::
+                    //USE https context from Pool????
+                    //{
+                    //    HttpsContext context = _contextPool.Pop();
+                    //    context.BindSocket(clientSocket); //*** bind to client socket                      
+                    //    context.StartReceive(UseSsl ? _serverCert : null);
+                    //}
+                });
+                //------------------------------
+
+
                 //start web server   
                 _isRunning = true;
                 _newConnListener.StartListening();
