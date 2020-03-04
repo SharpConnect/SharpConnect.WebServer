@@ -85,6 +85,11 @@ namespace SharpConnect
             //max # for backlog can be limited by the operating system.
             _listenSocket.Listen(_setting.Backlog);
 
+            if (_listenSocket.LocalEndPoint is System.Net.IPEndPoint ipEndPoint)
+            {
+                ListeningOnPort = ipEndPoint.Port;
+            }           
+
             //#if DEBUG
             //            if (dbugLOG.watchProgramFlow)   //for testing
             //            {
@@ -95,9 +100,8 @@ namespace SharpConnect
             // Calls the method which will post accepts on the listening socket.            
             // This call just occurs one time from this StartListen method. 
             // After that the StartAccept method will be called in a loop.
-
-
         }
+        public int ListeningOnPort { get; private set; }
         SocketAsyncEventArgs CreateSocketAsyncEventArgsForAccept()
         {
 

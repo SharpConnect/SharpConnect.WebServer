@@ -26,6 +26,7 @@ namespace SharpConnect.WebServers
         }
 
         public LargeFileUploadPermissionReqHandler LargeFileUploadPermissionReqHandler { get; set; }
+        public int ListeningOnPort => _newConnListener.ListeningOnPort;
 
         System.Security.Cryptography.X509Certificates.X509Certificate2 _serverCert;
         public void LoadCertificate(string certFile, string psw)

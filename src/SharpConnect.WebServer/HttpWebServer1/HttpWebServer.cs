@@ -100,12 +100,7 @@ namespace SharpConnect.WebServers
                         HttpContext context = _contextPool.Pop();
                         context.BindSocket(clientSocket); //*** bind to client socket 
                         context.StartReceive(); //start receive data
-                    });
-
-
-
-
-
+                    }); 
                 //start web server   
                 _isRunning = true;
                 _newConnListener.StartListening();
@@ -114,6 +109,7 @@ namespace SharpConnect.WebServers
             {
             }
         }
+        public int ListeningOnPort => _newConnListener.ListeningOnPort;
         public void Stop()
         {
             _newConnListener.DisposePool();
