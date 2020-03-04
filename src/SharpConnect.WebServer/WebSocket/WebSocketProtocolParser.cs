@@ -77,8 +77,19 @@ namespace SharpConnect.WebServers
             //when we read header we start a new websocket request
             _currentReq = new WebSocketRequest(this.OwnerWebSocketConnBase);
 
+#if DEBUG
+            //byte[] peek = new byte[8];
+            //_myBufferStream.dbugPeekBytes(peek, 8);
+
+            //System.Text.StringBuilder stbuilder = new System.Text.StringBuilder();
+            //for (int i = 0; i < peek.Length; ++i)
+            //{
+            //    stbuilder.Append((char)peek[i]);
+            //}
+#endif
 
             byte b1 = _myBufferStream.ReadByte();
+
             // FIN
             Fin fin = (b1 & (1 << 7)) == (1 << 7) ? Fin.Final : Fin.More;
 
@@ -255,6 +266,7 @@ namespace SharpConnect.WebServers
             _parseState = ParseState.ExpectBody;
             return true;
         }
+        internal void ClearMemBuffer() => _myBufferStream.ForceClear();
 
         internal ProcessReceiveBufferResult ParseRecvData()
         {

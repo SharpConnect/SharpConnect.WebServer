@@ -164,7 +164,10 @@ namespace SharpConnect.WebServers
 
                             if (text.StartsWith("HTTP/1.1 101 Switching Protocols\r\nUpgrade"))
                             {
-                                _beginWebSocketMode = true;
+                                //clear prev buffer
+                                
+                                _webSocketReqParser.ClearMemBuffer();
+                                _beginWebSocketMode = true; 
                                 _recvIO.StartReceive();
 
                                 ////*** clear prev buffer before new recv

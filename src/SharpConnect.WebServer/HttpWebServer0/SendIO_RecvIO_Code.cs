@@ -380,7 +380,7 @@ namespace SharpConnect
     {
         MemoryStream _ms = new MemoryStream();
         int _latestReadPos = 0;
- 
+
 
         public RecvIOBufferStream()
         {
@@ -472,13 +472,23 @@ namespace SharpConnect
         {
             lock (_ms)
             {
-
                 _ms.Position = _latestReadPos;
                 _latestReadPos++;
                 return (byte)_ms.ReadByte();
             }
         }
-        
+#if DEBUG
+        public void dbugPeekBytes(byte[] output, int count)
+        {
+            lock (_ms)
+            {   
+                _ms.Position = _latestReadPos;
+                long backup = _ms.Position;
+                _ms.Read(output, 0, count);
+                _ms.Position = backup;                
+            }
+        }
+#endif
     }
 
 }

@@ -117,7 +117,7 @@ namespace SharpConnect.Internal
 
         public void RecvClearBuffer()
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
     }
 

@@ -97,7 +97,7 @@ namespace TestWsClient
 
         private void button5_Click(object sender, EventArgs e)
         {
-            Examples.System.Net.SslTcpClient.Main1();
+            
         }
     }
 }
