@@ -236,6 +236,17 @@ namespace SharpConnect.WebServers
                             default:
                                 throw new NotSupportedException();
                         }
+                        if (_headers.Count > 0)
+                        {
+                            foreach (var kv in _headers)
+                            {
+                                _headerStBuilder.Append(kv.Key);
+                                _headerStBuilder.Append(": ");
+                                _headerStBuilder.Append(kv.Value);
+                                _headerStBuilder.Append("\r\n");
+                            }
+                        }
+
                         //--------------------------------------------------------------------------------------------------------
                         switch (ContentEncoding)
                         {
