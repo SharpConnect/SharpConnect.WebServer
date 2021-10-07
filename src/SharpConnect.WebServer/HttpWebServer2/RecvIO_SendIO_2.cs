@@ -143,7 +143,7 @@ namespace SharpConnect.Internal2
                         return availableLen;
                     }
                     else
-                   {
+                    {
                         Buffer.BlockCopy(_largeBuffer, _startAt + _readIndex, dstBuffer, _startAt + dstIndex, count);
                         _readIndex += count;
                         return count;
@@ -251,6 +251,10 @@ namespace SharpConnect.Internal2
                 }
                 _sendingQueue.Clear();
             }
+        }
+        public void EnqueueOutputData(SharpConnect.WebServers.DataStream dataStream)
+        {
+
         }
         public void EnqueueOutputData(byte[] dataToSend, int count)
         {

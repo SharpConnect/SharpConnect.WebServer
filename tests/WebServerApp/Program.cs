@@ -8,10 +8,16 @@ namespace SharpConnect
     static class Program
     {
         static void Main(string[] args)
-        {
+        {         
             Main_Http();
             //Main_Https();
         }
+        
+        static void HandleWebReq(WebServers.HttpRequest req, WebServers.HttpResponse resp)
+        {
+            resp.End("OK");
+        }
+
 
         static List<SharpConnect.WebServers.WebSocketContext> s_contextList = new List<WebServers.WebSocketContext>();
 

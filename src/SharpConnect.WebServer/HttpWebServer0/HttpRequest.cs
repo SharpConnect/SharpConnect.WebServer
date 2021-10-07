@@ -13,6 +13,15 @@ namespace SharpConnect.WebServers
         NeedMore,
         Complete
     }
+    public abstract class DataStream
+    {
+        public abstract int CurrentReadPos { get; set; }
+        public abstract IntPtr GetUnManagedPtr();
+        public abstract byte[] GetManagedBuffer();
+        public abstract bool IsUnmanaged { get; }
+        public abstract int GetLength();
+        public DataStream Next { get; set; }
+    }
 
     interface IHttpContext : ISendIO
     {
@@ -23,8 +32,10 @@ namespace SharpConnect.WebServers
     }
     interface ISendIO
     {
+        void EnqueueSendingData(DataStream dataStream);
         void EnqueueSendingData(byte[] buffer, int len);
         void SendIOStartSend();
+
     }
     public class WebRequestParameter
     {
@@ -292,7 +303,6 @@ namespace SharpConnect.WebServers
                         //check if complete or not
                         _contentByteCount = 0; //reset
                         _uploadCanceled = false;//reset
-
                         _readPos = ParseHttpRequestHeader();
 
                         if (ContentLength > InMemMaxUploadBodySize)
@@ -465,8 +475,6 @@ namespace SharpConnect.WebServers
             }
             return readpos;
         }
-
-
 
         int _readPos;
         FileStream _uploadTempFile = null;

@@ -1,15 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26228.9
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31702.278
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NETSTD", "NETSTD", "{7B52AB7D-5670-44FF-A63C-3CEC0E0270F7}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NET20", "NET20", "{A504C555-2D0F-45F6-BE0F-ECE77E52AC54}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test", "Test", "{A4D07531-CF2A-48C3-A5C5-0BC11FAC787D}"
-EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "WebServerApp", "tests\WebServerApp\WebServerApp.shproj", "{CF4BFB13-5A72-4328-9700-8F27BC1C570A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpConnect.WebServer", "builds\NETSTD\SharpConnect.WebServer\SharpConnect.WebServer.csproj", "{24CA242A-B8F4-450D-A08F-69B23F54B4C9}"
 EndProject
@@ -29,12 +25,18 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "TestLoad", "tests\TestLoad\
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "SharpConnect.WebServer_SH", "src\SharpConnect.WebServer\SharpConnect.WebServer_SH.shproj", "{1585F301-4ECE-462C-A9D5-49BFE1C40041}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "WebServerApp_SH", "tests\WebServerApp\WebServerApp_SH.shproj", "{CF4BFB13-5A72-4328-9700-8F27BC1C570A}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		src\SharpConnect.WebServer\SharpConnect.WebServer.projitems*{1585f301-4ece-462c-a9d5-49bfe1c40041}*SharedItemsImports = 13
+		src\SharpConnect.WebServer\SharpConnect.WebServer.projitems*{24ca242a-b8f4-450d-a08f-69b23f54b4c9}*SharedItemsImports = 5
 		tests\TestLoad\TestLoad.projitems*{24e7e45b-3716-4dd3-b4b0-10dff0a6211a}*SharedItemsImports = 4
+		tests\TestLoad\TestLoad.projitems*{3fa078c1-4a8d-4d71-81c7-c8c978d8191c}*SharedItemsImports = 5
 		src\SharpConnect.WebServer\SharpConnect.WebServer.projitems*{741a7428-705d-4928-b02c-0db087fde753}*SharedItemsImports = 4
 		tests\TestLoad\TestLoad.projitems*{a793836f-ecfa-4009-b36b-b812baa4c7e1}*SharedItemsImports = 13
+		src\SharpConnect.WebServer\SharpConnect.WebServer.projitems*{b8817170-2aca-4535-bc1b-0d79e1eb0fe6}*SharedItemsImports = 5
+		tests\WebServerApp\WebServerApp.projitems*{b8817170-2aca-4535-bc1b-0d79e1eb0fe6}*SharedItemsImports = 5
 		tests\WebServerApp\WebServerApp.projitems*{ce060f7f-6f5f-45fa-855f-81f28ff00d21}*SharedItemsImports = 4
 		tests\WebServerApp\WebServerApp.projitems*{cf4bfb13-5a72-4328-9700-8f27bc1c570a}*SharedItemsImports = 13
 	EndGlobalSection
@@ -271,7 +273,6 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{CF4BFB13-5A72-4328-9700-8F27BC1C570A} = {A4D07531-CF2A-48C3-A5C5-0BC11FAC787D}
 		{24CA242A-B8F4-450D-A08F-69B23F54B4C9} = {7B52AB7D-5670-44FF-A63C-3CEC0E0270F7}
 		{741A7428-705D-4928-B02C-0DB087FDE753} = {A504C555-2D0F-45F6-BE0F-ECE77E52AC54}
 		{CE060F7F-6F5F-45FA-855F-81F28FF00D21} = {A504C555-2D0F-45F6-BE0F-ECE77E52AC54}

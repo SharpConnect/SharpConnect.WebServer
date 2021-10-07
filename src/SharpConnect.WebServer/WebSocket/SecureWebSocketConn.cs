@@ -104,6 +104,7 @@ namespace SharpConnect.WebServers
         {
             _clientStream.EnqueueSendData(buffer, len);
         }
+        void ISendIO.EnqueueSendingData(DataStream dataStream) => _clientStream.EnqueueSendData(dataStream);
         void ISendIO.SendIOStartSend() => _clientStream.StartSend();
 
 

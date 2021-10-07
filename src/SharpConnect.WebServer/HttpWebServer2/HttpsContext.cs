@@ -97,7 +97,7 @@ namespace SharpConnect.WebServers
         internal bool CreatedFromPool { get; set; }
 
         public void EnqueueSendingData(byte[] buffer, int len) => _sockStream.EnqueueSendData(buffer, len);
-
+        public void EnqueueSendingData(DataStream dataStream) => _sockStream.EnqueueSendData(dataStream);
         public int RecvByteTransfer => _sockStream.ByteReadTransfered;
         public byte ReadByte(int pos) => _sockStream.RecvReadByte(pos);
         public void RecvCopyTo(int readpos, byte[] dstBuffer, int copyLen) => _sockStream.RecvCopyTo(readpos, dstBuffer, copyLen);
@@ -326,7 +326,7 @@ namespace SharpConnect.WebServers
                                 }
                                 break;
                             case ProcessReceiveBufferResult.NeedMore:
-                                { 
+                                {
 
                                 }
                                 break;

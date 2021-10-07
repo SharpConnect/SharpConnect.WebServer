@@ -39,7 +39,7 @@ namespace SharpConnect.WebServers
     /// </summary>
     class HttpContext : IHttpContext, ISendIO
     {
-        const int RECV_BUFF_SIZE = 1024;
+        const int RECV_BUFF_SIZE = 1024 * 16;
 
         readonly SocketAsyncEventArgs _send_a;
         readonly SocketAsyncEventArgs _recv_a;
@@ -49,7 +49,7 @@ namespace SharpConnect.WebServers
         HttpRequestImpl _httpReq;
         HttpResponseImpl _httpResp;
         ReqRespHandler<HttpRequest, HttpResponse> _reqHandler;
-        HttpWebServer _ownerServer; 
+        HttpWebServer _ownerServer;
 
         public HttpContext(
             HttpWebServer ownerServer,
@@ -149,7 +149,7 @@ namespace SharpConnect.WebServers
                                         _httpResp.ActualEnd();
                                     }
 
-//                                    Reset();
+                                    //                                    Reset();
                                 }
                                 break;
                             case ProcessReceiveBufferResult.NeedMore:
@@ -269,8 +269,8 @@ namespace SharpConnect.WebServers
 
         public void SendIOStartSend() => _sendIO.StartSendAsync();
 
-        public void EnqueueSendingData(byte[] dataToSend, int count) => _sendIO.EnqueueOutputData(dataToSend, count); 
-      
+        public void EnqueueSendingData(byte[] dataToSend, int count) => _sendIO.EnqueueOutputData(dataToSend, count);
+        public void EnqueueSendingData(DataStream dataStream) => _sendIO.EnqueueOutputData(dataStream);
 
         public int RecvByteTransfer => _recvIO.BytesTransferred;
         public byte ReadByte(int pos) => _recvIO.ReadByte(pos);

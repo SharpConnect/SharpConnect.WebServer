@@ -5,6 +5,7 @@ using System.IO;
 using System.Net.Sockets;
 using System.Net.Security;
 using System.Threading;
+using SharpConnect.WebServers;
 
 namespace SharpConnect.Internal2
 {
@@ -68,6 +69,7 @@ namespace SharpConnect.Internal2
 
         internal abstract byte RecvReadByte(int pos);
         internal abstract void EnqueueSendData(byte[] buffer, int len);
+        internal abstract void EnqueueSendData(DataStream dataStream);
         internal abstract void RecvCopyTo(int readpos, byte[] dstBuffer, int copyLen);
 
         internal abstract void UnbindSocket();
@@ -166,7 +168,10 @@ namespace SharpConnect.Internal2
         {
             _sendIO.EnqueueOutputData(buffer, len);
         }
-
+        internal override void EnqueueSendData(DataStream dataStream)
+        {
+            _sendIO.EnqueueOutputData(dataStream);
+        }
         public void Bind(Socket socket)
         {
 
@@ -1036,7 +1041,11 @@ namespace SharpConnect.Internal2
                 _enqueueOutputData.Write(buffer, 0, len);
             }
         }
-
+        internal override void EnqueueSendData(DataStream dataStream)
+        {
+            //TODO: implement this
+            throw new NotImplementedException();
+        }
 
         readonly object _startSendLock = new object();
         bool _startSending;

@@ -22,7 +22,7 @@ namespace SharpConnect.WebServers
         {
             _port = port;
             _localOnly = localOnly;
-            _reqHandler = reqHandler; 
+            _reqHandler = reqHandler;
         }
 
         public LargeFileUploadPermissionReqHandler LargeFileUploadPermissionReqHandler { get; set; }
@@ -33,7 +33,10 @@ namespace SharpConnect.WebServers
         {
             _serverCert = new System.Security.Cryptography.X509Certificates.X509Certificate2(certFile, psw);
         }
-
+        public void LoadCertificate(byte[] rawCert, string psw)
+        {
+            _serverCert = new System.Security.Cryptography.X509Certificates.X509Certificate2(rawCert, psw);
+        }
         void CreateContextPool(int maxNumberOfConnnections)
         {
             int recvSize = 1024 * 2;
@@ -101,28 +104,28 @@ namespace SharpConnect.WebServers
                 _newConnListener = new NewConnectionListener(setting,
                     clientSocket =>
                     {
-                    //when accept new client
+                        //when accept new client
 
-                    int recvSize = 1024 * 2;
+                        int recvSize = 1024 * 2;
                         int sendSize = 1024 * 2;
                         HttpsContext context = new HttpsContext(this, recvSize, sendSize);
                         context.BindReqHandler(_reqHandler); //client handler
 #if DEBUG
-                    context.dbugForHttps = true;
+                        context.dbugForHttps = true;
 #endif
 
 
-                    context.BindSocket(clientSocket); //*** bind to client socket                      
-                                                      //for ssl -> cert must not be null
-                    context.StartReceive(_serverCert);
-                    //TODO::
-                    //USE https context from Pool????
-                    //{
-                    //    HttpsContext context = _contextPool.Pop();
-                    //    context.BindSocket(clientSocket); //*** bind to client socket                      
-                    //    context.StartReceive(UseSsl ? _serverCert : null);
-                    //}
-                });
+                        context.BindSocket(clientSocket); //*** bind to client socket                      
+                                                          //for ssl -> cert must not be null
+                        context.StartReceive(_serverCert);
+                        //TODO::
+                        //USE https context from Pool????
+                        //{
+                        //    HttpsContext context = _contextPool.Pop();
+                        //    context.BindSocket(clientSocket); //*** bind to client socket                      
+                        //    context.StartReceive(UseSsl ? _serverCert : null);
+                        //}
+                    });
                 //------------------------------
 
 
@@ -156,7 +159,6 @@ namespace SharpConnect.WebServers
             }
 
             HttpRequest httpReq = httpConn.HttpReq;
-            HttpResponse httpResp = httpConn.HttpResp;
             string upgradeKey = httpReq.GetHeaderKey("Upgrade");
             if (upgradeKey != null && upgradeKey == "websocket")
             {

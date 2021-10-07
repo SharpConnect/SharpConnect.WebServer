@@ -22,6 +22,7 @@ namespace SharpConnect.WebServers
 
         ApplicationOctetStream,
         ApplicationJson,
+        ApplicationWasm,
     }
 
     public enum TextCharSet : byte
@@ -104,6 +105,7 @@ namespace SharpConnect.WebServers
     }
 
 
+
     public abstract class HttpResponse : IDisposable
     {
         enum WriteContentState : byte
@@ -180,7 +182,7 @@ namespace SharpConnect.WebServers
         /// <param name="str"></param>
         public void Write(string str)
         {
-            //write to output stream 
+            //write to output stream             
             byte[] bytes = Encoding.UTF8.GetBytes(str.ToCharArray());
             //write to stream
             _bodyMs.Write(bytes, 0, bytes.Length);
@@ -201,13 +203,24 @@ namespace SharpConnect.WebServers
         public void End(string str)
         {
             //Write and End
+            _dataStream = null;
             Write(str);
             End();
         }
         public void End(byte[] data)
         {
+            _dataStream = null;
             _bodyMs.Write(data, 0, data.Length);
             _contentByteCount += data.Length;
+            End();
+        }
+        //***
+
+        DataStream _dataStream;
+        public void End(DataStream dataStream)
+        {
+            _dataStream = dataStream;
+            _contentByteCount = dataStream.GetLength();
             End();
         }
 
@@ -278,18 +291,30 @@ namespace SharpConnect.WebServers
                                     _headerStBuilder.Append("\r\n");//end header part                                     
                                     _writeContentState = WriteContentState.HttpBody;
                                     //-----------------------------------------------------------------
-                                    //switch transfer encoding method of the body***
-                                    byte[] headBuffer = Encoding.UTF8.GetBytes(_headerStBuilder.ToString().ToCharArray());
-                                    byte[] dataToSend = new byte[headBuffer.Length + _contentByteCount];
-                                    Buffer.BlockCopy(headBuffer, 0, dataToSend, 0, headBuffer.Length);
-                                    var pos = _bodyMs.Position;
-                                    _bodyMs.Position = 0;
-                                    _bodyMs.Read(dataToSend, headBuffer.Length, _contentByteCount);
-                                    //----------------------------------------------------
-                                    //copy data to send buffer
+                                    //TODO: switch transfer encoding method of the body***
+                                    if (_dataStream != null)
+                                    {
+                                        //MyByteDataStream headerBuffer = new MyByteDataStream();
+                                        //byte[] headBuffer = Encoding.UTF8.GetBytes(_headerStBuilder.ToString().ToCharArray());
+                                        //headerBuffer.SetData(headBuffer, headBuffer.Length);
+                                        //headerBuffer.Next = _dataStream;
+                                        //_sendIO.EnqueueSendingData(headerBuffer);
 
-                                    _sendIO.EnqueueSendingData(dataToSend, dataToSend.Length);
-                                    //---------------------------------------------------- 
+                                    }
+                                    else
+                                    {
+                                        byte[] headBuffer = Encoding.UTF8.GetBytes(_headerStBuilder.ToString().ToCharArray());
+                                        byte[] dataToSend = new byte[headBuffer.Length + _contentByteCount]; //TODO: review here, use pool?
+                                        Buffer.BlockCopy(headBuffer, 0, dataToSend, 0, headBuffer.Length);//copy header to buffer
+
+                                        _bodyMs.Position = 0;//reset start writing pos
+                                        _bodyMs.Read(dataToSend, headBuffer.Length, _contentByteCount);
+                                        //----------------------------------------------------
+                                        //copy data to send buffer
+                                        _sendIO.EnqueueSendingData(dataToSend, dataToSend.Length);
+                                        //---------------------------------------------------- 
+                                    }
+
                                     ResetAll();
                                 }
                                 break;
@@ -346,7 +371,7 @@ namespace SharpConnect.WebServers
         void WriteContentBodyInChunkMode()
         {
             //---------------------------------------------------- 
-            var pos = _bodyMs.Position;
+
             _bodyMs.Position = 0;
             byte[] bodyLengthInHex = Encoding.UTF8.GetBytes(_contentByteCount.ToString("X"));
             int chuckedPrefixLength = bodyLengthInHex.Length;
@@ -404,6 +429,8 @@ namespace SharpConnect.WebServers
                     return "image/jpeg";
                 case WebResponseContentType.ImagePng:
                     return "image/png";
+                case WebResponseContentType.ApplicationWasm:
+                    return "application/wasm";
                 case WebResponseContentType.ApplicationOctetStream:
                     return "application/octet-stream";
                 case WebResponseContentType.ApplicationJson:
@@ -426,6 +453,7 @@ namespace SharpConnect.WebServers
         static void HeaderAppendConnectionType(StringBuilder headerStBuilder, bool keepAlive)
         {
             //always close connection
+            //headerStBuilder.Append("Connection: keep-alive\r\n");
             //headerStBuilder.Append("Connection: close\r\n");
             if (keepAlive)
             {

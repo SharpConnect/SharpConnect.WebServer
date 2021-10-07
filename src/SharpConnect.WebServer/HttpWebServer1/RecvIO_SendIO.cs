@@ -175,6 +175,10 @@ namespace SharpConnect.Internal
                 _sendingQueue.Clear();
             }
         }
+        public void EnqueueOutputData(SharpConnect.WebServers.DataStream dd)
+        {
+
+        }
         public void EnqueueOutputData(byte[] dataToSend, int count)
         {
             lock (_stateLock)
@@ -196,7 +200,7 @@ namespace SharpConnect.Internal
 
         public int QueueCount => _sendingQueue.Count;
 
- 
+
         public void StartSendAsync()
         {
             lock (_stateLock)

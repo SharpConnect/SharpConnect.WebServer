@@ -144,8 +144,9 @@ namespace SharpConnect.WebServers
             //--------            
         }
         void ISendIO.EnqueueSendingData(byte[] buffer, int len) => _sendIO.EnqueueOutputData(buffer, len);
+        void ISendIO.EnqueueSendingData(DataStream dataStream) => _sendIO.EnqueueOutputData(dataStream);
         void ISendIO.SendIOStartSend() => _sendIO.StartSendAsync();
-
+        
         bool _beginWebSocketMode;
         void HandleReceivedData(RecvEventCode recvCode)
         {
@@ -165,9 +166,9 @@ namespace SharpConnect.WebServers
                             if (text.StartsWith("HTTP/1.1 101 Switching Protocols\r\nUpgrade"))
                             {
                                 //clear prev buffer
-                                
+
                                 _webSocketReqParser.ClearMemBuffer();
-                                _beginWebSocketMode = true; 
+                                _beginWebSocketMode = true;
                                 _recvIO.StartReceive();
 
                                 ////*** clear prev buffer before new recv
