@@ -26,6 +26,7 @@
  */
 
 using System;
+using System.Net;
 using System.Net.Sockets;
 using SharpConnect.Internal2;
 namespace SharpConnect.WebServers
@@ -45,6 +46,7 @@ namespace SharpConnect.WebServers
         AbstractAsyncNetworkStream _sockStream;
 
         Socket _clientSocket;
+        public EndPoint RemoteEndPoint => RemoteSocket.RemoteEndPoint;
 
 #if DEBUG
         static int dbugTotalId;
@@ -378,6 +380,8 @@ namespace SharpConnect.WebServers
                 return _dbugTokenId;
             }
         }
+
+
         int _dbugTokenId; //for testing only    
 
 #endif

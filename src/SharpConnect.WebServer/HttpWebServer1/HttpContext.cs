@@ -201,7 +201,7 @@ namespace SharpConnect.WebServers
         internal HttpResponse HttpResp => _httpResp;
 
         internal Socket RemoteSocket => _recv_a.AcceptSocket;
-
+        public System.Net.EndPoint RemoteEndPoint => RemoteSocket.RemoteEndPoint;
         /// <summary>
         /// bind to client socket
         /// </summary>

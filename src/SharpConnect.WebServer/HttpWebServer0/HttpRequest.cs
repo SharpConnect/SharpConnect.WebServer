@@ -3,7 +3,7 @@ using System;
 using System.IO;
 using System.Text;
 using System.Collections.Generic;
-
+using System.Net;
 
 namespace SharpConnect.WebServers
 {
@@ -20,6 +20,7 @@ namespace SharpConnect.WebServers
         int RecvByteTransfer { get; }
         byte ReadByte(int pos);
         void RecvCopyTo(int readpos, byte[] dstBuffer, int copyLen);
+        System.Net.EndPoint RemoteEndPoint { get; }
     }
     interface ISendIO
     {
@@ -175,6 +176,7 @@ namespace SharpConnect.WebServers
             internal set;
         }
         protected int ContentLength => _targetContentLength;
+        public abstract System.Net.EndPoint RemoteEndPoint { get; }
     }
 
     public class LargetFileUploadPolicyResult
@@ -197,7 +199,7 @@ namespace SharpConnect.WebServers
             _bodyMs = new MemoryStream();
             InMemMaxUploadBodySize = 1024 * 4;//default 4k
         }
-
+        public override EndPoint RemoteEndPoint => _context.RemoteEndPoint;
 
         public void SetLargeUploadFilePolicyHandler(LargeFileUploadPermissionReqHandler largeFileUploadPermissionReqHandler)
         {
